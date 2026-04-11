@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+/*
+ * Design Direction: "Refined Asset" (v0.1)
+ * Luxury / Refined — muted, sophisticated, weighted.
+ * Source: docs/20-product/design/ux/design-direction-v0.1.md
+ */
+
+:root {
+  /* Surface — warm off-white (bone) to avoid sterile digital feel */
+  --color-bone-50: #faf8f4;
+  --color-bone-100: #f3efe7;
+  --color-bone-200: #e8e2d4;
+  --color-bone-300: #d6ceba;
+
+  /* Ink — deep, desaturated near-black for typography */
+  --color-ink-900: #141210;
+  --color-ink-800: #1f1c18;
+  --color-ink-700: #2c2823;
+  --color-ink-600: #48423a;
+  --color-ink-500: #6b6558;
+  --color-ink-400: #8e8878;
+
+  /* Stone — muted neutrals for dividers, subtle surfaces */
+  --color-stone-100: #efeae0;
+  --color-stone-200: #ddd6c7;
+  --color-stone-300: #bcb3a0;
+
+  /* Accent — a restrained, antique gold for highlight moments only */
+  --color-gold-500: #a38653;
+  --color-gold-600: #8a7045;
+
+  /* Signal — muted clay/rust for errors, sage for success */
+  --color-clay-500: #a05a3f;
+  --color-sage-500: #6b7a5a;
+
+  --background: var(--color-bone-50);
+  --foreground: var(--color-ink-900);
+}
+
+@theme inline {
+  /* Surfaces & text */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-bone-50: var(--color-bone-50);
+  --color-bone-100: var(--color-bone-100);
+  --color-bone-200: var(--color-bone-200);
+  --color-bone-300: var(--color-bone-300);
+
+  --color-ink-900: var(--color-ink-900);
+  --color-ink-800: var(--color-ink-800);
+  --color-ink-700: var(--color-ink-700);
+  --color-ink-600: var(--color-ink-600);
+  --color-ink-500: var(--color-ink-500);
+  --color-ink-400: var(--color-ink-400);
+
+  --color-stone-100: var(--color-stone-100);
+  --color-stone-200: var(--color-stone-200);
+  --color-stone-300: var(--color-stone-300);
+
+  --color-gold-500: var(--color-gold-500);
+  --color-gold-600: var(--color-gold-600);
+
+  --color-clay-500: var(--color-clay-500);
+  --color-sage-500: var(--color-sage-500);
+
+  /* Typography — Fraunces (serif display) + Inter (sans body) */
+  --font-serif: var(--font-fraunces);
+  --font-sans: var(--font-inter);
+
+  /* Weighted, editorial tracking */
+  --tracking-tightest: -0.035em;
+  --tracking-tighter: -0.02em;
+  --tracking-wide: 0.04em;
+  --tracking-wider: 0.14em;
+
+  /* Motion — "Transition with Weight". Slow, ease-out curves. */
+  --ease-weighted: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --duration-weighted: 520ms;
+
+  /* Radii — cards feel crafted, not pill-shaped */
+  --radius-card: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bone-50: #131211;
+    --color-bone-100: #1a1815;
+    --color-bone-200: #24211c;
+    --color-ink-900: #f3efe7;
+    --color-ink-800: #e8e2d4;
+    --color-ink-700: #d6ceba;
+    --background: #131211;
+    --foreground: #f3efe7;
+  }
+}
+
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+body {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Display headings lean on the serif for editorial weight. */
+h1, h2, h3, .font-display {
+  font-family: var(--font-serif), ui-serif, Georgia, serif;
+  font-optical-sizing: auto;
+  letter-spacing: var(--tracking-tightest);
+}
+
+/* Honor reduced-motion preferences — our weighted transitions aren't worth discomfort. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
