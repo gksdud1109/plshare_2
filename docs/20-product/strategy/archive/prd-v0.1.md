@@ -1,4 +1,4 @@
-# [PRD] Life-Logging Ledger (가칭: PA - Playlist Asset) v0.1
+# [PRD] plshare2 v0.1
 
 ## Related Documents
 - `docs/20-product/requirements/playlist-first-product-intent.md`

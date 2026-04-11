@@ -57,7 +57,7 @@ Base everything on the concept below.
 
 ---
 
-# 📄 [기획 초안] 프로젝트 명: Life-Logging Ledger (가칭: PA - Playlist Asset)
+# 📄 [기획 초안] 프로젝트 명: plshare2
 
 ## 1. 서비스 비전 및 배경
 * **비전:** AI가 생성한 가짜 데이터가 넘치는 시대에, **'인간만이 가진 고유한 감성(Human-Authenticity)'**을 자산화하여 거대 자본(기업/국가)으로부터 개인에게 부를 재분배하는 **인간 중심의 경제 모델** 구축.

@@ -55,7 +55,7 @@ Use the project context below.
 
 ----- BEGIN PROJECT CONTEXT -----
 [PRD v0.1]
-# [PRD] Life-Logging Ledger (가칭: PA - Playlist Asset) v0.1
+# [PRD] plshare2 v0.1
 
 ## 1. 제품 요약 (Product Summary)
 AI가 생성한 데이터가 범람하는 시대에, '인간만이 생성할 수 있는 진본 데이터(Human-Authenticity)'를 수집, 검증 및 자산화하는 플랫폼입니다. 개인의 음악 취향, 감정 기록, 생활 맥락을 결합하여 고유한 가치를 지닌 '플레이리스트 에셋(PA)'을 생성하고 이를 통해 데이터 주권을 회복합니다.

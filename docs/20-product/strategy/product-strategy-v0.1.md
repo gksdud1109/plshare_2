@@ -1,4 +1,4 @@
-# [Product Strategy] Life-Logging Ledger (PA) v0.1
+# [Product Strategy] plshare2 v0.1
 
 ## 1. Executive Summary: The Sharp Angle
 본 제품은 **"음악을 재생하는 도구"**가 아니라, **"플랫폼에 갇힌 인간의 취향을 해방하고 자산화하는 레이어"**다. 

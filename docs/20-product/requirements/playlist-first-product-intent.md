@@ -1,7 +1,7 @@
 # Playlist-First Product Intent
 
 ## 목적
-이 문서는 `Life-Logging Ledger`에서 왜 첫 제품 단위를 `플레이리스트의 데이터화`로 잡는지 명확히 정의한다.
+이 문서는 `plshare2`에서 왜 첫 제품 단위를 `플레이리스트의 데이터화`로 잡는지 명확히 정의한다.
 
 이 문서는 향후 PRD, UX, ERD, 기능 요구사항 문서의 기준점으로 사용한다.
 

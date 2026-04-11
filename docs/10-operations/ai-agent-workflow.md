@@ -1,4 +1,4 @@
-# AI Ensemble Workflow for Life-Logging Ledger
+# AI Ensemble Workflow for plshare2
 
 ## 1. 목표
 이 문서는 `Claude Pro`, `ChatGPT Plus + Codex CLI/앱`, `Google AI Pro + Gemini CLI`를 동시에 운용해, 기획부터 MVP 구현까지 병렬 처리 효율을 최대화하는 운영 방식을 정리한다.
