@@ -2,6 +2,24 @@
 
 이 디렉터리는 역할 기반 에이전트의 페르소나, 책임, 입력/출력 형식, 대체 가능 범위를 정의한다.
 
+## 🚨 세션 시작 시 반드시 할 일
+
+1. **Git workflow 규칙을 먼저 읽는다:** [`../git-workflow.md`](../git-workflow.md)
+2. Pre-flight 체크를 실행한다:
+   ```bash
+   git branch --show-current    # 내 브랜치 확인
+   git status --short           # 더러운 파일 확인
+   git log --oneline -5         # 최근 히스토리
+   git stash list               # 미해결 stash
+   ```
+3. 본인 역할의 문서를 읽고, `docs/10-operations/handoffs/`에서 최신 지시서를 찾는다.
+4. **반드시 자기 역할 prefix의 브랜치**에서 작업을 시작한다:
+   - FE → `feat/fe/<기능명>`
+   - BE → `feat/be/<기능명>`
+   - Ops/문서 → `ops/<작업명>`
+   - **절대로 `main`에 직접 커밋하지 않는다.**
+5. 자기 영역(`/frontend`, `/backend`) 외 파일은 건드리지 않는다. 다른 에이전트의 브랜치에도 커밋하지 않는다.
+
 원칙:
 - 에이전트는 이름이 아니라 역할로 운영한다.
 - 같은 역할은 다른 AI가 대체할 수 있도록 입력/출력 형식을 고정한다.
