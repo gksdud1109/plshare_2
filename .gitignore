@@ -1,0 +1,58 @@
+# ---------------------------------------------------------------------------
+# OS / editor
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ---------------------------------------------------------------------------
+# Secrets / env
+# Keep .env.example committed explicitly (it's the template other devs copy).
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# ---------------------------------------------------------------------------
+# Frontend (Next.js) — mirrored at repo root so these paths are ignored
+# regardless of which branch is checked out. When the frontend/ folder
+# doesn't exist on a given branch (e.g. a backend feature branch), the
+# nested frontend/.gitignore is not consulted, so we need coverage here.
+# ---------------------------------------------------------------------------
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/coverage/
+frontend/.vercel/
+frontend/.turbo/
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+frontend/.pnp
+frontend/.pnp.*
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.pnpm-debug.log*
+
+# ---------------------------------------------------------------------------
+# Backend (Kotlin / Gradle / Spring Boot)
+# ---------------------------------------------------------------------------
+backend/build/
+backend/.gradle/
+backend/out/
+backend/bin/
+backend/**/*.class
+backend/**/*.log
+backend/HELP.md
+
+# ---------------------------------------------------------------------------
+# Logs
+# ---------------------------------------------------------------------------
+*.log
+logs/
