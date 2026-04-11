@@ -1,0 +1,3 @@
+- prd-v0.2: Sharpened MVP scope, moved B2B to roadmap, and aligned priorities with Product Strategy v0.1.
+- strategy-v0.1: Aligned handoff paths with the new directory structure.
+- priority-v0.1: Synced Tier 0/1/2/3 with P0/P1/P2 framework.
