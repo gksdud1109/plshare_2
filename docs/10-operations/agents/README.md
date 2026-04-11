@@ -12,6 +12,9 @@
 - 한 작업에는 하나의 주 산출물만 둔다.
 - 다른 계층 문서를 직접 넓게 수정하지 않는다.
 - 다음 단계로 넘길 판단은 handoff 형식으로 남긴다.
+- 현재 동결 기준은 `Spotify import -> Assetize -> Apple Music export`다.
+- `proof signal`은 `P1`, `B2B`는 `Future Expansion`으로 본다.
+- 문서 충돌 시 `docs/README.md`의 우선순위를 따른다.
 
 구성:
 - `product-owner.md`
@@ -20,8 +23,12 @@
 - `backend-engineer.md`
 - `reviewer-operator.md`
 
-도구별 참고 문서:
-- `gemini-strategist.md`
-- `claude-experience-designer.md`
-- `codex-cli-implementer.md`
-- `codex-app-orchestrator.md`
+historical 참고 문서:
+- `archive/gemini-strategist.md`
+- `archive/claude-experience-designer.md`
+- `archive/codex-cli-implementer.md`
+- `archive/codex-app-orchestrator.md`
+
+현재 운영 원칙:
+- 사람과 agent는 role-based 문서를 source of truth로 사용한다
+- tool-based 문서는 historical reference로만 본다

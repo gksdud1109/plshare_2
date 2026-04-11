@@ -8,6 +8,12 @@
 ## Module
 M[number]. [module name]
 
+## Receiver Role
+[role name]
+
+## Recommended Model
+[Gemini | Claude | Codex CLI | Codex App]
+
 ## Primary Agent
 [agent name]
 
@@ -36,4 +42,7 @@ M[number]. [module name]
 ## Done When
 - [completion condition 1]
 - [completion condition 2]
+
+## Next Role
+[next role]
 ```

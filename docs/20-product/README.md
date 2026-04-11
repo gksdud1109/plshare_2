@@ -22,3 +22,9 @@
 - 최신 시장 리서치: `research/market-research-v0.3.md`
 - 최신 기능 요구사항: `requirements/functional-requirements-v0.2.md`
 - 최신 비기능 요구사항: `requirements/non-functional-requirements-v0.2.md`
+
+현재 제품 기준:
+- P0는 `Spotify import -> Assetize -> Apple Music export`
+- P0는 `감성 맥락 저장과 이동성` 검증에 집중한다
+- 기술적 `proof signal`은 `P1`
+- `B2B`는 `Future Expansion`

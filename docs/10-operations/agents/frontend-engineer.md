@@ -38,3 +38,5 @@
 - 주 산출물은 코드와 `delivery` 문서에만 남긴다.
 - UX 문서를 직접 재정의하지 않는다.
 - 스펙과 구현 차이는 `ui-decision-log` 또는 handoff로 남긴다.
+- 현재 구현 baseline은 `Spotify import -> Assetize -> Apple Music export`다.
+- `proof signal`과 `B2B`를 P0 UI 범위로 끌어올리지 않는다.

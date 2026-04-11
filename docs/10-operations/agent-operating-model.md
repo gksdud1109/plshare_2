@@ -9,6 +9,12 @@
 - 모든 중간 산출물은 반드시 `md` 문서로 저장한다.
 - 코드 작업 전에는 반드시 문서 기준점이 먼저 있어야 한다.
 
+현재 동결 기준:
+- P0는 `Spotify import -> Assetize -> Apple Music export`
+- P0의 증거층은 `감성 맥락`이고, 기술적 `proof signal`은 `P1`
+- `B2B`는 `Future Expansion`으로만 다룬다
+- 문서가 충돌하면 `product-strategy -> prd -> mvp-feature-priority -> functional/non-functional requirements` 순으로 맞춘다
+
 ---
 
 ## 2. 역할 고정
@@ -181,8 +187,10 @@ docs/
 운영 규칙:
 - 재사용 가능한 skill 목록은 저장소 최상위 `/skills/README.md` 단일 파일로만 관리한다
 - 역할 문서는 `docs/10-operations/agents`
+- 역할 간 인수인계는 `docs/10-operations/handoffs`
 - 대체 가능한 업무 모듈은 `docs/10-operations/modules`
 - 실행 프롬프트는 `docs/10-operations/prompts`
+- 협업 규칙은 `docs/10-operations/collaboration-protocol-v0.1.md`
 - 문서 구조 기준은 `docs/00-foundation/document-architecture.md`
 - 최신 PRD는 `docs/20-product/strategy`, 이전 PRD는 `docs/20-product/strategy/archive`
 - 리서치 문서는 `docs/20-product/research`

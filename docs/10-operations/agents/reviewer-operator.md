@@ -38,3 +38,5 @@
 - 직접 모든 계층 문서를 넓게 다시 쓰지 않는다.
 - 충돌, 누락, 소유권 문제를 먼저 정리한다.
 - 미해결 항목은 `open-issues` 또는 migration/handoff 메모로 남긴다.
+- 현재 합의 기준에서 벗어나는 확장 제안은 바로 current에 넣지 말고 분리 기록한다.
+- 리뷰 기준은 `Spotify import -> Assetize -> Apple Music export`, `proof P1`, `B2B future`다.

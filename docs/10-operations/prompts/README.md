@@ -10,6 +10,7 @@
 
 현재 프롬프트:
 - `doc-restructure-execution-v0.1-prompt.md`
+- `gemini-po-strategy-consistency-v0.1-prompt.md`
 
 아카이브:
 - `archive/claude-skill-curation-v0.1-prompt.md`

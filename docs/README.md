@@ -6,7 +6,8 @@
 
 - 팀 운영 규칙: `docs/10-operations/`
 - 에이전트 역할 문서: `docs/10-operations/agents/`
-- 프롬프트와 작업 모듈: `docs/10-operations/prompts/`, `docs/10-operations/modules/`
+- handoff와 작업 모듈: `docs/10-operations/handoffs/`, `docs/10-operations/modules/`
+- 프롬프트: `docs/10-operations/prompts/`
 - 제품 전략과 최신 PRD: `docs/20-product/strategy/`
 - 시장 리서치: `docs/20-product/research/`
 - 기능/비기능 요구사항: `docs/20-product/requirements/`
@@ -36,6 +37,16 @@
 - 전체 워크플로우: `docs/10-operations/ai-agent-workflow.md`
 - 최신 PRD: `docs/20-product/strategy/prd-v0.2.md`
 - 최신 리서치: `docs/20-product/research/market-research-v0.3.md`
+
+## 현재 동결 기준
+
+현재 모든 사람과 agent는 아래 기준을 기본값으로 사용한다.
+
+- P0는 `Spotify import -> Assetize -> Apple Music export` 하나로 본다.
+- P0의 핵심 가치는 `감성 맥락 저장과 이동성`이다.
+- 기술적 `proof signal`은 `P1`이다.
+- `B2B`는 `Future Expansion`이다.
+- 문서 충돌 시 `product-strategy -> prd -> mvp-feature-priority -> functional/non-functional requirements` 순으로 맞춘다.
 
 ## 공통 협업 규칙
 

@@ -8,12 +8,12 @@ You are acting as a `Reviewer / Operator` and `Documentation Maintainer`.
 Your task is to execute the document restructure proposal in this repository.
 
 Primary reference:
-- `docs/10-operations/document-restructure-proposal-v0.1.md`
+- `docs/10-operations/archive/document-restructure-proposal-v0.1.md`
 
 You must first read and understand:
 - `docs/README.md`
 - `docs/00-foundation/document-architecture.md`
-- `docs/10-operations/document-restructure-proposal-v0.1.md`
+- `docs/10-operations/archive/document-restructure-proposal-v0.1.md`
 - `docs/10-operations/agent-operating-model.md`
 
 ## Goal
@@ -26,7 +26,7 @@ Reorganize the `docs/` directory so that:
 
 ## Target structure
 Implement the structure proposed in:
-- `docs/10-operations/document-restructure-proposal-v0.1.md`
+- `docs/10-operations/archive/document-restructure-proposal-v0.1.md`
 
 That means introducing at minimum:
 - `docs/00-foundation/`
@@ -67,7 +67,7 @@ At minimum, produce:
 - a migration summary document
 
 Create this migration summary:
-- `docs/10-operations/migration-log-v0.1.md`
+- `docs/10-operations/archive/migration-log-v0.1.md`
 
 The migration summary must include:
 - files moved

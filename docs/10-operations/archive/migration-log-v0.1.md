@@ -1,7 +1,7 @@
 # Docs Migration Log v0.1
 
 ## 목적
-이 문서는 `docs/10-operations/document-restructure-proposal-v0.1.md`를 기준으로 실행한 문서 구조 마이그레이션 결과를 기록한다.
+이 문서는 `docs/10-operations/archive/document-restructure-proposal-v0.1.md`를 기준으로 실행한 문서 구조 마이그레이션 결과를 기록한다.
 
 실행 목표:
 - 운영 문서와 제품 문서 분리
