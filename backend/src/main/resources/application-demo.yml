@@ -25,6 +25,12 @@ apple:
   team-id: demo-team
   key-id: demo-key
 
+apple-music:
+  team-id: ""
+  key-id: ""
+  private-key-pem: ""
+  storefront: us
+
 logging:
   level:
     com.plshare: DEBUG

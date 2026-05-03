@@ -1,52 +1,37 @@
 package com.plshare.backend.infrastructure.spotify
 
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.context.annotation.Profile
-import org.springframework.http.MediaType
-import org.springframework.stereotype.Component
-import org.springframework.web.reactive.function.client.WebClient
-import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
-import java.time.Duration
 
+/**
+ * Abstraction over Spotify Web API + OAuth.
+ *
+ * - `getAccessToken()` returns a client_credentials token used for anonymous metadata calls
+ *   (kept for backward compatibility with current import flow).
+ * - `buildAuthorizationUrl` / `exchangeCodeForToken` / `refreshAccessToken` implement the
+ *   OAuth 2.0 Authorization Code + PKCE flow used by `AuthController`.
+ * - `getCurrentUserPlaylists` requires a user-bound access token (the result of PKCE).
+ */
 interface SpotifyClient {
+    // --- client credentials (anonymous) ---
     fun getAccessToken(): Mono<String>
     fun getPlaylist(playlistId: String, accessToken: String): Mono<SpotifyPlaylistResponse>
     fun listUserPlaylists(accessToken: String): Mono<List<SpotifyPlaylistResponse>>
-}
 
-@Component
-@Profile("!demo")
-class RealSpotifyClient(
-    @Value("\${spotify.client-id}") private val clientId: String,
-    @Value("\${spotify.client-secret}") private val clientSecret: String
-) : SpotifyClient {
-    private val authClient = WebClient.create("https://accounts.spotify.com")
-    private val apiClient = WebClient.create("https://api.spotify.com/v1")
+    // --- OAuth 2.0 Authorization Code + PKCE ---
+    fun buildAuthorizationUrl(
+        state: String,
+        codeChallenge: String,
+        redirectUri: String,
+        scopes: List<String>
+    ): String
 
-    override fun getAccessToken(): Mono<String> {
-        return authClient.post()
-            .uri("/api/token")
-            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-            .bodyValue("grant_type=client_credentials")
-            .headers { it.setBasicAuth(clientId, clientSecret) }
-            .retrieve()
-            .bodyToMono<SpotifyTokenResponse>()
-            .map { it.accessToken }
-            .timeout(Duration.ofSeconds(5))
-    }
+    fun exchangeCodeForToken(
+        code: String,
+        codeVerifier: String,
+        redirectUri: String
+    ): Mono<SpotifyTokenSet>
 
-    override fun getPlaylist(playlistId: String, accessToken: String): Mono<SpotifyPlaylistResponse> {
-        return apiClient.get()
-            .uri("/playlists/$playlistId")
-            .headers { it.setBearerAuth(accessToken) }
-            .retrieve()
-            .bodyToMono<SpotifyPlaylistResponse>()
-            .timeout(Duration.ofSeconds(10))
-    }
+    fun refreshAccessToken(refreshToken: String): Mono<SpotifyTokenSet>
 
-    override fun listUserPlaylists(accessToken: String): Mono<List<SpotifyPlaylistResponse>> {
-        // Real implementation would call /me/playlists; demo only.
-        return Mono.just(emptyList())
-    }
+    fun getCurrentUserPlaylists(accessToken: String): Mono<List<SpotifyPlaylistResponse>>
 }

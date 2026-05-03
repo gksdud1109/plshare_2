@@ -90,4 +90,41 @@ class MockSpotifyClient : SpotifyClient {
     override fun listUserPlaylists(accessToken: String): Mono<List<SpotifyPlaylistResponse>> {
         return Mono.just(playlists.values.toList())
     }
+
+    // --- OAuth 2.0 PKCE (mock) ---
+
+    override fun buildAuthorizationUrl(
+        state: String,
+        codeChallenge: String,
+        redirectUri: String,
+        scopes: List<String>
+    ): String = "https://demo-spotify-auth/?state=$state"
+
+    override fun exchangeCodeForToken(
+        code: String,
+        codeVerifier: String,
+        redirectUri: String
+    ): Mono<SpotifyTokenSet> = Mono.just(
+        SpotifyTokenSet(
+            accessToken = "mock-access-${code.takeLast(6)}",
+            refreshToken = "mock-refresh-${code.takeLast(6)}",
+            tokenType = "Bearer",
+            expiresInSeconds = 3600,
+            scope = "playlist-read-private playlist-read-collaborative"
+        )
+    )
+
+    override fun refreshAccessToken(refreshToken: String): Mono<SpotifyTokenSet> = Mono.just(
+        SpotifyTokenSet(
+            accessToken = "mock-access-${refreshToken.takeLast(6)}-refreshed",
+            refreshToken = refreshToken,
+            tokenType = "Bearer",
+            expiresInSeconds = 3600,
+            scope = "playlist-read-private playlist-read-collaborative"
+        )
+    )
+
+    override fun getCurrentUserPlaylists(accessToken: String): Mono<List<SpotifyPlaylistResponse>> {
+        return Mono.just(playlists.values.toList())
+    }
 }
