@@ -153,7 +153,7 @@ tasks:
   last_error: 
 - id: be-spotify-oauth-001
   title: Replace MockSpotifyClient with real Spotify OAuth 2.0 PKCE flow
-  status: pending
+  status: done
   priority: p1
   role: backend-engineer
   agent: codex-cli
@@ -176,7 +176,7 @@ tasks:
   last_error: 
 - id: be-apple-musickit-001
   title: Replace MockAppleMusicWriteAdapter with MusicKit JWT + user token flow
-  status: pending
+  status: done
   priority: p1
   role: backend-engineer
   agent: codex-cli
@@ -196,7 +196,7 @@ tasks:
   last_error: 
 - id: be-matching-engine-001
   title: Implement real fuzzy matching for canonical track normalization
-  status: pending
+  status: done
   priority: p1
   role: backend-engineer
   agent: codex-cli
@@ -234,7 +234,7 @@ tasks:
   - Header shows logged-in user state
 - id: fe-share-page-seo-001
   title: Add OpenGraph + ISR to /share/[token] for rich link previews
-  status: pending
+  status: done
   priority: p1
   role: frontend-engineer
   agent: codex-cli

@@ -1,42 +1,77 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { getShared } from "@/lib/api/share";
+import { fetchShareDataServer } from "@/lib/api/share";
 import { buildDemoSharedAsset } from "@/lib/api/fixtures";
 import type { SharedAsset } from "@/types/asset";
-import { ProgressNarrative } from "@/components/ui/ProgressNarrative";
 import { TrackRow } from "@/components/ui/TrackRow";
+import { ShareCallToAction } from "@/components/share/ShareCallToAction";
 
-type State =
-  | { kind: "loading" }
-  | { kind: "ready"; data: SharedAsset; usingFixture: boolean };
+// ISR: regenerate the public share page at most every 5 minutes.
+export const revalidate = 300;
 
-export default function SharePage() {
-  const params = useParams<{ token: string }>();
-  const token = params.token;
-  const [state, setState] = useState<State>({ kind: "loading" });
+type PageProps = {
+  params: Promise<{ token: string }>;
+};
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await getShared(token);
-        if (!cancelled) setState({ kind: "ready", data, usingFixture: false });
-      } catch {
-        if (!cancelled)
-          setState({
-            kind: "ready",
-            data: buildDemoSharedAsset(token),
-            usingFixture: true,
-          });
-      }
-    })();
-    return () => {
-      cancelled = true;
+function excerpt(text: string | undefined, max = 140): string | undefined {
+  if (!text) return undefined;
+  const trimmed = text.replace(/\s+/g, " ").trim();
+  if (trimmed.length <= max) return trimmed;
+  return `${trimmed.slice(0, max - 1)}…`;
+}
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { token } = await params;
+  try {
+    const data = await fetchShareDataServer(token);
+    const description =
+      excerpt(data.diaryText) ??
+      excerpt(data.description) ??
+      "취향 자산을 함께 들어보세요";
+    return {
+      title: `${data.title} — plshare`,
+      description,
+      openGraph: {
+        title: data.title,
+        description,
+        type: "music.playlist",
+        images: [
+          {
+            url: `/share/${token}/opengraph-image`,
+            width: 1200,
+            height: 630,
+            alt: "plshare 취향 자산 카드",
+          },
+        ],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: data.title,
+        description,
+        images: [`/share/${token}/opengraph-image`],
+      },
     };
-  }, [token]);
+  } catch {
+    return {
+      title: "plshare",
+      description: "취향 자산 매니지먼트",
+    };
+  }
+}
+
+export default async function SharePage({ params }: PageProps) {
+  const { token } = await params;
+
+  let data: SharedAsset;
+  let usingFixture = false;
+  try {
+    data = await fetchShareDataServer(token);
+  } catch {
+    data = buildDemoSharedAsset(token);
+    usingFixture = true;
+  }
 
   return (
     <div className="min-h-screen">
@@ -44,22 +79,11 @@ export default function SharePage() {
         <Link href="/" className="font-display text-lg tracking-tight">
           plshare
         </Link>
-        <Link
-          href="/"
-          className="rounded-full border border-ink-900 px-4 py-2 text-xs tracking-wide text-ink-900 transition-colors duration-500 hover:bg-ink-900 hover:text-bone-50"
-        >
-          내 라이브러리 만들기
-        </Link>
+        <ShareCallToAction />
       </nav>
 
       <main className="mx-auto w-full max-w-5xl px-6 pb-20 md:px-10">
-        {state.kind === "loading" ? (
-          <div className="py-32">
-            <ProgressNarrative messages={["공유된 자산을 불러오는 중이에요…"]} />
-          </div>
-        ) : (
-          <ShareView data={state.data} usingFixture={state.usingFixture} />
-        )}
+        <ShareView data={data} usingFixture={usingFixture} />
       </main>
     </div>
   );
