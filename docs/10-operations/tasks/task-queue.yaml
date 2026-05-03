@@ -1,0 +1,305 @@
+---
+version: 1
+last_updated: '2026-04-13'
+owner: Reviewer / Operator
+defaults:
+  status_values:
+  - pending
+  - blocked
+  - in_progress
+  - review
+  - done
+  - failed
+  priority_values:
+  - p0
+  - p1
+  - p2
+  review_modes:
+  - auto_basic
+  - manual
+tasks:
+- id: po-strategy-sync-001
+  title: Sync strategy docs to frozen MVP decisions
+  status: done
+  priority: p0
+  role: product-owner
+  agent: claude-code
+  requires_approval: false
+  depends_on: []
+  input_docs:
+  - docs/20-product/strategy/strategy-consistency-pass-v0.1.md
+  - docs/20-product/strategy/prd-v0.2.md
+  - docs/20-product/strategy/product-strategy-v0.1.md
+  - docs/20-product/strategy/mvp-feature-priority-v0.1.md
+  briefing_path: docs/10-operations/briefings/po-strategy-sync-001.md
+  artifact_paths:
+  - docs/20-product/strategy/prd-v0.2.md
+  - docs/20-product/strategy/product-strategy-v0.1.md
+  - docs/20-product/strategy/mvp-feature-priority-v0.1.md
+  log_path: ".claude/logs/po-strategy-sync-001.log"
+  review_mode: auto_basic
+  locked_files:
+  - docs/20-product/strategy/prd-v0.2.md
+  - docs/20-product/strategy/product-strategy-v0.1.md
+  - docs/20-product/strategy/mvp-feature-priority-v0.1.md
+  done_criteria:
+  - B2B is removed from MVP-facing framing
+  - Human-authenticity is consistently framed as P1
+  - MVP scope is consistently frozen to Spotify import + Apple export
+  reviewer_role: reviewer-operator
+  next_role: product-designer
+  attempt_count: 2
+  started_at: '2026-04-14T00:19:58+09:00'
+  finished_at: '2026-04-14T00:22:15+09:00'
+  exit_code: 0
+  last_error: 
+- id: pd-ux-flow-001
+  title: Design UX for Spotify import to Apple export flow
+  status: done
+  priority: p0
+  role: product-designer
+  agent: claude-code
+  requires_approval: false
+  depends_on:
+  - po-strategy-sync-001
+  input_docs:
+  - docs/20-product/strategy/prd-v0.2.md
+  - docs/20-product/strategy/product-strategy-v0.1.md
+  - docs/20-product/strategy/mvp-feature-priority-v0.1.md
+  - docs/20-product/requirements/functional-requirements-v0.2.md
+  briefing_path: docs/10-operations/briefings/pd-ux-flow-001.md
+  artifact_paths:
+  - docs/20-product/design/ux/user-flows-v0.1.md
+  - docs/20-product/design/ux/screen-specs-v0.1.md
+  log_path: ".claude/logs/pd-ux-flow-001.log"
+  review_mode: auto_basic
+  locked_files:
+  - docs/20-product/design/ux/user-flows-v0.1.md
+  - docs/20-product/design/ux/screen-specs-v0.1.md
+  done_criteria:
+  - User flow covers Spotify import -> assetize -> Apple export
+  - Screen specs define empty, loading, failure, and success states
+  reviewer_role: reviewer-operator
+  next_role: frontend-engineer
+  attempt_count: 0
+  started_at: 
+  finished_at: 
+  exit_code: 
+  last_error: 
+- id: be-adapter-arch-001
+  title: Define asymmetric adapter and normalization architecture
+  status: done
+  priority: p0
+  role: backend-engineer
+  agent: codex-cli
+  requires_approval: false
+  depends_on:
+  - po-strategy-sync-001
+  input_docs:
+  - docs/20-product/strategy/prd-v0.2.md
+  - docs/20-product/strategy/product-strategy-v0.1.md
+  - docs/20-product/requirements/functional-requirements-v0.2.md
+  - docs/20-product/requirements/non-functional-requirements-v0.2.md
+  briefing_path: docs/10-operations/briefings/be-adapter-arch-001.md
+  artifact_paths:
+  - docs/20-product/data/adapter-architecture-v0.1.md
+  - docs/20-product/data/canonical-track-normalization-v0.1.md
+  log_path: ".claude/logs/be-adapter-arch-001.log"
+  review_mode: auto_basic
+  locked_files:
+  - docs/20-product/data/adapter-architecture-v0.1.md
+  - docs/20-product/data/canonical-track-normalization-v0.1.md
+  done_criteria:
+  - Spotify read adapter and Apple write adapter are clearly separated
+  - Canonical track identity and mapping flow are documented
+  - Failure, retry, and export job states are defined
+  reviewer_role: reviewer-operator
+  next_role: backend-engineer
+  attempt_count: 1
+  started_at: '2026-04-14T00:08:38+09:00'
+  finished_at: '2026-04-14T00:08:38+09:00'
+  exit_code: 2
+  last_error: 
+- id: demo-cycle-001
+  title: End-to-end demo cycle (BE H2/Mock + FE 9 routes + E2E verified)
+  status: done
+  priority: p0
+  role: full-stack
+  agent: claude-code
+  requires_approval: false
+  depends_on:
+  - be-adapter-arch-001
+  - pd-ux-flow-001
+  artifact_paths:
+  - backend/src/main/kotlin/com/plshare/backend/api/
+  - backend/src/main/kotlin/com/plshare/backend/infrastructure/apple/
+  - backend/src/main/kotlin/com/plshare/backend/infrastructure/spotify/MockSpotifyClient.kt
+  - frontend/src/app/
+  - frontend/src/components/ui/
+  - frontend/src/lib/api/
+  - frontend/e2e/demo-flow.spec.mjs
+  - docs/10-operations/demo-guide-v0.1.md
+  done_criteria:
+  - "./gradlew bootRun starts BE on :8080 with H2 + demo profile, no external creds"
+  - npm run start serves FE on :3000 with all 9 routes
+  - E2E (Playwright) covers Spotify import → Emotional Context → Apple export → share
+  - 16/16 assertions pass against running BE+FE
+  reviewer_role: reviewer-operator
+  next_role: backend-engineer
+  attempt_count: 1
+  started_at: '2026-05-03T20:30:00+09:00'
+  finished_at: '2026-05-03T21:55:00+09:00'
+  exit_code: 0
+  last_error: 
+- id: be-spotify-oauth-001
+  title: Replace MockSpotifyClient with real Spotify OAuth 2.0 PKCE flow
+  status: pending
+  priority: p1
+  role: backend-engineer
+  agent: codex-cli
+  requires_approval: false
+  depends_on:
+  - demo-cycle-001
+  input_docs:
+  - docs/20-product/data/adapter-architecture-v0.1.md
+  - backend/src/main/kotlin/com/plshare/backend/infrastructure/spotify/SpotifyClient.kt
+  - backend/src/main/kotlin/com/plshare/backend/infrastructure/spotify/MockSpotifyClient.kt
+  artifact_paths:
+  - backend/src/main/kotlin/com/plshare/backend/infrastructure/spotify/
+  - backend/src/main/kotlin/com/plshare/backend/api/AuthController.kt
+  - backend/src/main/resources/application-prod.yml
+  done_criteria:
+  - PKCE redirect handshake working with prod Spotify client credentials
+  - Refresh token persisted per user, transparent renewal on expiry
+  - Demo profile keeps MockSpotifyClient untouched
+  - Real adapter only activates with @Profile("!demo")
+  last_error: 
+- id: be-apple-musickit-001
+  title: Replace MockAppleMusicWriteAdapter with MusicKit JWT + user token flow
+  status: pending
+  priority: p1
+  role: backend-engineer
+  agent: codex-cli
+  requires_approval: false
+  depends_on:
+  - demo-cycle-001
+  input_docs:
+  - docs/20-product/data/adapter-architecture-v0.1.md
+  - backend/src/main/kotlin/com/plshare/backend/infrastructure/apple/AppleMusicWriteAdapter.kt
+  artifact_paths:
+  - backend/src/main/kotlin/com/plshare/backend/infrastructure/apple/
+  done_criteria:
+  - Developer JWT signing with ES256 from MusicKit private key
+  - User token capture flow on FE + BE relay
+  - createPlaylist / addTracks against real Apple Music API
+  - Quota / rate limit handling with retry
+  last_error: 
+- id: be-matching-engine-001
+  title: Implement real fuzzy matching for canonical track normalization
+  status: pending
+  priority: p1
+  role: backend-engineer
+  agent: codex-cli
+  requires_approval: false
+  depends_on:
+  - demo-cycle-001
+  input_docs:
+  - docs/20-product/data/canonical-track-normalization-v0.1.md
+  artifact_paths:
+  - backend/src/main/kotlin/com/plshare/backend/application/service/MatchingEngine.kt
+  - backend/src/main/kotlin/com/plshare/backend/domain/entity/CanonicalTrack.kt
+  done_criteria:
+  - ISRC primary lookup with UNIQUE constraint
+  - Fuzzy fallback (0.5*title + 0.3*artist + 0.2*duration) with Levenshtein
+  - matchConfidence score 0.0-1.0 persisted per mapping
+  - Conflict resolution policy implemented
+  last_error: 
+- id: fe-auth-flow-001
+  title: NextAuth-based user authentication and session UI
+  status: blocked
+  priority: p1
+  role: frontend-engineer
+  agent: codex-cli
+  requires_approval: false
+  depends_on:
+  - be-spotify-oauth-001
+  artifact_paths:
+  - frontend/src/app/api/auth/
+  - frontend/src/app/(auth)/
+  - frontend/src/lib/auth/
+  done_criteria:
+  - Login / logout flow with Spotify provider
+  - Session persistence with secure cookie
+  - Protected routes redirect to /auth/spotify
+  - Header shows logged-in user state
+- id: fe-share-page-seo-001
+  title: Add OpenGraph + ISR to /share/[token] for rich link previews
+  status: pending
+  priority: p1
+  role: frontend-engineer
+  agent: codex-cli
+  requires_approval: false
+  depends_on:
+  - demo-cycle-001
+  artifact_paths:
+  - frontend/src/app/share/[token]/page.tsx
+  - frontend/src/app/share/[token]/opengraph-image.tsx
+  done_criteria:
+  - generateMetadata with og:title / og:description / og:image
+  - opengraph-image.tsx renders Refined card with cover + diary excerpt
+  - revalidate 300s (ISR) so updates propagate within 5 min
+  - Twitter card variant included
+  last_error: 
+- id: ops-postgres-prod-001
+  title: PostgreSQL prod profile + Flyway migrations + docker-compose
+  status: pending
+  priority: p1
+  role: backend-engineer
+  agent: codex-cli
+  requires_approval: false
+  depends_on:
+  - demo-cycle-001
+  artifact_paths:
+  - backend/src/main/resources/db/migration/
+  - backend/build.gradle.kts
+  - docker-compose.yml
+  done_criteria:
+  - Flyway baseline migration matches current JPA schema
+  - prod profile uses PostgreSQL 16
+  - docker-compose brings up backend + postgres + frontend
+  - Health check endpoints
+  last_error: 
+- id: ops-ci-cd-001
+  title: GitHub Actions for build / test / E2E on PR
+  status: pending
+  priority: p2
+  role: ops
+  agent: codex-cli
+  requires_approval: false
+  depends_on:
+  - demo-cycle-001
+  artifact_paths:
+  - ".github/workflows/"
+  done_criteria:
+  - PR workflow runs gradle build + npm build
+  - Playwright E2E (frontend/e2e/demo-flow.spec.mjs) runs in headless CI
+  - Test results posted as PR check
+  - Branch protection requires green check before merge
+  last_error: 
+- id: be-emotional-context-media-001
+  title: Photo upload + storage for Emotional Context (S3-compatible)
+  status: pending
+  priority: p1
+  role: backend-engineer
+  agent: codex-cli
+  requires_approval: false
+  depends_on:
+  - demo-cycle-001
+  artifact_paths:
+  - backend/src/main/kotlin/com/plshare/backend/infrastructure/storage/
+  - backend/src/main/kotlin/com/plshare/backend/api/MediaController.kt
+  done_criteria:
+  - Pre-signed upload URL endpoint
+  - photoUrls populated on Asset PATCH
+  - S3-compatible (MinIO local, AWS S3 prod) abstraction
+  last_error: 
