@@ -75,12 +75,24 @@ export interface ExportMapping {
   status: ExportMappingStatus;
 }
 
+export type ExportJobStatusValue =
+  | "queued"
+  | "matching"
+  | "ready"
+  | "executing"
+  | "completed"
+  | "partial"
+  | "failed"
+  | "canceled";
+
 export interface ExportJobStatus {
-  status: "queued" | "matching" | "completed" | "failed";
+  status: ExportJobStatusValue;
   totalTracks: number;
   matchedTracks: number;
   failedTracks: number;
   mappings: ExportMapping[];
+  externalPlaylistId?: string | null;
+  externalUrl?: string | null;
 }
 
 export interface ExportResult {

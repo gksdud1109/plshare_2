@@ -43,8 +43,18 @@ class ExportService(
 
     @Async
     fun runExport(jobId: UUID) {
-        val job = exportJobRepository.findById(jobId).orElse(null) ?: run {
-            log.error("Export job not found: $jobId")
+        // outer @Transactional commit may not be visible yet — retry briefly.
+        var attempt = 0
+        var found: com.plshare.backend.domain.entity.ExportJob? = null
+        while (attempt < 10 && found == null) {
+            found = exportJobRepository.findById(jobId).orElse(null)
+            if (found == null) {
+                Thread.sleep(100)
+                attempt++
+            }
+        }
+        val job = found ?: run {
+            log.error("Export job not found after retries: $jobId")
             return
         }
         try {

@@ -97,11 +97,13 @@ export default function ExportPage() {
           try {
             const s = await getExportStatus(job.jobId);
             setStatus(s);
-            if (s.status === "completed") {
+            // completed / partial / failed are all terminal — navigate to result page
+            if (s.status === "completed" || s.status === "partial") {
               finish(job.jobId);
               return;
             }
             if (s.status === "failed") {
+              finish(job.jobId);
               return;
             }
             timer = setTimeout(poll, 1100);

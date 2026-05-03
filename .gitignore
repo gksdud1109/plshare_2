@@ -65,3 +65,4 @@ logs/
 .orchestrator/reports/
 .claude/logs/
 .claude/worktrees/
+frontend/e2e/screenshots/
