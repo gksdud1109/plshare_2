@@ -16,6 +16,8 @@ spring:
     console:
       enabled: true
       path: /h2-console
+  flyway:
+    enabled: false
 
 spotify:
   client-id: demo-client
@@ -30,6 +32,10 @@ apple-music:
   key-id: ""
   private-key-pem: ""
   storefront: us
+
+storage:
+  bucket: demo-local
+  public-base-url: http://localhost:8080/api/_demo/files
 
 logging:
   level:
