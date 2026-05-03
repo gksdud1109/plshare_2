@@ -64,14 +64,17 @@ class NormalizationEngine(
                 asset = asset,
                 name = item.track.name,
                 artist = item.track.artists.joinToString { it.name },
+                durationMs = item.track.durationMs,
                 isrc = item.track.isrc,
                 spotifyId = item.track.id
             )
         }
         asset.tracks.addAll(tracks)
-        
-        assetRepository.save(asset)
 
+        val saved = assetRepository.save(asset)
+
+        job.assetId = saved.id
+        job.totalTracks = tracks.size
         job.complete()
         job.updateProgress(tracks.size)
         importJobRepository.save(job)

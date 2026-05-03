@@ -31,7 +31,8 @@ data class SpotifyTrack(
     val id: String,
     val name: String,
     val artists: List<SpotifyArtist>,
-    @JsonProperty("external_ids") val externalIds: Map<String, String>?
+    @JsonProperty("duration_ms") val durationMs: Int? = null,
+    @JsonProperty("external_ids") val externalIds: Map<String, String>? = null
 ) {
     val isrc: String? get() = externalIds?.get("isrc")
 }

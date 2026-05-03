@@ -116,6 +116,22 @@ h1, h2, h3, .font-display {
   letter-spacing: var(--tracking-tightest);
 }
 
+/* Stagger fade-in for grids — used by /import and /assets. */
+@keyframes plshare-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: plshare-fade-up 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
 /* Honor reduced-motion preferences — our weighted transitions aren't worth discomfort. */
 @media (prefers-reduced-motion: reduce) {
   *,

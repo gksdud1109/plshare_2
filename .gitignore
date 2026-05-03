@@ -56,3 +56,12 @@ backend/HELP.md
 # ---------------------------------------------------------------------------
 *.log
 logs/
+
+# ---------------------------------------------------------------------------
+# Orchestrator transient state (logs / state / reports stay local)
+# ---------------------------------------------------------------------------
+.orchestrator/logs/
+.orchestrator/state/
+.orchestrator/reports/
+.claude/logs/
+.claude/worktrees/
