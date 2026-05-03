@@ -33,7 +33,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    
+
+    implementation("org.flywaydb:flyway-core")
+
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("com.h2database:h2")
     

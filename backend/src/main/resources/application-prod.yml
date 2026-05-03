@@ -1,17 +1,21 @@
 spring:
   datasource:
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/plshare}
+    username: ${DATABASE_USERNAME:plshare}
+    password: ${DATABASE_PASSWORD:plshare}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
         show_sql: false
         dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
 
 spotify:
   client-id: ${SPOTIFY_CLIENT_ID}
@@ -25,3 +29,11 @@ apple-music:
   key-id: ${APPLE_KEY_ID:}
   private-key-pem: ${APPLE_PRIVATE_KEY_PEM:}
   storefront: ${APPLE_STOREFRONT:us}
+
+storage:
+  bucket: ${S3_BUCKET:plshare-photos}
+  endpoint: ${S3_ENDPOINT:}
+  region: ${AWS_REGION:us-east-1}
+  access-key: ${AWS_ACCESS_KEY_ID:}
+  secret-key: ${AWS_SECRET_ACCESS_KEY:}
+  public-base-url: ${S3_PUBLIC_BASE_URL:}

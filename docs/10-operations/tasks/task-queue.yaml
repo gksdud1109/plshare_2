@@ -216,7 +216,7 @@ tasks:
   last_error: 
 - id: fe-auth-flow-001
   title: NextAuth-based user authentication and session UI
-  status: blocked
+  status: pending
   priority: p1
   role: frontend-engineer
   agent: codex-cli
@@ -232,6 +232,7 @@ tasks:
   - Session persistence with secure cookie
   - Protected routes redirect to /auth/spotify
   - Header shows logged-in user state
+  last_error: 
 - id: fe-share-page-seo-001
   title: Add OpenGraph + ISR to /share/[token] for rich link previews
   status: done
@@ -252,7 +253,7 @@ tasks:
   last_error: 
 - id: ops-postgres-prod-001
   title: PostgreSQL prod profile + Flyway migrations + docker-compose
-  status: pending
+  status: done
   priority: p1
   role: backend-engineer
   agent: codex-cli
@@ -271,7 +272,7 @@ tasks:
   last_error: 
 - id: ops-ci-cd-001
   title: GitHub Actions for build / test / E2E on PR
-  status: pending
+  status: done
   priority: p2
   role: ops
   agent: codex-cli
@@ -288,7 +289,7 @@ tasks:
   last_error: 
 - id: be-emotional-context-media-001
   title: Photo upload + storage for Emotional Context (S3-compatible)
-  status: pending
+  status: done
   priority: p1
   role: backend-engineer
   agent: codex-cli

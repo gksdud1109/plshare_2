@@ -1,0 +1,9 @@
+node_modules/
+.next/
+*.log
+.idea/
+.vscode/
+.DS_Store
+out/
+coverage/
+.env*.local
