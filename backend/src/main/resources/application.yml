@@ -1,19 +1,9 @@
 spring:
   application:
     name: plshare-backend
-  datasource:
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    properties:
-      hibernate:
-        format_sql: true
-        show_sql: false
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+  profiles:
+    default: demo
+    active: demo
 
 server:
   port: 8080
@@ -21,5 +11,3 @@ server:
 logging:
   level:
     com.plshare: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

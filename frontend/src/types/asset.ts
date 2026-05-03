@@ -1,24 +1,127 @@
 /**
- * Domain types for the Import -> Assetize -> Export loop.
- * These are a frontend-side best guess to unblock UI work while the BE contract
- * is being finalized. Replace with generated types once the OpenAPI/handoff lands.
- *
- * Source of truth (once ready):
- *   docs/20-product/delivery/implementation/open-issues.md
+ * Domain types — aligned with the BE contract for the Import -> Assetize -> Export loop.
  */
 
 export type AssetSource = "spotify" | "apple_music";
 
-export interface Track {
+/**
+ * Spotify-side playlist (pre-import). Returned by GET /api/playlists.
+ */
+export interface SpotifyPlaylist {
   id: string;
-  title: string;
-  artist: string;
-  album?: string;
-  durationMs: number;
-  coverUrl?: string;
-  externalUrls: Partial<Record<AssetSource, string>>;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  trackCount: number;
 }
 
+/**
+ * Track inside an asset detail (GET /api/assets/{id}).
+ */
+export interface AssetTrack {
+  id: string;
+  name: string;
+  artist: string;
+  isrc?: string;
+  durationMs: number;
+}
+
+/**
+ * Asset list item (GET /api/assets).
+ */
+export interface AssetSummary {
+  id: string;
+  title: string;
+  coverUrl?: string;
+  trackCount: number;
+  createdAt: string;
+  hasEmotionalContext: boolean;
+}
+
+/**
+ * Asset detail (GET /api/assets/{id}).
+ */
+export interface AssetDetail {
+  id: string;
+  title: string;
+  description?: string;
+  diaryText?: string;
+  emotionTags: string[];
+  coverUrl?: string;
+  tracks: AssetTrack[];
+}
+
+export interface ImportJob {
+  jobId: string;
+  status: "queued" | "matching" | "completed" | "failed";
+}
+
+export interface ImportJobStatus {
+  status: "queued" | "matching" | "completed" | "failed";
+  progress: number;
+  assetId?: string;
+}
+
+export interface ExportJob {
+  jobId: string;
+  status: "queued" | "matching" | "completed" | "failed";
+}
+
+export type ExportMappingStatus = "matched" | "alternative" | "failed";
+
+export interface ExportMapping {
+  trackId: string;
+  appleTrackId?: string;
+  status: ExportMappingStatus;
+}
+
+export type ExportJobStatusValue =
+  | "queued"
+  | "matching"
+  | "ready"
+  | "executing"
+  | "completed"
+  | "partial"
+  | "failed"
+  | "canceled";
+
+export interface ExportJobStatus {
+  status: ExportJobStatusValue;
+  totalTracks: number;
+  matchedTracks: number;
+  failedTracks: number;
+  mappings: ExportMapping[];
+  externalPlaylistId?: string | null;
+  externalUrl?: string | null;
+}
+
+export interface ExportResult {
+  externalPlaylistId: string;
+  externalUrl: string;
+  matchedTracks: number;
+  failedTracks: number;
+}
+
+export interface ShareLink {
+  shareToken: string;
+  url: string;
+}
+
+/**
+ * Public share payload (GET /api/share/{token}).
+ * Mirrors AssetDetail-ish shape, exposed to anonymous viewers.
+ */
+export interface SharedAsset {
+  id: string;
+  title: string;
+  description?: string;
+  diaryText?: string;
+  emotionTags: string[];
+  coverUrl?: string;
+  tracks: AssetTrack[];
+}
+
+// Legacy type kept for the existing AssetCard component until we migrate it.
 export interface PlaylistAsset {
   id: string;
   title: string;
@@ -27,7 +130,15 @@ export interface PlaylistAsset {
   coverUrl?: string;
   source: AssetSource;
   createdAt: string;
-  tracks: Track[];
+  tracks: Array<{
+    id: string;
+    title: string;
+    artist: string;
+    album?: string;
+    durationMs: number;
+    coverUrl?: string;
+    externalUrls: Partial<Record<AssetSource, string>>;
+  }>;
 }
 
 export type AsyncState<T> =

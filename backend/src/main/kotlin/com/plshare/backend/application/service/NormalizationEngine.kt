@@ -19,12 +19,28 @@ class NormalizationEngine(
     private val log = LoggerFactory.getLogger(this::class.java)
 
     /**
-     * 비동기 정규화 실행. 
+     * 비동기 정규화 실행.
      * 외부 API 호출과 DB 트랜잭션을 분리하여 장애 전파를 차단한다.
+     *
+     * 호출 측이 @Transactional 안에서 save 후 곧바로 이 메서드를 호출하면
+     * outer transaction commit 전에 async thread가 findById를 시도해 실패할 수 있다.
+     * 짧은 retry로 commit propagation을 흡수한다.
      */
     @Async
     fun runNormalization(jobId: java.util.UUID) {
-        val job = importJobRepository.findById(jobId).orElseThrow()
+        var attempt = 0
+        var found: com.plshare.backend.domain.entity.ImportJob? = null
+        while (attempt < 10 && found == null) {
+            found = importJobRepository.findById(jobId).orElse(null)
+            if (found == null) {
+                Thread.sleep(100)
+                attempt++
+            }
+        }
+        val job = found ?: run {
+            log.error("Normalization aborted: job $jobId not visible after $attempt retries")
+            return
+        }
         
         try {
             job.start()
@@ -64,14 +80,17 @@ class NormalizationEngine(
                 asset = asset,
                 name = item.track.name,
                 artist = item.track.artists.joinToString { it.name },
+                durationMs = item.track.durationMs,
                 isrc = item.track.isrc,
                 spotifyId = item.track.id
             )
         }
         asset.tracks.addAll(tracks)
-        
-        assetRepository.save(asset)
 
+        val saved = assetRepository.save(asset)
+
+        job.assetId = saved.id
+        job.totalTracks = tracks.size
         job.complete()
         job.updateProgress(tracks.size)
         importJobRepository.save(job)

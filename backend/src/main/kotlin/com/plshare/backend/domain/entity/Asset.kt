@@ -15,10 +15,25 @@ class Asset(
 
     var coverUrl: String? = null,
     var description: String? = null,
+
+    @Column(columnDefinition = "TEXT")
     var diaryText: String? = null,
 
     @Column(nullable = false)
     val sourcePlatform: String = "spotify",
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "asset_emotion_tags", joinColumns = [JoinColumn(name = "asset_id")])
+    @Column(name = "tag")
+    var emotionTags: MutableList<String> = mutableListOf(),
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "asset_photo_urls", joinColumns = [JoinColumn(name = "asset_id")])
+    @Column(name = "url")
+    var photoUrls: MutableList<String> = mutableListOf(),
+
+    @Column(unique = true)
+    var shareToken: String? = null,
 
     @OneToMany(mappedBy = "asset", cascade = [CascadeType.ALL], orphanRemoval = true)
     var tracks: MutableList<Track> = mutableListOf(),
@@ -42,6 +57,8 @@ class Track(
 
     @Column(nullable = false)
     val artist: String,
+
+    var durationMs: Int? = null,
 
     val isrc: String? = null, // Normalization key
 

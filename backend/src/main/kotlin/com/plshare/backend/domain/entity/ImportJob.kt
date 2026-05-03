@@ -22,6 +22,7 @@ class ImportJob(
     var status: ImportJobStatus = ImportJobStatus.QUEUED,
 
     var spotifyPlaylistId: String? = null,
+    var assetId: UUID? = null,
     var totalTracks: Int = 0,
     var processedTracks: Int = 0,
     var errorCode: String? = null,

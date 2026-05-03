@@ -1,33 +1,71 @@
 /**
- * Thin fetch wrapper that will front the BE API once the contract is locked.
- * Keeping it intentionally minimal — swap to generated SDK (e.g. openapi-typescript
- * or Supabase client) once BE handoff lands.
+ * Thin fetch wrapper for the plshare BE API.
+ * - Resolves base URL from NEXT_PUBLIC_API_BASE_URL (defaults to http://localhost:8080).
+ * - Auto-attaches X-Idempotency-Key when supplied.
+ * - Throws ApiError with status + body for predictable handling.
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+const BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "http://localhost:8080";
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  status: number;
+  body?: unknown;
+  constructor(status: number, message: string, body?: unknown) {
     super(message);
     this.name = "ApiError";
+    this.status = status;
+    this.body = body;
   }
 }
 
-export async function apiFetch<T>(
-  path: string,
-  init?: RequestInit,
-): Promise<T> {
+export interface ApiOptions extends Omit<RequestInit, "body"> {
+  body?: unknown;
+  idempotencyKey?: string;
+}
+
+export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
+  const { body, idempotencyKey, headers, ...rest } = options;
+
+  const finalHeaders: Record<string, string> = {
+    Accept: "application/json",
+    ...(headers as Record<string, string> | undefined),
+  };
+
+  let serializedBody: BodyInit | undefined;
+  if (body !== undefined) {
+    serializedBody = JSON.stringify(body);
+    finalHeaders["Content-Type"] = "application/json";
+  }
+
+  if (idempotencyKey) {
+    finalHeaders["X-Idempotency-Key"] = idempotencyKey;
+  }
+
   const res = await fetch(`${BASE_URL}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...init?.headers,
-    },
+    ...rest,
+    headers: finalHeaders,
+    body: serializedBody,
+    cache: "no-store",
   });
 
   if (!res.ok) {
-    throw new ApiError(res.status, `API ${res.status}: ${path}`);
+    let errBody: unknown;
+    try {
+      errBody = await res.json();
+    } catch {
+      errBody = await res.text().catch(() => undefined);
+    }
+    throw new ApiError(res.status, `API ${res.status}: ${path}`, errBody);
   }
 
+  // 204 No Content
+  if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
+
+export function makeIdempotencyKey(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export const apiBaseUrl = BASE_URL;
