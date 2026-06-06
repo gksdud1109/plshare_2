@@ -17,35 +17,49 @@ export function PlaylistCard({
       type="button"
       onClick={() => onSelect?.(playlist.id)}
       className={cn(
-        "group relative flex w-full flex-col overflow-hidden rounded-[var(--radius-card)]",
-        "border border-stone-200 bg-bone-100 text-left",
-        "shadow-[0_1px_0_rgba(20,18,16,0.04),0_18px_40px_-30px_rgba(20,18,16,0.2)]",
-        "transition-[transform,box-shadow] duration-[var(--duration-weighted)] ease-[var(--ease-weighted)]",
-        "hover:-translate-y-0.5 hover:shadow-[0_1px_0_rgba(20,18,16,0.05),0_28px_60px_-30px_rgba(20,18,16,0.32)]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60",
+        "group relative flex w-full flex-col overflow-hidden rounded-card text-left",
+        "border border-hairline bg-surface-1",
+        "shadow-[var(--shadow-card)]",
+        "transition-[transform,box-shadow,border-color] duration-300 ease-[var(--ease-spring)]",
+        "hover:-translate-y-1 hover:border-hairline-strong hover:shadow-[var(--shadow-pop)]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
         className,
       )}
     >
-      <div className="aspect-square w-full overflow-hidden bg-stone-200">
+      {/* square cover with ambient glow */}
+      <div className="relative aspect-square w-full overflow-hidden rounded-image bg-surface-3">
         {playlist.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={playlist.imageUrl}
-            alt={playlist.name}
-            className="h-full w-full object-cover transition-transform duration-[var(--duration-weighted)] ease-[var(--ease-weighted)] group-hover:scale-[1.02]"
-          />
-        ) : null}
+          <>
+            <img
+              src={playlist.imageUrl}
+              alt=""
+              aria-hidden
+              className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-2xl"
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={playlist.imageUrl}
+              alt={playlist.name}
+              className="relative h-full w-full object-cover transition-transform duration-500 ease-[var(--ease-spring)] group-hover:scale-105"
+            />
+          </>
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <span className="text-4xl text-text-low">♪</span>
+          </div>
+        )}
       </div>
-      <div className="flex flex-col gap-2 p-5">
-        <h3 className="font-display text-lg leading-snug text-ink-900">
+
+      <div className="flex flex-col gap-1.5 p-4">
+        <h3 className="truncate text-[1.0625rem] font-bold leading-snug text-text-hi">
           {playlist.name}
         </h3>
         {playlist.description ? (
-          <p className="line-clamp-2 text-sm leading-relaxed text-ink-600">
+          <p className="line-clamp-2 text-sm leading-relaxed text-text-mid">
             {playlist.description}
           </p>
         ) : null}
-        <p className="mt-1 text-xs tracking-wide text-ink-400">
+        <p className="mt-1 text-xs tabular-nums text-text-low">
           {playlist.trackCount} tracks
         </p>
       </div>

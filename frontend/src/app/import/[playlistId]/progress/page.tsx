@@ -15,6 +15,9 @@ const NARRATIVE = [
   "자산으로 정리하고 있어요…",
 ];
 
+// Deterministic cover image based on playlistId seed
+const COVER_SEEDS = ["pl1", "pl2", "pl3", "pl4", "pl5"];
+
 export default function ImportProgressPage() {
   const router = useRouter();
   const params = useParams<{ playlistId: string }>();
@@ -95,17 +98,44 @@ export default function ImportProgressPage() {
     };
   }, [playlistId, router]);
 
+  // Pick a stable cover seed from the playlistId
+  const coverSeed =
+    COVER_SEEDS[
+      Math.abs(
+        playlistId
+          .split("")
+          .reduce((acc, c) => acc + c.charCodeAt(0), 0),
+      ) % COVER_SEEDS.length
+    ];
+  const coverUrl = `https://picsum.photos/seed/${coverSeed}/600/600`;
+
+  const statusText =
+    statusLabel === "queued"
+      ? "대기 중"
+      : statusLabel === "matching"
+        ? "정규화 중"
+        : statusLabel === "completed"
+          ? "완료"
+          : "실패";
+
   return (
     <PageShell>
-      <section className="flex min-h-[60vh] max-w-3xl flex-col justify-center py-16">
-        <p className="mb-6 text-xs uppercase tracking-[0.24em] text-ink-500">
-          Step 2 · Importing
-        </p>
-
+      <section className="flex min-h-[80vh] flex-col items-center justify-center py-16 text-center">
         {error ? (
-          <div className="flex flex-col items-start gap-6">
-            <h1 className="text-3xl leading-tight">{error}</h1>
-            <p className="max-w-md text-sm text-ink-500">
+          /* ── Error state ─────────────────────────────────────── */
+          <div
+            className="flex w-full max-w-md flex-col items-center gap-6 animate-fade-up"
+          >
+            <div
+              className="rounded-[18px] border px-6 py-5 text-sm text-danger"
+              style={{
+                background: "rgba(251,113,133,0.08)",
+                borderColor: "rgba(251,113,133,0.2)",
+              }}
+            >
+              {error}
+            </div>
+            <p className="text-sm text-text-mid">
               일부 트랙은 ISRC 정보가 없어 매칭이 어려울 수 있어요.
             </p>
             <div className="flex gap-3">
@@ -114,7 +144,6 @@ export default function ImportProgressPage() {
                 onClick={() => {
                   setError(null);
                   startedRef.current = false;
-                  // re-trigger effect via small state nudge
                   setProgress(0);
                   setStatusLabel("queued");
                   setTimeout(() => {
@@ -122,42 +151,110 @@ export default function ImportProgressPage() {
                     location.reload();
                   }, 50);
                 }}
-                className="rounded-full bg-ink-900 px-5 py-2 text-sm text-bone-50 transition-colors duration-500 hover:bg-ink-700"
+                className="inline-flex h-12 items-center rounded-full bg-accent px-6 text-sm font-semibold text-white transition-all duration-300 hover:bg-accent-hi active:bg-accent-press focus-ring"
               >
                 다시 시도
               </button>
               <button
                 type="button"
                 onClick={() => router.push("/import")}
-                className="rounded-full border border-stone-300 px-5 py-2 text-sm text-ink-700 transition-colors duration-500 hover:bg-bone-100"
+                className="glass inline-flex h-12 items-center rounded-full px-6 text-sm font-medium text-text-hi transition-colors duration-300 hover:border-hairline-strong"
               >
                 다른 플레이리스트 고르기
               </button>
             </div>
           </div>
         ) : (
-          <>
+          /* ── Progress state ──────────────────────────────────── */
+          <div className="flex w-full max-w-sm flex-col items-center gap-8 animate-fade-up">
+            {/* Eyebrow */}
+            <p
+              className="text-text-low"
+              style={{
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+              }}
+            >
+              Step 2 · Importing
+            </p>
+
+            {/* Large cover with ambient glow */}
+            <div className="relative">
+              {/* Ambient glow behind cover */}
+              <div
+                className="cover-glow absolute inset-0 rounded-[16px]"
+                style={{
+                  backgroundImage: `url(${coverUrl})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  animation: "plshare-pulse-glow 3s ease-in-out infinite",
+                }}
+                aria-hidden
+              />
+              {/* Accent glow overlay */}
+              <div
+                className="pointer-events-none absolute inset-[-30px] rounded-full animate-pulse-glow"
+                style={{
+                  background:
+                    "radial-gradient(circle, rgba(124,92,255,0.20) 0%, transparent 70%)",
+                }}
+                aria-hidden
+              />
+              <img
+                src={coverUrl}
+                alt="플레이리스트 커버"
+                width={240}
+                height={240}
+                className="relative rounded-[16px] object-cover"
+                style={{
+                  boxShadow:
+                    "0 20px 60px -20px rgba(0,0,0,0.8), var(--shadow-glow)",
+                  border: "1px solid rgba(255,255,255,0.10)",
+                  display: "block",
+                }}
+              />
+            </div>
+
+            {/* Narrative */}
             <ProgressNarrative messages={NARRATIVE} intervalMs={2200} />
-            <div className="mt-12 max-w-md">
-              <div className="h-px w-full overflow-hidden bg-stone-200">
+
+            {/* Accent slim progress bar */}
+            <div className="w-full">
+              <div
+                className="w-full overflow-hidden rounded-full"
+                style={{ height: 3, background: "var(--accent-soft)" }}
+                role="progressbar"
+                aria-valuenow={progress}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
                 <div
-                  className="h-full bg-ink-900 transition-all duration-700 ease-[var(--ease-weighted)]"
-                  style={{ width: `${Math.max(4, progress)}%` }}
+                  className="h-full rounded-full bg-accent transition-all duration-700"
+                  style={{
+                    width: `${Math.max(4, progress)}%`,
+                    boxShadow: "0 0 8px 0 rgba(124,92,255,0.7)",
+                    transitionTimingFunction: "var(--ease-out)",
+                  }}
                 />
               </div>
-              <p className="mt-3 text-xs tracking-wide text-ink-400">
-                {statusLabel === "queued"
-                  ? "대기 중"
-                  : statusLabel === "matching"
-                    ? "정규화 중"
-                    : statusLabel === "completed"
-                      ? "완료"
-                      : "실패"}
-                {" · "}
-                {progress}%
-              </p>
+              <div className="mt-3 flex items-center justify-between">
+                <p
+                  className="text-text-mid"
+                  style={{ fontSize: "0.8125rem", letterSpacing: "0.02em" }}
+                >
+                  {statusText}
+                </p>
+                <p
+                  className="tabular-nums text-text-low"
+                  style={{ fontSize: "0.8125rem" }}
+                >
+                  {progress}%
+                </p>
+              </div>
             </div>
-          </>
+          </div>
         )}
       </section>
     </PageShell>

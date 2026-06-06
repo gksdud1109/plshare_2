@@ -50,7 +50,7 @@ export function SessionBadge() {
     return (
       <span
         aria-label="세션 확인 중"
-        className="h-3 w-16 animate-pulse rounded-full bg-stone-200"
+        className="h-3 w-16 animate-pulse rounded-full bg-surface-3"
       />
     );
   }
@@ -59,7 +59,7 @@ export function SessionBadge() {
     return (
       <Link
         href="/auth/spotify"
-        className="text-xs tracking-wide text-ink-500 transition-colors duration-500 hover:text-ink-900"
+        className="inline-flex items-center rounded-full bg-accent px-4 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-accent-hi active:bg-accent-press"
       >
         Spotify 연결
       </Link>
@@ -68,7 +68,7 @@ export function SessionBadge() {
 
   return (
     <div className="flex items-center gap-3 text-xs tracking-wide">
-      <span className="inline-flex items-center gap-1.5 text-sage-500">
+      <span className="inline-flex items-center gap-1.5 font-medium text-success">
         <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
         연결됨
       </span>
@@ -76,7 +76,7 @@ export function SessionBadge() {
         type="button"
         onClick={logout}
         disabled={loggingOut}
-        className="text-ink-400 transition-colors duration-500 hover:text-ink-900 disabled:cursor-wait disabled:opacity-60"
+        className="text-text-mid transition-colors duration-200 hover:text-text-hi disabled:cursor-wait disabled:opacity-50"
       >
         {loggingOut ? "해제 중…" : "로그아웃"}
       </button>
