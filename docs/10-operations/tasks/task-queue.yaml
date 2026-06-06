@@ -216,7 +216,7 @@ tasks:
   last_error: 
 - id: fe-auth-flow-001
   title: NextAuth-based user authentication and session UI
-  status: pending
+  status: done
   priority: p1
   role: frontend-engineer
   agent: codex-cli
