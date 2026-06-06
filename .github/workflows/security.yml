@@ -1,9 +1,12 @@
 name: Security
 
+# ⚠️ 비활성화됨 (2026-06-06) — gitleaks 시크릿 스캔 자동 실행 중단.
+# 다시 켜려면: 아래 workflow_dispatch 를 지우고 주석 처리된 pull_request/push 블록을 복원.
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
+#  pull_request:
+#  push:
+#    branches: [main]
 
 jobs:
   secret-scan:
