@@ -1,50 +1,83 @@
-version: "3.9"
+# plshare2 — 로컬 원커맨드 실행
+#
+#   docker compose up --build
+#
+# 위 명령 하나로 백엔드(:8080) + 프론트엔드(:3000)가 뜬다.
+# 외부 자격증명/DB 불필요 — 백엔드는 demo 프로파일(H2 인메모리 + Mock Spotify/Apple),
+# 프론트엔드는 그 백엔드에 붙는다. 브라우저로 http://localhost:3000 접속.
+#
+# 끄기:   docker compose down
+# 재빌드: docker compose up --build
+#
+# ※ 프로덕션 인프라(PostgreSQL, 실제 어댑터)는 아래 맨 끝에 주석으로 보존돼 있다.
+#   실제 배포 여력이 생기면 그 블록을 켜고 backend 의 SPRING_PROFILES_ACTIVE 를 prod 로 바꾸면 된다.
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: plshare
-      POSTGRES_PASSWORD: plshare
-      POSTGRES_DB: plshare
-    ports:
-      - "5432:5432"
-    volumes:
-      - plshare-pg-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U plshare"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      SPRING_PROFILES_ACTIVE: prod
-      DATABASE_URL: jdbc:postgresql://postgres:5432/plshare
-      DATABASE_USERNAME: plshare
-      DATABASE_PASSWORD: plshare
-      # Real adapter env vars (자격증명 없으면 호출 시 fail)
-      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
-      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+      # demo = H2 인메모리 + Mock 어댑터. 자격증명 없이 즉시 동작.
+      SPRING_PROFILES_ACTIVE: demo
     ports:
       - "8080:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
+    healthcheck:
+      # temurin 이미지는 bash 포함. /dev/tcp 로 포트 오픈 여부만 확인(추가 툴 불필요).
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/8080'"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        # 브라우저에서 호출하는 주소(빌드 시 번들에 인라인됨). 호스트에 게시된 8080 포트.
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+      # 프론트엔드 컨테이너 내부(SSR/route handler)에서 백엔드를 부를 때 쓰는 주소.
+      API_BASE_INTERNAL_URL: http://backend:8080
     ports:
       - "3000:3000"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
-volumes:
-  plshare-pg-data:
+# ──────────────────────────────────────────────────────────────────────────
+# 프로덕션 인프라 (현재 비활성 — 실제 배포 준비되면 주석 해제)
+# ──────────────────────────────────────────────────────────────────────────
+# 1) 아래 postgres 서비스 블록의 주석을 해제
+# 2) backend.environment 를 아래처럼 교체:
+#      SPRING_PROFILES_ACTIVE: prod
+#      DATABASE_URL: jdbc:postgresql://postgres:5432/plshare
+#      DATABASE_USERNAME: plshare
+#      DATABASE_PASSWORD: plshare
+#      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
+#      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+#      APPLE_TEAM_ID: ${APPLE_TEAM_ID:-}
+#      APPLE_KEY_ID: ${APPLE_KEY_ID:-}
+#      APPLE_PRIVATE_KEY_PEM: ${APPLE_PRIVATE_KEY_PEM:-}
+# 3) backend.depends_on 에 postgres(condition: service_healthy) 추가
+# 4) 맨 아래 volumes 블록 주석 해제
+#
+#   postgres:
+#     image: postgres:16-alpine
+#     environment:
+#       POSTGRES_USER: plshare
+#       POSTGRES_PASSWORD: plshare
+#       POSTGRES_DB: plshare
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - plshare-pg-data:/var/lib/postgresql/data
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U plshare"]
+#       interval: 5s
+#       timeout: 3s
+#       retries: 10
+#
+# volumes:
+#   plshare-pg-data:

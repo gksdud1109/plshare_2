@@ -1,8 +1,11 @@
 name: Docker
 
+# ⚠️ 비활성화됨 (2026-06-06) — GHCR 이미지 빌드/푸시 자동 실행 중단.
+# 다시 켜려면: 아래 workflow_dispatch 를 지우고 주석 처리된 push 블록을 복원.
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+#  push:
+#    branches: [main]
 
 jobs:
   build:

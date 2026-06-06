@@ -4,6 +4,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+# 브라우저 번들에 인라인되는 API 주소 (compose 의 build.args 로 주입). 기본값은 로컬 데모용.
+ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 RUN npm run build
 
 FROM node:20-alpine
