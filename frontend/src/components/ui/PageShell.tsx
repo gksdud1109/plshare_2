@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SessionBadge } from "@/components/ui/SessionBadge";
 import { cn } from "@/lib/utils/cn";
 
 export function PageShell({
@@ -19,14 +20,17 @@ export function PageShell({
         >
           plshare
         </Link>
-        {showHomeLink ? (
-          <Link
-            href="/assets"
-            className="text-xs uppercase tracking-[0.18em] text-ink-500 transition-colors duration-500 hover:text-ink-900"
-          >
-            Library
-          </Link>
-        ) : null}
+        <div className="flex items-center gap-5">
+          {showHomeLink ? (
+            <Link
+              href="/assets"
+              className="text-xs uppercase tracking-[0.18em] text-ink-500 transition-colors duration-500 hover:text-ink-900"
+            >
+              Library
+            </Link>
+          ) : null}
+          <SessionBadge />
+        </div>
       </nav>
       <main className={cn("mx-auto w-full max-w-6xl px-6 pb-20 md:px-10", className)}>
         {children}
