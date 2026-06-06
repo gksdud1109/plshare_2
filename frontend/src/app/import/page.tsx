@@ -48,55 +48,144 @@ export default function ImportPage() {
 
   return (
     <PageShell>
-      <header className="max-w-3xl py-12 md:py-16">
-        <p className="text-xs uppercase tracking-[0.24em] text-ink-500">
+      {/* Eyebrow + heading */}
+      <header className="max-w-3xl pb-10 pt-12 md:pt-16 animate-fade-up">
+        <p
+          className="text-text-low"
+          style={{
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+          }}
+        >
           Step 1 · Import
         </p>
-        <h1 className="mt-4 text-4xl leading-tight md:text-5xl">
+        <h1
+          className="mt-4 font-display text-text-hi"
+          style={{
+            fontSize: "clamp(2rem, 4vw, 3rem)",
+            fontWeight: 700,
+            letterSpacing: "-0.02em",
+            lineHeight: 1.15,
+          }}
+        >
           어떤 플레이리스트를
           <br />
-          <em className="font-light italic text-ink-600">가져올까요?</em>
+          <span className="text-accent">가져올까요?</span>
         </h1>
-        <p className="mt-6 max-w-xl text-base leading-relaxed text-ink-600">
+        <p className="mt-5 max-w-xl text-base leading-relaxed text-text-mid">
           하나를 골라 자산으로 옮겨봅니다. 트랙 정보와 ISRC를 함께 보존합니다.
         </p>
       </header>
 
+      {/* Loading state */}
       {state.kind === "loading" ? (
-        <div className="py-24">
+        <div
+          className="flex flex-col items-start gap-6 py-20 animate-fade-up"
+          style={{ animationDelay: "0.1s" }}
+        >
           <ProgressNarrative
             messages={[
               "Spotify에서 플레이리스트를 가져오는 중이에요…",
               "곧 보여드릴게요.",
             ]}
           />
+          {/* Skeleton grid */}
+          <div className="mt-6 grid w-full grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-[18px] border"
+                style={{
+                  background: "var(--color-surface-1)",
+                  borderColor: "rgba(255,255,255,0.08)",
+                  aspectRatio: "1 / 1.2",
+                  opacity: 0.5 - i * 0.06,
+                }}
+              />
+            ))}
+          </div>
         </div>
       ) : null}
 
+      {/* Error state */}
       {state.kind === "error" ? (
-        <div className="flex flex-col items-start gap-4 py-16">
-          <p className="text-base text-ink-600">{state.message}</p>
+        <div
+          className="flex flex-col items-start gap-5 py-16 animate-fade-up"
+        >
+          <p
+            className="rounded-[18px] border px-5 py-4 text-sm text-danger"
+            style={{
+              background: "rgba(251,113,133,0.08)",
+              borderColor: "rgba(251,113,133,0.2)",
+            }}
+          >
+            {state.message}
+          </p>
           <button
             type="button"
             onClick={retry}
-            className="rounded-full border border-ink-900 px-5 py-2 text-sm text-ink-900 transition-colors duration-500 hover:bg-ink-900 hover:text-bone-50"
+            className="inline-flex h-12 items-center rounded-full bg-accent px-6 text-sm font-semibold text-white transition-all duration-300 hover:bg-accent-hi active:bg-accent-press focus-ring"
           >
             다시 시도
           </button>
         </div>
       ) : null}
 
+      {/* Ready state */}
       {state.kind === "ready" ? (
-        <>
+        <div className="pb-20">
           {state.usingFixture ? (
-            <p className="mb-6 inline-flex rounded-full border border-stone-200 bg-bone-100 px-3 py-1 text-[0.6875rem] uppercase tracking-[0.18em] text-ink-500">
+            <p
+              className="mb-6 inline-flex rounded-full border px-3 py-1"
+              style={{
+                fontSize: "0.6875rem",
+                fontWeight: 600,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "var(--color-text-low)",
+                borderColor: "rgba(255,255,255,0.08)",
+                background: "var(--color-surface-1)",
+              }}
+            >
               Demo data · 백엔드 연결 전
             </p>
           ) : null}
+
           {state.data.length === 0 ? (
-            <p className="py-16 text-base text-ink-500">
-              표시할 플레이리스트가 없습니다.
-            </p>
+            <div
+              className="flex flex-col items-center gap-4 rounded-[18px] border py-24 text-center animate-fade-up"
+              style={{
+                borderColor: "rgba(255,255,255,0.08)",
+                background: "var(--color-surface-1)",
+              }}
+            >
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 48 48"
+                fill="none"
+                aria-hidden
+              >
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="20"
+                  stroke="rgba(255,255,255,0.08)"
+                  strokeWidth="2"
+                />
+                <path
+                  d="M16 24h16M24 16v16"
+                  stroke="var(--color-text-low)"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <p className="text-sm text-text-mid">
+                표시할 플레이리스트가 없습니다.
+              </p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {state.data.map((p, i) => (
@@ -110,7 +199,7 @@ export default function ImportPage() {
               ))}
             </div>
           )}
-        </>
+        </div>
       ) : null}
     </PageShell>
   );

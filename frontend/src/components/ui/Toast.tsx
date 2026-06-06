@@ -27,12 +27,20 @@ export function Toast({
       aria-live="polite"
       className={cn(
         "pointer-events-none fixed inset-x-0 bottom-8 z-50 flex justify-center",
-        "transition-all duration-500 ease-[var(--ease-weighted)]",
-        open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0",
+        "transition-all duration-500 ease-[var(--ease-out)]",
+        open ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
         className,
       )}
     >
-      <div className="pointer-events-auto rounded-full border border-stone-200 bg-ink-900 px-5 py-2.5 text-sm text-bone-50 shadow-[0_18px_40px_-20px_rgba(20,18,16,0.5)]">
+      <div
+        className={cn(
+          "pointer-events-auto glass",
+          "flex items-center gap-3 rounded-2xl px-5 py-3",
+          "border-l-2 border-l-accent",
+          "shadow-[var(--shadow-pop)]",
+          "text-sm font-medium text-text-hi",
+        )}
+      >
         {message}
       </div>
     </div>

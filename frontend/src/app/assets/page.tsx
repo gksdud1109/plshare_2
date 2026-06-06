@@ -34,36 +34,50 @@ export default function AssetsPage() {
 
   return (
     <PageShell showHomeLink={false}>
-      <header className="flex flex-wrap items-end justify-between gap-6 py-12 md:py-16">
+      {/* Page accent glow */}
+      <div
+        className="accent-glow pointer-events-none fixed left-1/4 top-0 h-[600px] w-[600px] -translate-x-1/2 opacity-40"
+        aria-hidden="true"
+      />
+
+      <header className="relative flex flex-wrap items-end justify-between gap-6 py-12 md:py-16">
         <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-ink-500">
+          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-text-low">
             Library
           </p>
-          <h1 className="mt-3 text-4xl leading-tight md:text-5xl">
+          <h1
+            className="mt-3 font-display text-text-hi"
+            style={{ fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 700, letterSpacing: "-0.02em" }}
+          >
             나의 자산
           </h1>
         </div>
         <Link
           href="/import"
-          className="rounded-full bg-ink-900 px-5 py-2.5 text-sm tracking-wide text-bone-50 transition-colors duration-500 hover:bg-ink-700"
+          className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-accent-hi hover:-translate-y-0.5 focus-ring"
+          style={{ height: "48px", display: "inline-flex", alignItems: "center" }}
         >
           + 새로 가져오기
         </Link>
       </header>
 
       {state.kind === "loading" ? (
-        <ProgressNarrative
-          messages={["라이브러리를 불러오는 중이에요…"]}
-          intervalMs={2400}
-        />
+        <div className="py-24">
+          <ProgressNarrative
+            messages={["라이브러리를 불러오는 중이에요…"]}
+            intervalMs={2400}
+          />
+        </div>
       ) : state.data.length === 0 ? (
-        <div className="flex flex-col items-start gap-6 py-16">
-          <p className="font-display text-2xl text-ink-700">
+        <div className="flex flex-col items-start gap-6 py-20">
+          <p className="text-2xl font-semibold text-text-mid">
             아직 자산이 없어요.
           </p>
+          <p className="text-text-low text-sm">Spotify에서 플레이리스트를 가져와 첫 자산을 만들어보세요.</p>
           <Link
             href="/import"
-            className="rounded-full bg-ink-900 px-5 py-2.5 text-sm text-bone-50 transition-colors duration-500 hover:bg-ink-700"
+            className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-accent-hi hover:-translate-y-0.5 focus-ring"
+            style={{ height: "48px", display: "inline-flex", alignItems: "center" }}
           >
             첫 자산 만들기
           </Link>
@@ -71,7 +85,7 @@ export default function AssetsPage() {
       ) : (
         <>
           {state.usingFixture ? (
-            <p className="mb-6 inline-flex rounded-full border border-stone-200 bg-bone-100 px-3 py-1 text-[0.6875rem] uppercase tracking-[0.18em] text-ink-500">
+            <p className="mb-6 inline-flex rounded-full border border-hairline bg-surface-1 px-3 py-1 text-[0.6875rem] uppercase tracking-[0.18em] text-text-low">
               Demo data · 백엔드 연결 전
             </p>
           ) : null}

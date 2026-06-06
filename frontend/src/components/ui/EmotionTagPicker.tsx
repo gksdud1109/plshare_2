@@ -31,12 +31,13 @@ export function EmotionTagPicker({
             type="button"
             onClick={() => toggle(tag)}
             className={cn(
-              "rounded-full border px-4 py-1.5 text-xs tracking-wide",
-              "transition-all duration-500 ease-[var(--ease-weighted)]",
+              "rounded-full border px-4 py-1.5 text-xs font-medium tracking-wide",
+              "transition-all duration-200 ease-[var(--ease-spring)]",
               active
-                ? "border-ink-900 bg-ink-900 text-bone-50"
-                : "border-stone-200 bg-bone-50 text-ink-600 hover:border-ink-400",
+                ? "border-accent text-accent"
+                : "border-hairline bg-surface-2 text-text-mid hover:border-hairline-strong hover:text-text-hi",
             )}
+            style={active ? { background: "var(--accent-soft)" } : undefined}
           >
             {tag}
           </button>

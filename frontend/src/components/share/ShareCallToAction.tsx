@@ -27,14 +27,14 @@ export function ShareCallToAction({ shareUrl }: { shareUrl?: string }) {
         <button
           type="button"
           onClick={handleCopy}
-          className="rounded-full border border-stone-300 px-4 py-2 text-xs tracking-wide text-ink-700 transition-colors duration-500 hover:border-ink-900 hover:text-ink-900"
+          className="glass focus-ring rounded-full border-hairline-strong px-5 py-2.5 text-sm font-medium text-text-hi transition hover:bg-surface-3"
         >
           {copied ? "링크가 복사되었어요" : "공유 링크 복사"}
         </button>
       ) : null}
       <Link
         href="/"
-        className="rounded-full border border-ink-900 px-4 py-2 text-xs tracking-wide text-ink-900 transition-colors duration-500 hover:bg-ink-900 hover:text-bone-50"
+        className="focus-ring rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-glow)] transition hover:bg-accent-hi"
       >
         내 라이브러리 만들기
       </Link>

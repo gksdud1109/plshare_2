@@ -1,138 +1,162 @@
+/* Pretendard (Korean-first sans, Inter-based Latin). Browser-loaded; falls back to
+   Apple SD Gothic Neo / system Korean sans offline. See design-system-v0.2-dark.md */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
 @import "tailwindcss";
 
 /*
- * Design Direction: "Refined Asset" (v0.1)
- * Luxury / Refined — muted, sophisticated, weighted.
- * Source: docs/20-product/design/ux/design-direction-v0.1.md
+ * Design System v0.2 — "Nocturne" (Dark Premium)
+ * Apple Music × Toss polish. Deep dark, album-art-forward, glassy depth.
+ * Single theme (dark). No serif.
  */
 
+@theme {
+  /* Surfaces */
+  --color-bg: #0b0b0f;
+  --color-surface-1: #121218;
+  --color-surface-2: #181820;
+  --color-surface-3: #20212b;
+
+  /* Text */
+  --color-text-hi: #f4f4f7;
+  --color-text: #c7c8d1;
+  --color-text-mid: #8e8fa0;
+  --color-text-low: #5e5f6e;
+
+  /* Accent — vivid violet/indigo */
+  --color-accent: #7c5cff;
+  --color-accent-hi: #9b82ff;
+  --color-accent-press: #6a4ae0;
+
+  /* Signals */
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-danger: #fb7185;
+
+  /* Hairlines exposed as color tokens (border + bg utilities) */
+  --color-hairline: rgba(255, 255, 255, 0.08);
+  --color-hairline-strong: rgba(255, 255, 255, 0.14);
+
+  /* Typography */
+  --font-sans:
+    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+
+  /* Radii */
+  --radius-card: 18px;
+  --radius-input: 14px;
+  --radius-image: 16px;
+
+  /* Motion */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
 :root {
-  /* Surface — warm off-white (bone) to avoid sterile digital feel */
-  --color-bone-50: #faf8f4;
-  --color-bone-100: #f3efe7;
-  --color-bone-200: #e8e2d4;
-  --color-bone-300: #d6ceba;
+  /* Non-utility tokens (used in raw CSS / inline styles) */
+  --accent-soft: rgba(124, 92, 255, 0.14);
+  --glass-bg: rgba(20, 20, 28, 0.62);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-blur: 18px;
+  --shadow-card: 0 8px 30px -12px rgba(0, 0, 0, 0.6);
+  --shadow-pop: 0 20px 60px -20px rgba(0, 0, 0, 0.7);
+  --shadow-glow: 0 0 60px -10px rgba(124, 92, 255, 0.45);
 
-  /* Ink — deep, desaturated near-black for typography */
-  --color-ink-900: #141210;
-  --color-ink-800: #1f1c18;
-  --color-ink-700: #2c2823;
-  --color-ink-600: #48423a;
-  --color-ink-500: #6b6558;
-  --color-ink-400: #8e8878;
-
-  /* Stone — muted neutrals for dividers, subtle surfaces */
-  --color-stone-100: #efeae0;
-  --color-stone-200: #ddd6c7;
-  --color-stone-300: #bcb3a0;
-
-  /* Accent — a restrained, antique gold for highlight moments only */
-  --color-gold-500: #a38653;
-  --color-gold-600: #8a7045;
-
-  /* Signal — muted clay/rust for errors, sage for success */
-  --color-clay-500: #a05a3f;
-  --color-sage-500: #6b7a5a;
-
-  --background: var(--color-bone-50);
-  --foreground: var(--color-ink-900);
-}
-
-@theme inline {
-  /* Surfaces & text */
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-
-  --color-bone-50: var(--color-bone-50);
-  --color-bone-100: var(--color-bone-100);
-  --color-bone-200: var(--color-bone-200);
-  --color-bone-300: var(--color-bone-300);
-
-  --color-ink-900: var(--color-ink-900);
-  --color-ink-800: var(--color-ink-800);
-  --color-ink-700: var(--color-ink-700);
-  --color-ink-600: var(--color-ink-600);
-  --color-ink-500: var(--color-ink-500);
-  --color-ink-400: var(--color-ink-400);
-
-  --color-stone-100: var(--color-stone-100);
-  --color-stone-200: var(--color-stone-200);
-  --color-stone-300: var(--color-stone-300);
-
-  --color-gold-500: var(--color-gold-500);
-  --color-gold-600: var(--color-gold-600);
-
-  --color-clay-500: var(--color-clay-500);
-  --color-sage-500: var(--color-sage-500);
-
-  /* Typography — Fraunces (serif display) + Inter (sans body) */
-  --font-serif: var(--font-fraunces);
-  --font-sans: var(--font-inter);
-
-  /* Weighted, editorial tracking */
-  --tracking-tightest: -0.035em;
-  --tracking-tighter: -0.02em;
-  --tracking-wide: 0.04em;
-  --tracking-wider: 0.14em;
-
-  /* Motion — "Transition with Weight". Slow, ease-out curves. */
-  --ease-weighted: cubic-bezier(0.22, 0.61, 0.36, 1);
-  --duration-weighted: 520ms;
-
-  /* Radii — cards feel crafted, not pill-shaped */
-  --radius-card: 14px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bone-50: #131211;
-    --color-bone-100: #1a1815;
-    --color-bone-200: #24211c;
-    --color-ink-900: #f3efe7;
-    --color-ink-800: #e8e2d4;
-    --color-ink-700: #d6ceba;
-    --background: #131211;
-    --foreground: #f3efe7;
-  }
+  --background: var(--color-bg);
+  --foreground: var(--color-text);
 }
 
 html,
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 body {
-  font-family: var(--font-sans), system-ui, sans-serif;
-  font-feature-settings: "ss01", "cv11";
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
-/* Display headings lean on the serif for editorial weight. */
-h1, h2, h3, .font-display {
-  font-family: var(--font-serif), ui-serif, Georgia, serif;
-  font-optical-sizing: auto;
-  letter-spacing: var(--tracking-tightest);
+h1,
+h2,
+h3,
+h4,
+.font-display {
+  color: var(--color-text-hi);
+  letter-spacing: -0.02em;
+  font-weight: 700;
 }
 
-/* Stagger fade-in for grids — used by /import and /assets. */
+.font-display {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+/* ── Glass surface ───────────────────────────────────────────── */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+}
+
+/* ── Album-art ambient glow ─────────────────────────────────────
+   Put a blurred, scaled copy of the cover behind it for ambient light.
+   Usage: a positioned ::before/element with background-image + this class. */
+.cover-glow {
+  filter: blur(44px) saturate(1.4);
+  opacity: 0.5;
+  transform: scale(1.08);
+}
+
+/* Accent radial glow blob for page backgrounds */
+.accent-glow {
+  background: radial-gradient(
+    circle at center,
+    rgba(124, 92, 255, 0.22),
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* Focus ring */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent);
+}
+
+/* ── Motion ─────────────────────────────────────────────────── */
 @keyframes plshare-fade-up {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
-
 .animate-fade-up {
-  animation: plshare-fade-up 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation: plshare-fade-up 0.6s var(--ease-out) both;
 }
 
-/* Honor reduced-motion preferences — our weighted transitions aren't worth discomfort. */
+@keyframes plshare-pulse-glow {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.04);
+  }
+}
+.animate-pulse-glow {
+  animation: plshare-pulse-glow 3s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -140,4 +164,14 @@ h1, h2, h3, .font-display {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Dark, slim scrollbars to match the theme */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-surface-3) transparent;
+}
+::selection {
+  background: var(--accent-soft);
+  color: var(--color-text-hi);
 }

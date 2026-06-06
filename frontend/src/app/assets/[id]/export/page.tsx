@@ -127,28 +127,59 @@ export default function ExportPage() {
 
   const trackById = new Map((asset?.tracks ?? []).map((t) => [t.id, t]));
 
+  // Progress ratio for the accent bar
+  const total = status?.totalTracks ?? 0;
+  const matched = status?.matchedTracks ?? 0;
+  const progressPct = total > 0 ? Math.round((matched / total) * 100) : 0;
+
   return (
     <PageShell>
-      <header className="max-w-3xl py-12 md:py-16">
-        <p className="text-xs uppercase tracking-[0.24em] text-ink-500">
+      {/* Page accent glow */}
+      <div
+        className="accent-glow pointer-events-none fixed right-0 top-1/4 h-[500px] w-[500px] translate-x-1/2 opacity-30"
+        aria-hidden="true"
+      />
+
+      <header className="relative max-w-3xl py-12 md:py-16">
+        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-text-low">
           Step 3 · Export
         </p>
-        <h1 className="mt-4 text-4xl leading-tight md:text-5xl">
+        <h1
+          className="mt-4 font-display text-text-hi"
+          style={{ fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 700, letterSpacing: "-0.02em" }}
+        >
           Apple Music으로 내보낼
           <br />
-          <em className="font-light italic text-ink-600">준비가 됐습니다.</em>
+          <span className="text-text-mid font-normal" style={{ fontWeight: 400 }}>준비가 됐습니다.</span>
         </h1>
         {mode === "demo" ? (
-          <p className="mt-6 inline-flex rounded-full border border-stone-200 bg-bone-100 px-3 py-1 text-[0.6875rem] uppercase tracking-[0.18em] text-ink-500">
+          <p className="mt-6 inline-flex rounded-full border border-hairline bg-surface-1 px-3 py-1 text-[0.6875rem] uppercase tracking-[0.18em] text-text-low">
             Demo data · 백엔드 연결 전
           </p>
         ) : null}
+
+        {/* Accent progress bar */}
+        {total > 0 && (
+          <div className="mt-8 h-1 w-full max-w-md overflow-hidden rounded-full bg-surface-2">
+            <div
+              className="h-full rounded-full bg-accent transition-all duration-500"
+              style={{
+                width: `${progressPct}%`,
+                boxShadow: "var(--shadow-glow)",
+              }}
+            />
+          </div>
+        )}
       </header>
 
-      <section className="grid grid-cols-1 gap-10 md:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="rounded-[var(--radius-card)] border border-stone-200 bg-bone-100 px-6 md:px-8">
+      <section className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_300px]">
+        {/* Track mapping list */}
+        <div
+          className="border border-hairline bg-surface-1"
+          style={{ borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)" }}
+        >
           {(status?.mappings ?? []).length === 0 ? (
-            <div className="py-12">
+            <div className="py-12 px-8">
               <ProgressNarrative messages={NARRATIVE} intervalMs={2200} />
             </div>
           ) : (
@@ -172,36 +203,44 @@ export default function ExportPage() {
           )}
         </div>
 
-        <aside className="rounded-[var(--radius-card)] border border-stone-200 bg-bone-100 p-6">
-          <p className="text-xs uppercase tracking-[0.24em] text-ink-500">
+        {/* Summary sidebar */}
+        <aside
+          className="glass p-6"
+          style={{ borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)" }}
+        >
+          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-text-low">
             Summary
           </p>
-          <div className="mt-4 space-y-3 text-sm text-ink-700">
-            <div className="flex justify-between">
-              <span>전체 트랙</span>
-              <span className="tabular-nums">{status?.totalTracks ?? "—"}</span>
+          <div className="mt-4 space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-text-mid">전체 트랙</span>
+              <span className="tabular-nums font-semibold text-text-hi">{status?.totalTracks ?? "—"}</span>
             </div>
-            <div className="flex justify-between">
-              <span>매칭됨</span>
-              <span className="tabular-nums text-sage-500">
+            <div className="flex justify-between text-sm">
+              <span className="text-text-mid">매칭됨</span>
+              <span className="tabular-nums font-semibold text-success">
                 {status?.matchedTracks ?? "—"}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span>실패</span>
-              <span className="tabular-nums text-clay-500">
+            <div className="flex justify-between text-sm">
+              <span className="text-text-mid">실패</span>
+              <span className="tabular-nums font-semibold text-danger">
                 {status?.failedTracks ?? "—"}
               </span>
             </div>
           </div>
+
+          {/* Divider */}
+          <div className="my-6 h-px bg-hairline" />
+
           <ProgressNarrative
-            className="mt-8 text-base"
+            className="text-sm"
             messages={NARRATIVE}
             active={status?.status !== "completed"}
             intervalMs={2400}
           />
           {jobId ? (
-            <p className="mt-6 break-all text-[0.6875rem] tracking-wide text-ink-400">
+            <p className="mt-6 break-all text-[0.6875rem] tracking-wide text-text-low">
               job · {jobId}
             </p>
           ) : null}

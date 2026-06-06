@@ -34,15 +34,38 @@ export function ProgressNarrative({
   }, [active, intervalMs, messages.length]);
 
   return (
-    <p
-      className={cn(
-        "font-serif text-2xl italic leading-relaxed text-ink-700 md:text-3xl",
-        "transition-opacity duration-500 ease-[var(--ease-weighted)]",
-        visible ? "opacity-100" : "opacity-0",
-        className,
+    <div className={cn("flex flex-col items-center gap-4", className)}>
+      <p
+        className={cn(
+          "text-center text-2xl font-semibold leading-relaxed text-text-hi md:text-3xl",
+          "transition-opacity duration-500 ease-[var(--ease-out)]",
+          visible ? "opacity-100" : "opacity-0",
+        )}
+      >
+        {messages[index] ?? ""}
+      </p>
+
+      {/* slim accent progress bar with glow — no spinner */}
+      {active && (
+        <div className="relative h-0.5 w-48 overflow-hidden rounded-full bg-surface-3">
+          <div
+            className="animate-pulse-glow absolute inset-y-0 left-0 rounded-full bg-accent"
+            style={{
+              width: "40%",
+              boxShadow: "var(--shadow-glow)",
+              animation: "progressSlide 2.4s ease-in-out infinite",
+            }}
+          />
+        </div>
       )}
-    >
-      {messages[index] ?? ""}
-    </p>
+
+      <style>{`
+        @keyframes progressSlide {
+          0%   { transform: translateX(-100%); width: 40%; }
+          50%  { transform: translateX(150%); width: 60%; }
+          100% { transform: translateX(300%); width: 40%; }
+        }
+      `}</style>
+    </div>
   );
 }
