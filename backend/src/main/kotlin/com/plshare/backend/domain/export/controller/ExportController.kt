@@ -7,6 +7,7 @@ import com.plshare.backend.domain.export.repository.ExportJobRepository
 import com.plshare.backend.domain.export.service.ExportService
 import com.plshare.backend.global.exception.ApiException
 import com.plshare.backend.global.exception.ErrorCode
+import com.plshare.backend.global.response.ApiResponse
 import org.springframework.http.ResponseEntity
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
@@ -22,36 +23,36 @@ class ExportController(
     fun createExport(
         @RequestHeader("X-Idempotency-Key") idempotencyKey: String,
         @RequestBody body: CreateExportRequest
-    ): ResponseEntity<ExportJobDto> {
+    ): ResponseEntity<ApiResponse<ExportJobDto>> {
         val jobId = exportService.requestExport(idempotencyKey, body.assetId, body.targetPlatform)
         val job = exportJobRepository.findById(jobId).orElseThrow {
             ApiException(ErrorCode.INTERNAL, "Created export job not found: $jobId")
         }
-        return ResponseEntity.accepted().body(ExportJobDto.from(job))
+        return ResponseEntity.accepted().body(ApiResponse.ok(ExportJobDto.from(job)))
     }
 
     @GetMapping("/exports/{jobId}")
     @Transactional(readOnly = true)
-    fun getExport(@PathVariable jobId: UUID): ExportJobDto {
+    fun getExport(@PathVariable jobId: UUID): ApiResponse<ExportJobDto> {
         val job = exportJobRepository.findById(jobId).orElseThrow {
             ApiException(ErrorCode.NOT_FOUND, "Export job not found: $jobId")
         }
-        return ExportJobDto.from(job)
+        return ApiResponse.ok(ExportJobDto.from(job))
     }
 
     @GetMapping("/exports/{jobId}/result")
     @Transactional(readOnly = true)
-    fun getExportResult(@PathVariable jobId: UUID): ExportResultDto {
+    fun getExportResult(@PathVariable jobId: UUID): ApiResponse<ExportResultDto> {
         val job = exportJobRepository.findById(jobId).orElseThrow {
             ApiException(ErrorCode.NOT_FOUND, "Export job not found: $jobId")
         }
-        return ExportResultDto(
+        return ApiResponse.ok(ExportResultDto(
             jobId = job.id,
             status = job.status.name.lowercase(),
             externalPlaylistId = job.externalPlaylistId,
             externalUrl = job.externalUrl,
             matchedTracks = job.matchedTracks,
             failedTracks = job.failedTracks
-        )
+        ))
     }
 }

@@ -5,12 +5,11 @@ import com.plshare.backend.domain.auth.repository.OauthHandshakeRepository
 import com.plshare.backend.domain.auth.service.SpotifyAccessGrantService
 import com.plshare.backend.global.exception.ApiException
 import com.plshare.backend.global.exception.ErrorCode
+import com.plshare.backend.global.response.ApiResponse
 import com.plshare.backend.infrastructure.spotify.PkceHelper
 import com.plshare.backend.infrastructure.spotify.SpotifyClient
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.http.HttpStatus
-import org.springframework.http.ResponseEntity
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.servlet.view.RedirectView
@@ -107,27 +106,27 @@ class AuthController(
      * Force-refresh the access token for a grant.
      */
     @PostMapping("/refresh")
-    fun refresh(@RequestBody body: RefreshRequest): ResponseEntity<GrantStatusResponse> {
+    fun refresh(@RequestBody body: RefreshRequest): ApiResponse<GrantStatusResponse> {
         val grant = grantService.findGrant(body.grantId)
-            ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).build()
+            ?: throw ApiException(ErrorCode.NOT_FOUND, "Grant not found: ${body.grantId}")
         val refreshToken = grant.refreshToken
-            ?: return ResponseEntity.badRequest().build()
+            ?: throw ApiException(ErrorCode.VALIDATION_FAILED, "Grant has no refresh token")
 
         val tokens = spotifyClient.refreshAccessToken(refreshToken).block()
             ?: throw ApiException(ErrorCode.UPSTREAM_ERROR, "Refresh returned empty response")
         val updated = grantService.persistRefresh(body.grantId, tokens)
-        return ResponseEntity.ok(GrantStatusResponse.from(updated, expiringSoon = false))
+        return ApiResponse.ok(GrantStatusResponse.from(updated, expiringSoon = false))
     }
 
     /**
      * Lightweight grant introspection used by the FE to know whether to refresh.
      */
     @GetMapping("/me")
-    fun me(@RequestParam("grantId") grantId: UUID): ResponseEntity<GrantStatusResponse> {
+    fun me(@RequestParam("grantId") grantId: UUID): ApiResponse<GrantStatusResponse> {
         val grant = grantService.findGrant(grantId)
-            ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).build()
+            ?: throw ApiException(ErrorCode.NOT_FOUND, "Grant not found: $grantId")
         val expiringSoon = grantService.isExpiringSoon(grant)
-        return ResponseEntity.ok(GrantStatusResponse.from(grant, expiringSoon))
+        return ApiResponse.ok(GrantStatusResponse.from(grant, expiringSoon))
     }
 
     data class RefreshRequest(val grantId: UUID)

@@ -4,6 +4,7 @@ import com.plshare.backend.domain.asset.dto.AssetDetailDto
 import com.plshare.backend.domain.asset.repository.AssetRepository
 import com.plshare.backend.global.exception.ApiException
 import com.plshare.backend.global.exception.ErrorCode
+import com.plshare.backend.global.response.ApiResponse
 import com.plshare.backend.infrastructure.storage.StorageAdapter
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
@@ -46,19 +47,21 @@ class MediaController(
     fun presign(
         @PathVariable assetId: UUID,
         @RequestBody body: PresignRequest
-    ): PresignResponse {
+    ): ApiResponse<PresignResponse> {
         // Verify the asset exists so we don't issue presigns for ghosts.
         if (!assetRepository.existsById(assetId)) {
             throw ApiException(ErrorCode.NOT_FOUND, "Asset not found: $assetId")
         }
         val key = buildKey(assetId, body.filename)
         val result = storage.presignUpload(key, body.contentType)
-        return PresignResponse(
-            uploadUrl = result.uploadUrl,
-            publicUrl = result.publicUrl,
-            key = result.key,
-            expiresAt = result.expiresAt.toString(),
-            requiredHeaders = result.requiredHeaders
+        return ApiResponse.ok(
+            PresignResponse(
+                uploadUrl = result.uploadUrl,
+                publicUrl = result.publicUrl,
+                key = result.key,
+                expiresAt = result.expiresAt.toString(),
+                requiredHeaders = result.requiredHeaders
+            )
         )
     }
 
@@ -67,7 +70,7 @@ class MediaController(
     fun attach(
         @PathVariable assetId: UUID,
         @RequestBody body: AttachRequest
-    ): AssetDetailDto {
+    ): ApiResponse<AssetDetailDto> {
         val asset = assetRepository.findById(assetId).orElseThrow {
             ApiException(ErrorCode.NOT_FOUND, "Asset not found: $assetId")
         }
@@ -78,7 +81,7 @@ class MediaController(
             asset.photoUrls.add(body.publicUrl)
         }
         val saved = assetRepository.save(asset)
-        return AssetDetailDto.from(saved)
+        return ApiResponse.ok(AssetDetailDto.from(saved))
     }
 
     @DeleteMapping("/{photoIndex}")
@@ -87,7 +90,7 @@ class MediaController(
     fun delete(
         @PathVariable assetId: UUID,
         @PathVariable photoIndex: Int
-    ): AssetDetailDto {
+    ): ApiResponse<AssetDetailDto> {
         val asset = assetRepository.findById(assetId).orElseThrow {
             ApiException(ErrorCode.NOT_FOUND, "Asset not found: $assetId")
         }
@@ -102,7 +105,7 @@ class MediaController(
         // prefix `assets/`. If we can't recover it we still drop the URL from the asset.
         runCatching { keyFromPublicUrl(removedUrl)?.let { storage.delete(it) } }
         val saved = assetRepository.save(asset)
-        return AssetDetailDto.from(saved)
+        return ApiResponse.ok(AssetDetailDto.from(saved))
     }
 
     private fun buildKey(assetId: UUID, filename: String): String {

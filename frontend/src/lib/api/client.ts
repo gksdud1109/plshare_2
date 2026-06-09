@@ -61,7 +61,20 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
 
   // 204 No Content
   if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
+
+  const json: unknown = await res.json();
+  // Unwrap the standard ApiResponse envelope `{ code, message, data }`.
+  // Anything not shaped like the envelope (e.g. fixtures or legacy shapes) passes through.
+  if (
+    json !== null &&
+    typeof json === "object" &&
+    "data" in json &&
+    "code" in json &&
+    "message" in json
+  ) {
+    return (json as { data: T }).data;
+  }
+  return json as T;
 }
 
 export function makeIdempotencyKey(prefix: string): string {

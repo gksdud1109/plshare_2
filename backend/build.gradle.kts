@@ -36,6 +36,9 @@ dependencies {
 
     implementation("org.flywaydb:flyway-core")
 
+    // OpenAPI / Swagger UI (polyenm_pan convention). Boot 3.2.x → springdoc 2.3.x.
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0")
+
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("com.h2database:h2")
     

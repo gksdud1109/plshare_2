@@ -24,9 +24,16 @@
   - 외부 통합 클라이언트(spotify/apple/storage)는 `infrastructure/`(또는 owning 도메인) 유지.
 - **BaseTimeEntity** (`global/jpa`): `@MappedSuperclass` + `AuditingEntityListener` + `@CreatedDate/@LastModifiedDate`. **id는 UUID 유지**(polyenm의 Long IDENTITY는 차용 안 함). `@EnableJpaAuditing` 추가, `updated_at` 컬럼 Flyway 마이그레이션.
 
-### Tier 3 — 크로스스택 (예정, FE 파급)
-- **`ApiResponse<T>` envelope**(`global/response`): `{code, message, data}`로 성공 응답 통일. → FE api 클라이언트(`apiFetch`가 `.data` 언랩), 7개 api 모듈, fixtures, types, E2E 동시 수정 필요.
-- **Controller + API 인터페이스 분리 + springdoc**: `XxxController : XxxApi`, Swagger 어노테이션은 인터페이스에. `springdoc-openapi` 의존성 추가.
+### Tier 3 — 크로스스택 ✅ 도입됨
+- **`ApiResponse<T>` envelope**(`global/response`): 성공 응답을 `{code, message, data}`로 통일. `ApiResponse.ok(data)`.
+  - FE는 `apiFetch`(client.ts)에서 envelope를 **중앙 언랩**(`.data` 반환) → per-domain api 모듈은 무변경. 서버사이드 `fetchShareDataServer`(share.ts)와 세션 라우트의 BE `/me` 호출, E2E의 직접 BE fetch도 동일 언랩.
+  - 오류는 envelope를 쓰지 않고 `ErrorResponse{code,message,details?}`로 내려간다.
+- **springdoc OpenAPI**: 의존성 + `global/openapi/OpenApiConfig`. Swagger UI `/swagger-ui.html`, JSON `/v3/api-docs`.
+  - ※ 컨트롤러별 **API 인터페이스 분리**(`XxxController : XxxApi`, `@Operation`/`@ApiErrorCode`)는 선택적 후속. 현재는 springdoc 자동 문서화 + 기본 메타데이터만.
+
+### 후속(선택)
+- 컨트롤러 API 인터페이스 분리 + `@ApiErrorCode` 커스텀 어노테이션(`global/openapi`).
+- **BaseTimeEntity** 감사(Tier 2에서 보류): 엔티티별 타임스탬프 필드가 제각각이라 `@CreatedDate/@LastModifiedDate` + `@EnableJpaAuditing` + `updated_at` Flyway 마이그레이션을 신중히 도입 필요.
 
 ## 가져오지 않는 것 (anti-adoption)
 - BaseEntity의 **Long `@GeneratedValue` IDENTITY id** — plshare2는 의도적으로 UUID.

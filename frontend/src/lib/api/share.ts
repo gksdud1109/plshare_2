@@ -35,5 +35,11 @@ export async function fetchShareDataServer(
     throw new Error(`fetchShareDataServer: ${res.status} ${res.statusText}`);
   }
 
-  return (await res.json()) as SharedAsset;
+  const json: unknown = await res.json();
+  // Unwrap the ApiResponse envelope `{ code, message, data }` if present.
+  const payload =
+    json !== null && typeof json === "object" && "data" in json
+      ? (json as { data: unknown }).data
+      : json;
+  return payload as SharedAsset;
 }
