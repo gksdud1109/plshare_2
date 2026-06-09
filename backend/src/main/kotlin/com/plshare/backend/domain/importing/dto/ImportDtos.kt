@@ -1,0 +1,54 @@
+package com.plshare.backend.domain.importing.dto
+
+import com.plshare.backend.domain.importing.model.ImportJob
+import com.plshare.backend.infrastructure.spotify.SpotifyPlaylistResponse
+import java.util.UUID
+
+// ----- Playlists -----
+data class PlaylistSummaryDto(
+    val id: String,
+    val name: String,
+    val coverUrl: String?,
+    val trackCount: Int
+) {
+    companion object {
+        fun from(p: SpotifyPlaylistResponse) = PlaylistSummaryDto(
+            id = p.id,
+            name = p.name,
+            coverUrl = p.images.firstOrNull()?.url,
+            trackCount = p.tracks.items.size
+        )
+    }
+}
+
+// ----- Imports -----
+data class CreateImportRequest(
+    val playlistId: String
+)
+
+data class ImportJobDto(
+    val jobId: UUID,
+    val status: String,
+    val totalTracks: Int,
+    val processedTracks: Int,
+    val progress: Int,
+    val assetId: UUID?,
+    val errorCode: String?,
+    val errorMessage: String?
+) {
+    companion object {
+        fun from(job: ImportJob): ImportJobDto {
+            val pct = if (job.totalTracks > 0) (job.processedTracks * 100) / job.totalTracks else 0
+            return ImportJobDto(
+                jobId = job.id,
+                status = job.status.name.lowercase(),
+                totalTracks = job.totalTracks,
+                processedTracks = job.processedTracks,
+                progress = pct,
+                assetId = job.assetId,
+                errorCode = job.errorCode,
+                errorMessage = job.errorMessage
+            )
+        }
+    }
+}
