@@ -7,6 +7,7 @@ import com.plshare.backend.domain.asset.dto.UpdateAssetRequest
 import com.plshare.backend.domain.asset.repository.AssetRepository
 import com.plshare.backend.global.exception.ApiException
 import com.plshare.backend.global.exception.ErrorCode
+import com.plshare.backend.global.response.ApiResponse
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
 import java.util.UUID
@@ -18,21 +19,21 @@ class AssetController(
 ) {
     @GetMapping("/assets")
     @Transactional(readOnly = true)
-    fun list(): List<AssetSummaryDto> =
-        assetRepository.findAll().map { AssetSummaryDto.from(it) }
+    fun list(): ApiResponse<List<AssetSummaryDto>> =
+        ApiResponse.ok(assetRepository.findAll().map { AssetSummaryDto.from(it) })
 
     @GetMapping("/assets/{id}")
     @Transactional(readOnly = true)
-    fun get(@PathVariable id: UUID): AssetDetailDto {
+    fun get(@PathVariable id: UUID): ApiResponse<AssetDetailDto> {
         val asset = assetRepository.findById(id).orElseThrow {
             ApiException(ErrorCode.NOT_FOUND, "Asset not found: $id")
         }
-        return AssetDetailDto.from(asset)
+        return ApiResponse.ok(AssetDetailDto.from(asset))
     }
 
     @PatchMapping("/assets/{id}")
     @Transactional
-    fun update(@PathVariable id: UUID, @RequestBody body: UpdateAssetRequest): AssetDetailDto {
+    fun update(@PathVariable id: UUID, @RequestBody body: UpdateAssetRequest): ApiResponse<AssetDetailDto> {
         val asset = assetRepository.findById(id).orElseThrow {
             ApiException(ErrorCode.NOT_FOUND, "Asset not found: $id")
         }
@@ -49,12 +50,12 @@ class AssetController(
             asset.photoUrls.addAll(it)
         }
         val saved = assetRepository.save(asset)
-        return AssetDetailDto.from(saved)
+        return ApiResponse.ok(AssetDetailDto.from(saved))
     }
 
     @PostMapping("/assets/{id}/share")
     @Transactional
-    fun share(@PathVariable id: UUID): ShareResponseDto {
+    fun share(@PathVariable id: UUID): ApiResponse<ShareResponseDto> {
         val asset = assetRepository.findById(id).orElseThrow {
             ApiException(ErrorCode.NOT_FOUND, "Asset not found: $id")
         }
@@ -63,7 +64,7 @@ class AssetController(
             assetRepository.save(asset)
         }
         val token = asset.shareToken!!
-        return ShareResponseDto(shareToken = token, url = "/share/$token")
+        return ApiResponse.ok(ShareResponseDto(shareToken = token, url = "/share/$token"))
     }
 }
 
@@ -74,9 +75,9 @@ class ShareController(
 ) {
     @GetMapping("/share/{token}")
     @Transactional(readOnly = true)
-    fun publicAsset(@PathVariable token: String): AssetDetailDto {
+    fun publicAsset(@PathVariable token: String): ApiResponse<AssetDetailDto> {
         val asset = assetRepository.findByShareToken(token)
             ?: throw ApiException(ErrorCode.NOT_FOUND, "Shared asset not found")
-        return AssetDetailDto.from(asset)
+        return ApiResponse.ok(AssetDetailDto.from(asset))
     }
 }

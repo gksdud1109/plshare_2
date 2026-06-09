@@ -29,7 +29,7 @@ const assert = (cond, step, detail) => {
 
 (async () => {
   // 1. BE health
-  const playlists = await fetch(`${BE}/api/playlists`).then(r => r.json());
+  const playlists = await fetch(`${BE}/api/playlists`).then(r => r.json()).then(j => j?.data ?? j);
   assert(Array.isArray(playlists) && playlists.length === 3, 'BE.playlists', `${playlists.length} mock playlists`);
 
   const browser = await chromium.launch({ headless: true });
@@ -121,7 +121,7 @@ const assert = (cond, step, detail) => {
     }
 
     // Direct API verification: GET asset
-    const after = await fetch(`${BE}/api/assets/${assetId}`).then(r => r.json());
+    const after = await fetch(`${BE}/api/assets/${assetId}`).then(r => r.json()).then(j => j?.data ?? j);
     if (after.diaryText && after.diaryText.length > 0) {
       assert(after.diaryText.includes('새벽'), 'BE.persisted-diary', `Diary "${after.diaryText.slice(0,20)}…" persisted`);
     } else {
@@ -156,7 +156,7 @@ const assert = (cond, step, detail) => {
     assert(/Late Night Drives|Sunset/i.test(listText), 'FE.assets-list', 'Assets list rendered');
 
     // Step 13: Share token via API + render public page
-    const shareRes = await fetch(`${BE}/api/assets/${assetId}/share`, { method: 'POST' }).then(r => r.json());
+    const shareRes = await fetch(`${BE}/api/assets/${assetId}/share`, { method: 'POST' }).then(r => r.json()).then(j => j?.data ?? j);
     assert(!!shareRes.shareToken, 'BE.share-token', `Token issued ${shareRes.shareToken.slice(0,8)}…`);
     await page.goto(`${FE}/share/${shareRes.shareToken}`, { waitUntil: 'networkidle' });
     await page.screenshot({ path: `${SCREENSHOT_DIR}/09-share-public.png`, fullPage: true });

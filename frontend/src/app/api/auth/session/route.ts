@@ -35,7 +35,13 @@ export async function GET() {
       throw new Error(`Spotify grant validation failed with ${response.status}`);
     }
 
-    const grant = (await response.json()) as GrantStatus;
+    const payload = (await response.json()) as unknown;
+    // Unwrap the BE ApiResponse envelope `{ code, message, data }` if present.
+    const grant = (
+      payload !== null && typeof payload === "object" && "data" in payload
+        ? (payload as { data: GrantStatus }).data
+        : payload
+    ) as GrantStatus;
     if (grant.grantId !== session.grantId) {
       throw new Error("Spotify grant validation returned a different grant");
     }
