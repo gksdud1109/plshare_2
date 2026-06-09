@@ -3,6 +3,8 @@ package com.plshare.backend.api
 import com.plshare.backend.application.service.SpotifyAccessGrantService
 import com.plshare.backend.domain.entity.OauthHandshake
 import com.plshare.backend.domain.repository.OauthHandshakeRepository
+import com.plshare.backend.global.exception.ApiException
+import com.plshare.backend.global.exception.ErrorCode
 import com.plshare.backend.infrastructure.spotify.PkceHelper
 import com.plshare.backend.infrastructure.spotify.SpotifyClient
 import jakarta.servlet.http.HttpServletResponse
@@ -80,10 +82,10 @@ class AuthController(
         require(!state.isNullOrBlank()) { "Missing state" }
 
         val handshake = handshakeRepository.findByState(state)
-            ?: throw IllegalStateException("Unknown OAuth state")
+            ?: throw ApiException(ErrorCode.NOT_FOUND, "Unknown OAuth state")
 
         if (handshake.consumedAt != null) {
-            throw IllegalStateException("OAuth state already consumed")
+            throw ApiException(ErrorCode.CONFLICT, "OAuth state already consumed")
         }
         val ageMinutes = ChronoUnit.MINUTES.between(handshake.createdAt, LocalDateTime.now())
         require(ageMinutes < HANDSHAKE_TTL_MINUTES) { "OAuth state expired" }
@@ -91,7 +93,7 @@ class AuthController(
         val tokens = spotifyClient
             .exchangeCodeForToken(code, handshake.codeVerifier, handshake.redirectUri)
             .block()
-            ?: error("Token exchange returned empty response")
+            ?: throw ApiException(ErrorCode.UPSTREAM_ERROR, "Token exchange returned empty response")
 
         handshake.consumedAt = LocalDateTime.now()
         handshakeRepository.save(handshake)
@@ -112,7 +114,7 @@ class AuthController(
             ?: return ResponseEntity.badRequest().build()
 
         val tokens = spotifyClient.refreshAccessToken(refreshToken).block()
-            ?: error("Refresh returned empty response")
+            ?: throw ApiException(ErrorCode.UPSTREAM_ERROR, "Refresh returned empty response")
         val updated = grantService.persistRefresh(body.grantId, tokens)
         return ResponseEntity.ok(GrantStatusResponse.from(updated, expiringSoon = false))
     }

@@ -2,6 +2,8 @@ package com.plshare.backend.api
 
 import com.plshare.backend.api.dto.AssetDetailDto
 import com.plshare.backend.domain.repository.AssetRepository
+import com.plshare.backend.global.exception.ApiException
+import com.plshare.backend.global.exception.ErrorCode
 import com.plshare.backend.infrastructure.storage.StorageAdapter
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
@@ -47,7 +49,7 @@ class MediaController(
     ): PresignResponse {
         // Verify the asset exists so we don't issue presigns for ghosts.
         if (!assetRepository.existsById(assetId)) {
-            throw NoSuchElementException("Asset not found: $assetId")
+            throw ApiException(ErrorCode.NOT_FOUND, "Asset not found: $assetId")
         }
         val key = buildKey(assetId, body.filename)
         val result = storage.presignUpload(key, body.contentType)
@@ -67,10 +69,10 @@ class MediaController(
         @RequestBody body: AttachRequest
     ): AssetDetailDto {
         val asset = assetRepository.findById(assetId).orElseThrow {
-            NoSuchElementException("Asset not found: $assetId")
+            ApiException(ErrorCode.NOT_FOUND, "Asset not found: $assetId")
         }
         if (body.publicUrl.isBlank()) {
-            throw IllegalArgumentException("publicUrl required")
+            throw ApiException(ErrorCode.VALIDATION_FAILED, "publicUrl required")
         }
         if (!asset.photoUrls.contains(body.publicUrl)) {
             asset.photoUrls.add(body.publicUrl)
@@ -87,10 +89,13 @@ class MediaController(
         @PathVariable photoIndex: Int
     ): AssetDetailDto {
         val asset = assetRepository.findById(assetId).orElseThrow {
-            NoSuchElementException("Asset not found: $assetId")
+            ApiException(ErrorCode.NOT_FOUND, "Asset not found: $assetId")
         }
         if (photoIndex < 0 || photoIndex >= asset.photoUrls.size) {
-            throw IndexOutOfBoundsException("photoIndex $photoIndex out of bounds (size=${asset.photoUrls.size})")
+            throw ApiException(
+                ErrorCode.VALIDATION_FAILED,
+                "photoIndex $photoIndex out of bounds (size=${asset.photoUrls.size})",
+            )
         }
         val removedUrl = asset.photoUrls.removeAt(photoIndex)
         // Best-effort delete from storage. Key derivation: any path segment after our known
