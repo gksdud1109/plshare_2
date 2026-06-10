@@ -383,7 +383,7 @@ tasks:
   last_error: 
 - id: be-ytm-read-adapter-001
   title: YouTube Music read adapter (YouTube Data API, playlist import)
-  status: blocked
+  status: done
   priority: p0
   role: backend-engineer
   agent: claude-code
@@ -428,7 +428,7 @@ tasks:
   last_error: 
 - id: be-social-core-001
   title: Social core domain (Post/Like/Comment/Follow, polyenm_pan pattern)
-  status: blocked
+  status: done
   priority: p0
   role: backend-engineer
   agent: claude-code
