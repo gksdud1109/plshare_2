@@ -339,7 +339,7 @@ tasks:
   last_error: 
 - id: be-matching-integration-001
   title: Wire MatchingEngine into NormalizationEngine (canonical track on import)
-  status: pending
+  status: done
   priority: p1
   role: backend-engineer
   agent: claude-code
@@ -354,7 +354,7 @@ tasks:
   last_error: 
 - id: be-user-identity-001
   title: User/Profile model + Google social login (YouTube scope synergy)
-  status: pending
+  status: done
   priority: p0
   role: backend-engineer
   agent: claude-code
@@ -369,7 +369,7 @@ tasks:
   last_error: 
 - id: ops-spotify-live-creds-001
   title: Wire real Spotify credentials + live-mode E2E checklist
-  status: pending
+  status: done
   priority: p1
   role: ops
   agent: claude-code

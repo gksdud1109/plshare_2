@@ -43,7 +43,13 @@ class Asset(
 )
 
 @Entity
-@Table(name = "tracks", indexes = [Index(name = "idx_track_isrc", columnList = "isrc")])
+@Table(
+    name = "tracks",
+    indexes = [
+        Index(name = "idx_track_isrc", columnList = "isrc"),
+        Index(name = "idx_track_canonical_track_id", columnList = "canonical_track_id")
+    ]
+)
 class Track(
     @Id
     val id: UUID = UUID.randomUUID(),
@@ -65,6 +71,22 @@ class Track(
     // Platform specific metadata
     var spotifyId: String? = null,
     var appleMusicId: String? = null,
+
+    /**
+     * MatchingEngine이 결정한 canonical_tracks 레코드의 PK.
+     * nullable: import 직후에는 null이 될 수 없으나, 향후 재처리 전 임시 상태 허용.
+     * canonical_tracks 테이블과 FK 없이 UUID만 보관 — 도메인 경계(asset vs track)를 넘는
+     * 강결합 없이 canonical identity를 참조한다.
+     */
+    @Column(name = "canonical_track_id")
+    var canonicalTrackId: UUID? = null,
+
+    /**
+     * MatchingEngine.matchOrCreate가 반환한 매칭 신뢰도(0.0–1.0).
+     * ISRC exact match → 1.0, fuzzy fallback → 0.7 이상, 신규 생성 → 1.0.
+     */
+    @Column(name = "match_confidence")
+    var matchConfidence: Double? = null,
 
     @Column(nullable = false, updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now()

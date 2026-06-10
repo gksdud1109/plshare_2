@@ -4,6 +4,7 @@ import com.plshare.backend.domain.asset.model.Asset
 import com.plshare.backend.domain.asset.model.Track
 import com.plshare.backend.domain.asset.repository.AssetRepository
 import com.plshare.backend.domain.importing.repository.ImportJobRepository
+import com.plshare.backend.domain.track.service.MatchingEngine
 import com.plshare.backend.infrastructure.spotify.SpotifyClient
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
@@ -14,7 +15,8 @@ import org.springframework.transaction.annotation.Transactional
 class NormalizationEngine(
     private val importJobRepository: ImportJobRepository,
     private val assetRepository: AssetRepository,
-    private val spotifyClient: SpotifyClient
+    private val spotifyClient: SpotifyClient,
+    private val matchingEngine: MatchingEngine
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -74,15 +76,27 @@ class NormalizationEngine(
             sourcePlatform = "spotify"
         )
 
-        // Track 정규화 (ISRC 기준)
+        // Track 정규화 (ISRC 기준) + MatchingEngine을 통해 canonical 연결
         val tracks = playlist.tracks.items.map { item ->
+            val matchInput = MatchingEngine.MatchInput(
+                isrc = item.track.isrc?.takeIf { it.isNotBlank() },
+                title = item.track.name,
+                artists = item.track.artists.map { it.name },
+                durationMs = item.track.durationMs?.toLong() ?: 0L,
+                sourcePlatform = "spotify",
+                sourceId = item.track.id
+            )
+            val matchResult = matchingEngine.matchOrCreate(matchInput)
+
             Track(
                 asset = asset,
                 name = item.track.name,
                 artist = item.track.artists.joinToString { it.name },
                 durationMs = item.track.durationMs,
                 isrc = item.track.isrc,
-                spotifyId = item.track.id
+                spotifyId = item.track.id,
+                canonicalTrackId = matchResult.canonical.canonicalId,
+                matchConfidence = matchResult.confidence
             )
         }
         asset.tracks.addAll(tracks)
