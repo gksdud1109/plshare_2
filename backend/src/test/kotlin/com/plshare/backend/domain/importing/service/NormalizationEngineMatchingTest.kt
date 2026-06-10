@@ -56,6 +56,7 @@ class NormalizationEngineMatchingTest {
             importJobRepository = importJobRepo,
             assetRepository = assetRepo,
             spotifyClient = TODO_SpotifyClient(),
+            youTubeClient = TODO_YouTubeClient(),
             matchingEngine = matchingEngine
         )
     }
@@ -290,4 +291,13 @@ private fun TODO_SpotifyClient(): com.plshare.backend.infrastructure.spotify.Spo
         override fun exchangeCodeForToken(code: String, codeVerifier: String, redirectUri: String) = throw AssertionError("SpotifyClient must not be called in unit test")
         override fun refreshAccessToken(refreshToken: String) = throw AssertionError("SpotifyClient must not be called in unit test")
         override fun getCurrentUserPlaylists(accessToken: String) = throw AssertionError("SpotifyClient must not be called in unit test")
+    }
+
+/** saveNormalizedAsset(Spotify) は YouTubeClient를 사용하지 않는다. 호출되면 즉시 실패. */
+private fun TODO_YouTubeClient(): com.plshare.backend.infrastructure.youtube.YouTubeClient =
+    object : com.plshare.backend.infrastructure.youtube.YouTubeClient {
+        override fun listUserPlaylists(accessToken: String) = throw AssertionError("YouTubeClient must not be called in Spotify unit test")
+        override fun getPlaylist(playlistId: String, accessToken: String) = throw AssertionError("YouTubeClient must not be called in Spotify unit test")
+        override fun getPlaylistItems(playlistId: String, accessToken: String) = throw AssertionError("YouTubeClient must not be called in Spotify unit test")
+        override fun getVideoDetails(videoIds: List<String>, accessToken: String) = throw AssertionError("YouTubeClient must not be called in Spotify unit test")
     }
