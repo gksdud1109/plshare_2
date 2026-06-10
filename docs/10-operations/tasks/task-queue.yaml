@@ -304,3 +304,190 @@ tasks:
   - photoUrls populated on Asset PATCH
   - S3-compatible (MinIO local, AWS S3 prod) abstraction
   last_error: 
+- id: po-strategy-v2-001
+  title: Platform corridor re-review (YTM) + social layer PRD research
+  status: done
+  priority: p0
+  role: product-owner
+  agent: gemini-cli
+  requires_approval: false
+  depends_on: []
+  briefing_path: docs/10-operations/briefings/po-strategy-v2-001.md
+  artifact_paths:
+  - docs/20-product/strategy/platform-strategy-v2-research-v0.1.md
+  done_criteria:
+  - Corridor priority matrix with YouTube Data API quota math verified
+  - Auth/identity strategy (Google-first synergy) recommended
+  - Social layer PRD draft (post/ranking/gift/like-comment-DM cut)
+  last_error: 
+- id: pd-social-ux-research-001
+  title: One-click conversion + social UX research and flows
+  status: done
+  priority: p0
+  role: product-designer
+  agent: claude-code
+  requires_approval: false
+  depends_on: []
+  briefing_path: docs/10-operations/briefings/pd-social-ux-research-001.md
+  artifact_paths:
+  - docs/20-product/design/ux/social-ux-research-v0.1.md
+  - docs/20-product/design/ux/user-flows-v0.2-social.md
+  done_criteria:
+  - 3-step one-click conversion flow with assetization placement recommendation
+  - Post card anatomy + gift unboxing flow + ranking-as-feed pattern
+  - New route inventory without breaking existing 9 routes
+  last_error: 
+- id: be-matching-integration-001
+  title: Wire MatchingEngine into NormalizationEngine (canonical track on import)
+  status: pending
+  priority: p1
+  role: backend-engineer
+  agent: claude-code
+  requires_approval: false
+  depends_on: []
+  artifact_paths:
+  - backend/src/main/kotlin/com/plshare/backend/domain/importing/service/NormalizationEngine.kt
+  - backend/src/main/kotlin/com/plshare/backend/domain/track/service/MatchingEngine.kt
+  done_criteria:
+  - Import creates/links CanonicalTrack via MatchingEngine (ISRC primary, fuzzy fallback)
+  - matchConfidence persisted; demo E2E 16/16 preserved
+  last_error: 
+- id: be-user-identity-001
+  title: User/Profile model + Google social login (YouTube scope synergy)
+  status: pending
+  priority: p0
+  role: backend-engineer
+  agent: claude-code
+  requires_approval: false
+  depends_on:
+  - po-strategy-v2-001
+  artifact_paths:
+  - backend/src/main/kotlin/com/plshare/backend/domain/user/
+  done_criteria:
+  - User entity + Google OAuth login issuing real session
+  - Incremental consent path for YouTube scope
+  last_error: 
+- id: ops-spotify-live-creds-001
+  title: Wire real Spotify credentials + live-mode E2E checklist
+  status: pending
+  priority: p1
+  role: ops
+  agent: claude-code
+  requires_approval: false
+  depends_on:
+  - po-strategy-v2-001
+  artifact_paths:
+  - docs/10-operations/live-credentials-guide.md
+  done_criteria:
+  - ".env contract + prod profile run verified with real Spotify app"
+  last_error: 
+- id: be-ytm-read-adapter-001
+  title: YouTube Music read adapter (YouTube Data API, playlist import)
+  status: blocked
+  priority: p0
+  role: backend-engineer
+  agent: claude-code
+  requires_approval: false
+  depends_on:
+  - po-strategy-v2-001
+  - be-user-identity-001
+  artifact_paths:
+  - backend/src/main/kotlin/com/plshare/backend/infrastructure/youtube/
+  done_criteria:
+  - Playlist + items read via official API (low quota)
+  - videoId normalization through MatchingEngine
+  last_error: 
+- id: be-ytm-write-adapter-001
+  title: YouTube Music write adapter (export, quota-gated)
+  status: blocked
+  priority: p1
+  role: backend-engineer
+  agent: claude-code
+  requires_approval: false
+  depends_on:
+  - be-ytm-read-adapter-001
+  artifact_paths:
+  - backend/src/main/kotlin/com/plshare/backend/infrastructure/youtube/
+  done_criteria:
+  - Playlist create + insert with quota budget guard and clear UPSTREAM errors
+  last_error: 
+- id: fe-one-click-convert-001
+  title: One-click conversion flow (paste link -> pick destination -> convert)
+  status: blocked
+  priority: p0
+  role: frontend-engineer
+  agent: claude-code
+  requires_approval: false
+  depends_on:
+  - pd-social-ux-research-001
+  - be-ytm-read-adapter-001
+  artifact_paths:
+  - frontend/src/app/convert/
+  done_criteria:
+  - 3-step flow live with lazy auth and match-failure surfacing
+  last_error: 
+- id: be-social-core-001
+  title: Social core domain (Post/Like/Comment/Follow, polyenm_pan pattern)
+  status: blocked
+  priority: p0
+  role: backend-engineer
+  agent: claude-code
+  requires_approval: false
+  depends_on:
+  - po-strategy-v2-001
+  - be-user-identity-001
+  artifact_paths:
+  - backend/src/main/kotlin/com/plshare/backend/domain/post/
+  - backend/src/main/kotlin/com/plshare/backend/domain/reaction/
+  - backend/src/main/kotlin/com/plshare/backend/domain/comment/
+  - backend/src/main/kotlin/com/plshare/backend/domain/follow/
+  done_criteria:
+  - Post with playlist/track attachment + like/comment/follow APIs (ApiResponse envelope)
+  last_error: 
+- id: fe-feed-001
+  title: Feed + post composer + profile pages
+  status: blocked
+  priority: p0
+  role: frontend-engineer
+  agent: claude-code
+  requires_approval: false
+  depends_on:
+  - be-social-core-001
+  - pd-social-ux-research-001
+  artifact_paths:
+  - frontend/src/app/feed/
+  - frontend/src/app/u/
+  done_criteria:
+  - Feed consume/compose with asset attach, like/comment interactions
+  last_error: 
+- id: ranking-001
+  title: Playlist/user ranking (aggregation + discovery feed UI)
+  status: blocked
+  priority: p1
+  role: full-stack
+  agent: claude-code
+  requires_approval: false
+  depends_on:
+  - be-social-core-001
+  artifact_paths:
+  - backend/src/main/kotlin/com/plshare/backend/domain/ranking/
+  - frontend/src/app/ranking/
+  done_criteria:
+  - Like/save-based ranking with period windows, ranking-as-feed UI
+  last_error: 
+- id: gift-flow-001
+  title: Emotional gift flow (send story-wrapped asset, unboxing receive)
+  status: blocked
+  priority: p1
+  role: full-stack
+  agent: claude-code
+  requires_approval: false
+  depends_on:
+  - be-social-core-001
+  - pd-social-ux-research-001
+  artifact_paths:
+  - backend/src/main/kotlin/com/plshare/backend/domain/gift/
+  - frontend/src/app/gift/
+  done_criteria:
+  - Send (story+wrap) -> receive (unboxing) -> save-to-library loop
+  last_error: 
