@@ -3,6 +3,8 @@ package com.plshare.backend.global.seed
 import com.plshare.backend.domain.asset.model.Asset
 import com.plshare.backend.domain.asset.model.Track
 import com.plshare.backend.domain.asset.repository.AssetRepository
+import com.plshare.backend.domain.user.model.User
+import com.plshare.backend.domain.user.repository.UserRepository
 import org.slf4j.LoggerFactory
 import org.springframework.boot.CommandLineRunner
 import org.springframework.context.annotation.Profile
@@ -12,12 +14,15 @@ import org.springframework.transaction.annotation.Transactional
 @Component
 @Profile("demo")
 class DemoDataSeeder(
-    private val assetRepository: AssetRepository
+    private val assetRepository: AssetRepository,
+    private val userRepository: UserRepository
 ) : CommandLineRunner {
     private val log = LoggerFactory.getLogger(this::class.java)
 
     @Transactional
     override fun run(vararg args: String?) {
+        seedDemoUser()
+
         if (assetRepository.count() > 0L) {
             log.info("Skipping demo seed: assets already present")
             return
@@ -50,5 +55,21 @@ class DemoDataSeeder(
         }
         assetRepository.save(asset)
         log.info("Seeded demo asset: {}", asset.id)
+    }
+
+    private fun seedDemoUser() {
+        if (userRepository.findByGoogleSubject("google-demo-sub-001") != null) {
+            log.info("Skipping demo user seed: already present")
+            return
+        }
+        val user = User(
+            email = "demo@plshare.app",
+            displayName = "Demo User",
+            handle = "demo",
+            avatarUrl = "https://picsum.photos/seed/demouser/200/200",
+            googleSubject = "google-demo-sub-001"
+        )
+        userRepository.save(user)
+        log.info("Seeded demo user: {}", user.id)
     }
 }

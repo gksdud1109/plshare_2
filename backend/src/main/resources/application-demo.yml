@@ -37,6 +37,12 @@ storage:
   bucket: demo-local
   public-base-url: http://localhost:8080/api/_demo/files
 
+google:
+  client-id: ""
+  client-secret: ""
+  redirect-uri: http://localhost:8080/api/auth/google/callback
+  fe-redirect: http://localhost:3000/import
+
 logging:
   level:
     com.plshare: DEBUG
