@@ -15,6 +15,10 @@ import org.springframework.http.ResponseEntity
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
 import java.util.UUID
+import com.plshare.backend.global.security.ApplicationPrincipal
+import org.springframework.security.core.annotation.AuthenticationPrincipal
+import com.plshare.backend.domain.auth.service.SpotifyAccessGrantService
+import com.plshare.backend.domain.auth.service.GoogleAccessGrantService
 
 @RestController
 @RequestMapping("/api")
@@ -22,13 +26,23 @@ class ImportController(
     private val spotifyClient: SpotifyClient,
     private val youTubeClient: YouTubeClient,
     private val importService: ImportService,
-    private val importJobRepository: ImportJobRepository
+    private val importJobRepository: ImportJobRepository,
+    private val spotifyGrantService: SpotifyAccessGrantService,
+    private val googleAccessGrantService: GoogleAccessGrantService,
 ) {
     @GetMapping("/playlists")
-    fun listPlaylists(): ApiResponse<List<PlaylistSummaryDto>> {
-        val token = spotifyClient.getAccessToken().block()
+    fun listPlaylists(
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
+    ): ApiResponse<List<PlaylistSummaryDto>> {
+        val token = principal?.spotifyGrantId
+            ?.let { spotifyGrantService.getValidAccessToken(it).block() }
+            ?: spotifyClient.getAccessToken().block()
             ?: throw ApiException(ErrorCode.UPSTREAM_ERROR, "Spotify 토큰 발급 실패")
-        val playlists = spotifyClient.listUserPlaylists(token).block() ?: emptyList()
+        val playlists = if (principal?.spotifyGrantId != null) {
+            spotifyClient.getCurrentUserPlaylists(token).block()
+        } else {
+            spotifyClient.listUserPlaylists(token).block()
+        } ?: emptyList()
         return ApiResponse.ok(playlists.map { PlaylistSummaryDto.from(it) })
     }
 
@@ -39,9 +53,12 @@ class ImportController(
      * GET /api/youtube/playlists
      */
     @GetMapping("/youtube/playlists")
-    fun listYouTubePlaylists(): ApiResponse<List<YouTubePlaylistSummaryDto>> {
-        // demo에서는 mock이 토큰 무검증. prod에서는 GoogleAuthService에서 토큰 조달 필요.
-        val token = "demo-youtube-token"
+    fun listYouTubePlaylists(
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
+    ): ApiResponse<List<YouTubePlaylistSummaryDto>> {
+        val token = principal?.userId
+            ?.let { googleAccessGrantService.getValidYouTubeToken(it) }
+            ?: "demo-youtube-token"
         val playlists = youTubeClient.listUserPlaylists(token).block()
             ?: throw ApiException(ErrorCode.UPSTREAM_ERROR, "YouTube 플레이리스트 조회 실패")
         return ApiResponse.ok(playlists.map { YouTubePlaylistSummaryDto.from(it) })
@@ -57,12 +74,16 @@ class ImportController(
     @PostMapping("/imports")
     fun createImport(
         @RequestHeader("X-Idempotency-Key") idempotencyKey: String,
-        @RequestBody body: CreateImportRequest
+        @RequestBody body: CreateImportRequest,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
     ): ResponseEntity<ApiResponse<ImportJobDto>> {
+        val grantId = body.spotifyGrantId ?: principal?.spotifyGrantId
         val jobId = importService.requestImport(
             idempotencyKey = idempotencyKey,
             playlistId = body.playlistId,
-            sourcePlatform = body.sourcePlatform
+            sourcePlatform = body.sourcePlatform,
+            ownerId = principal?.userId,
+            spotifyGrantId = grantId,
         )
         val job = importJobRepository.findById(jobId).orElseThrow {
             ApiException(ErrorCode.INTERNAL, "Created import job not found: $jobId")
@@ -72,9 +93,15 @@ class ImportController(
 
     @GetMapping("/imports/{jobId}")
     @Transactional(readOnly = true)
-    fun getImport(@PathVariable jobId: UUID): ApiResponse<ImportJobDto> {
+    fun getImport(
+        @PathVariable jobId: UUID,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
+    ): ApiResponse<ImportJobDto> {
         val job = importJobRepository.findById(jobId).orElseThrow {
             ApiException(ErrorCode.NOT_FOUND, "Import job not found: $jobId")
+        }
+        if (principal != null && job.ownerId != principal.userId) {
+            throw ApiException(ErrorCode.FORBIDDEN, "Import job does not belong to the current user")
         }
         return ApiResponse.ok(ImportJobDto.from(job))
     }

@@ -7,7 +7,7 @@ import reactor.core.publisher.Mono
  *
  * Scope strategy (Incremental Auth):
  * - Standard sign-in uses `openid email profile`.
- * - YouTube data access (`youtube.readonly`) is requested separately via an additional
+ * - YouTube playlist access is requested separately via an additional
  *   consent screen triggered by `GET /api/auth/google/start?scope=youtube`.
  *   This follows Google's recommended incremental authorisation pattern so users are
  *   not prompted for broad permissions upfront.
@@ -45,6 +45,8 @@ interface GoogleOAuthClient {
         codeVerifier: String,
         redirectUri: String
     ): Mono<GoogleTokenSet>
+
+    fun refreshAccessToken(refreshToken: String): Mono<GoogleTokenSet>
 
     /**
      * Fetches user identity from Google's OpenID Connect userinfo endpoint.

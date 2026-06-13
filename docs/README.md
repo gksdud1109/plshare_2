@@ -35,18 +35,20 @@
 - 문서 구조 기준: `docs/00-foundation/document-architecture.md`
 - 운영 모델: `docs/10-operations/agent-operating-model.md`
 - 전체 워크플로우: `docs/10-operations/ai-agent-workflow.md`
-- 최신 PRD: `docs/20-product/strategy/prd-v0.2.md`
+- 현재 제품 기준: `docs/20-product/strategy/product-baseline-v2.md`
+- 최신 전략 근거: `docs/20-product/strategy/platform-strategy-v2-research-v0.1.md`
+- 기존 PRD: `docs/20-product/strategy/prd-v0.2.md` (Apple-first 역사 문서, 갱신 전까지 비권위)
 - 최신 리서치: `docs/20-product/research/market-research-v0.3.md`
 
 ## 현재 동결 기준
 
 현재 모든 사람과 agent는 아래 기준을 기본값으로 사용한다.
 
-- P0는 `Spotify import -> Assetize -> Apple Music export` 하나로 본다.
-- P0의 핵심 가치는 `감성 맥락 저장과 이동성`이다.
-- 기술적 `proof signal`은 `P1`이다.
+- P0는 `Google identity -> Spotify/YTM import -> Assetize -> Social share`다.
+- 우선 전환 코리도는 `Spotify -> YouTube Music`이며 write quota에 따라 선택 개방한다.
+- 랭킹·감성 선물·Apple export는 P1이다.
 - `B2B`는 `Future Expansion`이다.
-- 문서 충돌 시 `product-strategy -> prd -> mvp-feature-priority -> functional/non-functional requirements` 순으로 맞춘다.
+- 문서 충돌 시 `product-baseline-v2 -> platform-strategy-v2 -> roadmap-v2 -> requirements` 순으로 맞춘다.
 
 ## 공통 협업 규칙
 

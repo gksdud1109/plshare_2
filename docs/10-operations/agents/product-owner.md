@@ -40,5 +40,5 @@
 - 주 산출물은 `strategy` 또는 `research` 중 하나에만 둔다.
 - UX, 데이터, 구현 상세를 직접 확정하지 않는다.
 - 다음 단계에 넘길 항목은 요구사항 또는 handoff 메모로 남긴다.
-- 현재 동결 기준은 `Spotify import -> Assetize -> Apple Music export`다.
-- `proof signal`은 `P1`, `B2B`는 `Future Expansion`으로 유지한다.
+- 현재 범위의 단일 기준은 `docs/20-product/strategy/product-baseline-v2.md`다.
+- P0/P1 변경은 baseline과 decision log를 함께 갱신하며 B2B는 범위 밖으로 유지한다.

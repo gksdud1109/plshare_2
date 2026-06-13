@@ -5,7 +5,7 @@ import java.util.UUID
 
 data class CreateExportRequest(
     val assetId: UUID,
-    val targetPlatform: String = "apple"
+    val targetPlatform: String = "youtube"
 )
 
 data class ExportJobDto(

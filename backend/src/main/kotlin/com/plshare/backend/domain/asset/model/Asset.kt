@@ -10,6 +10,9 @@ class Asset(
     @Id
     val id: UUID = UUID.randomUUID(),
 
+    @Column(name = "owner_id")
+    val ownerId: UUID? = null,
+
     @Column(nullable = false)
     var title: String,
 

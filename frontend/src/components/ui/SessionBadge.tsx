@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -57,12 +56,13 @@ export function SessionBadge() {
 
   if (!authenticated) {
     return (
-      <Link
-        href="/auth/spotify"
+      /* Backend redirect endpoint (OAuth handshake + 302) — plain <a>, never prefetched. */
+      <a
+        href="/api/auth/google/start?returnTo=%2Fauth%2Fspotify%3Flive%3D1%26next%3D%2Fimport"
         className="inline-flex items-center rounded-full bg-accent px-4 py-1.5 text-xs font-semibold text-white transition-colors duration-200 hover:bg-accent-hi active:bg-accent-press"
       >
-        Spotify 연결
-      </Link>
+        Google로 시작
+      </a>
     );
   }
 

@@ -1,7 +1,9 @@
 ---
 version: 1
-last_updated: '2026-04-13'
+last_updated: '2026-06-13'
 owner: Reviewer / Operator
+product_baseline: docs/20-product/strategy/product-baseline-v2.md
+history_note: Completed tasks retain the scope and done criteria that applied when they ran.
 defaults:
   status_values:
   - pending

@@ -40,5 +40,6 @@
 - 주 산출물은 `design`에만 둔다.
 - PRD 방향이나 데이터 정책을 직접 다시 쓰지 않는다.
 - 스펙과 충돌하는 부분은 구현 문서가 아니라 handoff 메모로 남긴다.
-- 현재 UX 기준은 `Spotify import -> Assetize -> Apple Music export` 루프다.
-- `proof signal`과 `B2B`는 P0 화면의 중심 가치로 올리지 않는다.
+- 현재 UX 기준은 Google identity, Spotify/YouTube import, Emotional Context,
+  social sharing, Spotify -> YouTube Music conversion 루프다.
+- ranking, gift, Apple export, proof signal, B2B는 P0 화면의 중심 가치로 올리지 않는다.

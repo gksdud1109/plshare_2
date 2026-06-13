@@ -63,20 +63,22 @@ export default function LandingPage() {
             className="mt-8 max-w-lg leading-relaxed text-text-mid"
             style={{ fontSize: "1.0625rem" }}
           >
-            Spotify에서 가져오고, 감성 맥락을 더해,
+            플레이리스트에 감성 맥락을 더하고,
             <br className="hidden sm:block" />
-            Apple Music으로 내보내세요.
+            공유하거나 YouTube Music으로 옮기세요.
             <br />
             가볍게 흘려보내지 않도록.
           </p>
 
           <div className="mt-12 flex flex-wrap items-center gap-4">
-            <Link
-              href="/auth/spotify"
+            {/* Auth-start is a backend redirect endpoint (creates an OAuth handshake
+                and 302s to the provider) — use a plain <a> so Next never prefetches it. */}
+            <a
+              href="/api/auth/google/start?returnTo=%2Fauth%2Fspotify%3Flive%3D1%26next%3D%2Fimport"
               className="inline-flex h-12 items-center gap-3 rounded-full bg-accent px-6 text-sm font-semibold text-white transition-all duration-300 hover:bg-accent-hi hover:shadow-[0_0_24px_-4px_rgba(124,92,255,0.7)] active:bg-accent-press focus-ring"
               style={{ letterSpacing: "0.01em" }}
             >
-              Spotify로 시작하기
+              Google로 시작하기
               <svg
                 aria-hidden
                 width="16"
@@ -92,6 +94,12 @@ export default function LandingPage() {
                   strokeLinejoin="round"
                 />
               </svg>
+            </a>
+            <Link
+              href="/auth/spotify"
+              className="inline-flex h-12 items-center rounded-full px-5 text-sm font-medium text-text-mid transition-colors duration-300 hover:text-text-hi"
+            >
+              Spotify로 시작하기
             </Link>
             <Link
               href="/assets"
@@ -331,8 +339,8 @@ export default function LandingPage() {
                 />
               </svg>
             }
-            title="Apple Music으로 내보내기"
-            body="ISRC 기반으로 매핑해 새 플랫폼에서 다시 듣습니다."
+            title="공유하거나 YouTube Music으로"
+            body="취향 자산을 나누고 새 플랫폼에서 다시 듣습니다."
           />
         </div>
       </section>

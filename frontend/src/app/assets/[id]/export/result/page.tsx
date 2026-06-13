@@ -8,10 +8,12 @@ import { demoExportResult } from "@/lib/api/fixtures";
 import type { ExportResult } from "@/types/asset";
 import { PageShell } from "@/components/ui/PageShell";
 import { ProgressNarrative } from "@/components/ui/ProgressNarrative";
+import { demoFixturesEnabled } from "@/lib/demo";
 
 type State =
   | { kind: "loading" }
-  | { kind: "ready"; data: ExportResult; usingFixture: boolean };
+  | { kind: "ready"; data: ExportResult; usingFixture: boolean }
+  | { kind: "error"; message: string };
 
 export default function ExportResultPage() {
   const params = useParams<{ id: string }>();
@@ -23,8 +25,10 @@ export default function ExportResultPage() {
     let cancelled = false;
     (async () => {
       if (!jobId) {
-        if (!cancelled)
+        if (!cancelled && demoFixturesEnabled())
           setState({ kind: "ready", data: demoExportResult, usingFixture: true });
+        else if (!cancelled)
+          setState({ kind: "error", message: "내보내기 작업 ID가 없습니다." });
         return;
       }
       try {
@@ -32,8 +36,10 @@ export default function ExportResultPage() {
         if (!cancelled)
           setState({ kind: "ready", data, usingFixture: false });
       } catch {
-        if (!cancelled)
+        if (!cancelled && demoFixturesEnabled())
           setState({ kind: "ready", data: demoExportResult, usingFixture: true });
+        else if (!cancelled)
+          setState({ kind: "error", message: "내보내기 결과를 불러오지 못했어요." });
       }
     })();
     return () => {
@@ -49,6 +55,10 @@ export default function ExportResultPage() {
         </div>
       </PageShell>
     );
+  }
+
+  if (state.kind === "error") {
+    return <PageShell><p className="py-20 text-danger">{state.message}</p></PageShell>;
   }
 
   const r = state.data;

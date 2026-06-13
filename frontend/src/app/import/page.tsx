@@ -8,6 +8,7 @@ import type { SpotifyPlaylist } from "@/types/asset";
 import { PlaylistCard } from "@/components/ui/PlaylistCard";
 import { PageShell } from "@/components/ui/PageShell";
 import { ProgressNarrative } from "@/components/ui/ProgressNarrative";
+import { demoFixturesEnabled } from "@/lib/demo";
 
 type State =
   | { kind: "loading" }
@@ -27,9 +28,12 @@ export default function ImportPage() {
         if (!cancelled)
           setState({ kind: "ready", data, usingFixture: false });
       } catch {
-        // BE unreachable — fall back to fixtures so the demo is still inspectable.
-        if (!cancelled)
+        if (cancelled) return;
+        if (demoFixturesEnabled()) {
           setState({ kind: "ready", data: demoPlaylists, usingFixture: true });
+        } else {
+          setState({ kind: "error", message: "플레이리스트를 불러오지 못했어요." });
+        }
       }
     })();
     return () => {

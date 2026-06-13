@@ -3,6 +3,7 @@ package com.plshare.backend.domain.auth.service
 import com.plshare.backend.domain.user.model.User
 import com.plshare.backend.domain.user.repository.UserRepository
 import com.plshare.backend.infrastructure.google.GoogleUserInfo
+import com.plshare.backend.global.exception.ApiException
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -149,6 +150,53 @@ class GoogleAuthServiceUserUpsertTest {
 
         assertNotEquals("shared", second.handle, "Second user must get a unique handle")
         assertEquals(2, repo.store.size)
+    }
+
+    @Test
+    fun `기존 Spotify 사용자에 Google 계정을 연결한다`() {
+        val user = repo.save(
+            User(displayName = "Spotify User", handle = "spotify-user")
+        )
+
+        val linked = service.linkUser(
+            user.id,
+            GoogleUserInfo(
+                sub = "google-linked-sub",
+                email = "linked@example.com",
+                name = "Linked User",
+                picture = "https://example.com/linked.jpg",
+            )
+        )
+
+        assertEquals(user.id, linked.id)
+        assertEquals("google-linked-sub", linked.googleSubject)
+        assertEquals("linked@example.com", linked.email)
+        assertEquals("Linked User", linked.displayName)
+        assertEquals(1, repo.store.size)
+    }
+
+    @Test
+    fun `다른 사용자에 연결된 Google 계정은 재연결할 수 없다`() {
+        val first = repo.save(
+            User(
+                displayName = "First",
+                handle = "first",
+                googleSubject = "shared-google-sub",
+            )
+        )
+        val second = repo.save(User(displayName = "Second", handle = "second"))
+
+        assertThrows(ApiException::class.java) {
+            service.linkUser(
+                second.id,
+                GoogleUserInfo(
+                    sub = first.googleSubject!!,
+                    email = "second@example.com",
+                    name = "Second",
+                    picture = null,
+                )
+            )
+        }
     }
 }
 

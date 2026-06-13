@@ -3,10 +3,13 @@ package com.plshare.backend.domain.auth.controller
 import com.plshare.backend.domain.auth.model.OauthHandshake
 import com.plshare.backend.domain.auth.repository.OauthHandshakeRepository
 import com.plshare.backend.domain.auth.service.GoogleAuthService
+import com.plshare.backend.domain.auth.service.GoogleAccessGrantService
+import com.plshare.backend.domain.auth.service.SpotifyAccessGrantService
 import com.plshare.backend.global.exception.ApiException
 import com.plshare.backend.global.exception.ErrorCode
 import com.plshare.backend.infrastructure.google.GoogleOAuthClient
 import com.plshare.backend.infrastructure.spotify.PkceHelper
+import com.plshare.backend.global.security.ApplicationSessionService
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.transaction.annotation.Transactional
@@ -14,14 +17,22 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.servlet.view.RedirectView
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
+import java.net.URI
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+import com.plshare.backend.global.security.ApplicationPrincipal
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 
 @RestController
 @RequestMapping("/api/auth/google")
 class GoogleAuthController(
     private val googleOAuthClient: GoogleOAuthClient,
     private val googleAuthService: GoogleAuthService,
+    private val googleAccessGrantService: GoogleAccessGrantService,
+    private val spotifyAccessGrantService: SpotifyAccessGrantService,
     private val handshakeRepository: OauthHandshakeRepository,
     private val pkceHelper: PkceHelper,
+    private val applicationSessions: ApplicationSessionService,
     @Value("\${google.redirect-uri:http://localhost:8080/api/auth/google/callback}")
     private val redirectUri: String,
     @Value("\${google.fe-redirect:http://localhost:3000/import}")
@@ -34,7 +45,7 @@ class GoogleAuthController(
      * Incremental Auth design:
      * - Default (no [scope] param) → requests `openid email profile` only.
      *   This is the standard sign-in / sign-up path.
-     * - `?scope=youtube` → adds `youtube.readonly` to the standard set.
+     * - `?scope=youtube` → adds full YouTube playlist access to the standard set.
      *   Use this to request YouTube access after the user is already signed in
      *   (Phase B — YTM adapter). The additional consent screen is shown only for
      *   the incremental scope, minimising friction on first login.
@@ -48,7 +59,9 @@ class GoogleAuthController(
     @GetMapping("/start")
     @Transactional
     fun start(
-        @RequestParam("scope", required = false) scopeHint: String?
+        @RequestParam("scope", required = false) scopeHint: String?,
+        @RequestParam("returnTo", required = false) returnTo: String?,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
     ): RedirectView {
         val state = pkceHelper.generateState()
         val verifier = pkceHelper.generateCodeVerifier()
@@ -59,7 +72,9 @@ class GoogleAuthController(
             OauthHandshake(
                 state = "google:$state",
                 codeVerifier = verifier,
-                redirectUri = redirectUri
+                redirectUri = redirectUri,
+                userId = principal?.userId,
+                returnPath = safeReturnPath(returnTo),
             )
         )
 
@@ -120,20 +135,27 @@ class GoogleAuthController(
             .block()
             ?: throw ApiException(ErrorCode.UPSTREAM_ERROR, "UserInfo returned empty response")
 
-        val user = googleAuthService.upsertUser(userInfo)
-        return RedirectView("$frontendRedirect?session=${user.id}")
+        val user = handshake.userId
+            ?.let { googleAuthService.linkUser(it, userInfo) }
+            ?: googleAuthService.upsertUser(userInfo)
+        googleAccessGrantService.save(user.id, tokens)
+        val spotifyGrantId = spotifyAccessGrantService.findLatestGrant(user.id)?.id
+        return RedirectView(frontendCallbackUrl(
+            applicationSessions.issue(user.id, spotifyGrantId),
+            handshake.returnPath,
+        ))
     }
 
     /**
      * Resolves the OAuth scope list based on the optional [scopeHint].
      *
-     * Base scopes are always included. `youtube` hint appends `youtube.readonly`
-     * for Incremental Auth (Phase B — YTM adapter integration).
+     * Base scopes are always included. `youtube` hint appends the YouTube scope
+     * required for playlist read and write operations.
      */
     private fun buildScopes(scopeHint: String?): List<String> {
         val base = listOf("openid", "email", "profile")
         return when (scopeHint?.lowercase()) {
-            "youtube" -> base + "https://www.googleapis.com/auth/youtube.readonly"
+            "youtube" -> base + "https://www.googleapis.com/auth/youtube"
             else      -> base
         }
     }
@@ -141,4 +163,17 @@ class GoogleAuthController(
     companion object {
         private const val HANDSHAKE_TTL_MINUTES = 10L
     }
+
+    private fun frontendCallbackUrl(session: String, returnPath: String?): String {
+        val frontend = URI(frontendRedirect)
+        val origin = "${frontend.scheme}://${frontend.rawAuthority}"
+        val next = safeReturnPath(returnPath) ?: frontend.rawPath.ifBlank { "/import" }
+        return "$origin/api/auth/callback?session=${encode(session)}&next=${encode(next)}"
+    }
+
+    private fun safeReturnPath(value: String?): String? =
+        value?.takeIf { it.startsWith("/") && !it.startsWith("//") && it.length <= 1024 }
+
+    private fun encode(value: String): String =
+        URLEncoder.encode(value, StandardCharsets.UTF_8)
 }

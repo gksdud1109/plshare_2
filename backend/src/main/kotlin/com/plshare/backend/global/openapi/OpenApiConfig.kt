@@ -18,7 +18,7 @@ class OpenApiConfig {
         OpenAPI().info(
             Info()
                 .title("plshare2 API")
-                .description("Spotify import → Emotional Context → Apple Music export. 응답은 ApiResponse<T> envelope, 오류는 ErrorResponse.")
-                .version("v0.2"),
+                .description("Playlist import → Emotional Context → social sharing and YouTube Music export. 응답은 ApiResponse<T> envelope, 오류는 ErrorResponse.")
+                .version("v2"),
         )
 }

@@ -17,12 +17,23 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const authUrl = new URL("/auth/spotify", request.url);
-  authUrl.searchParams.set(
-    "next",
-    `${request.nextUrl.pathname}${request.nextUrl.search}`,
+  const requestedPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
+  const spotifyConnect = new URL("/auth/spotify", request.url);
+  spotifyConnect.searchParams.set("live", "1");
+  spotifyConnect.searchParams.set("next", requestedPath);
+  // Redirect to the INTERNAL /auth/continue interstitial, not straight to the
+  // external OAuth start. Next.js strips Next-Router-Prefetch / RSC headers
+  // before middleware, so we cannot tell a prefetch from a real navigation here
+  // — and bouncing a prefetch through the external provider burns an OAuth
+  // handshake and (in demo) hits an unresolvable mock host. /auth/continue does
+  // the external hop in a client effect, which prefetch never executes, so
+  // prefetch probes stop at the internal shell while real nav still auto-forwards.
+  const continueUrl = new URL("/auth/continue", request.url);
+  continueUrl.searchParams.set(
+    "returnTo",
+    `${spotifyConnect.pathname}${spotifyConnect.search}`,
   );
-  return NextResponse.redirect(authUrl);
+  return NextResponse.redirect(continueUrl);
 }
 
 export const config = {

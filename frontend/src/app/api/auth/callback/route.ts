@@ -1,19 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { setSessionCookie } from "@/lib/auth/session";
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 export async function GET(request: NextRequest) {
-  const grantId = request.nextUrl.searchParams.get("session")?.trim();
+  const sessionToken = request.nextUrl.searchParams.get("session")?.trim();
 
-  if (!grantId || !UUID_PATTERN.test(grantId)) {
+  if (!sessionToken || sessionToken.length < 32 || sessionToken.length > 4096) {
     return NextResponse.json(
-      { error: "A valid Spotify grant session is required" },
+      { error: "A valid application session is required" },
       { status: 400 },
     );
   }
 
-  await setSessionCookie({ grantId });
-  return NextResponse.redirect(new URL("/import", request.url));
+  await setSessionCookie({ sessionToken });
+  const requestedNext = request.nextUrl.searchParams.get("next");
+  const next =
+    requestedNext?.startsWith("/") && !requestedNext.startsWith("//")
+      ? requestedNext
+      : "/import";
+  return NextResponse.redirect(new URL(next, request.url));
 }

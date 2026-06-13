@@ -13,8 +13,9 @@
 
 | 원칙 | 설명 |
 |:---|:---|
-| **Human-in-the-loop Gate** | 모든 태스크는 사람 승인 이후에만 실행. 자동화는 승인 범위 내에서만 작동 |
+| **Human-in-the-loop Gate** | `requires_approval: true` 태스크만 사람 승인 이후 실행 |
 | **Pull-based Dispatch** | Orchestrator가 push하지 않는다. Worker가 queue를 polling해서 pull한다 |
+| **Atomic Claim** | `task_queue.rb claim-next-for-agent`가 파일 잠금 안에서 pending → in_progress를 원자 처리한다 |
 | **File-based Handoff** | 에이전트 간 통신은 YAML/Markdown 파일. REST API나 IPC 없음 |
 | **Artifact Ownership** | 각 태스크는 자신의 output 파일만 쓴다. locked_files 외 수정 금지 |
 | **Idempotent Review** | review는 git diff로 실제 변경 여부를 검증. 사전 존재 파일로 false-positive 방지 |
@@ -112,8 +113,8 @@
 ```
 1. 태스크 정의
    task-queue.yaml에 태스크 추가
-   → status: blocked (의존성 있음) 또는 awaiting_approval (바로 시작 가능)
-   → requires_approval: true 설정
+   → status: blocked (의존성 있음) 또는 pending (바로 시작 가능)
+   → 전략·비용·외부 공개 변경만 requires_approval: true 설정
 
 2. 승인 단계  [HUMAN GATE]
    propose-decisions.sh → 승인 대기 태스크 목록 표시
@@ -134,7 +135,7 @@
    → status: in_progress → review
    orchestrator run-orchestrator.sh 실행
    review-task.sh → git diff로 변경 검증
-   → done_criteria 충족 시: status → done
+   → worker exit_code=0, artifact, validate_cmd, done_criteria 검토 후 status → done
    → 미충족 시: status → failed + 사유 기록
 
 6. PR 생성
@@ -161,7 +162,7 @@ main
 
 규칙:
 - 각 태스크는 독립 브랜치에서 실행
-- Worker가 태스크 시작 시 자동으로 브랜치 생성
+- worker는 브랜치를 자동 생성하지 않는다. 병렬 구현은 사전에 worktree를 배정한다
 - 완료 후 create-pr.sh로 PR 자동 생성
 - merge 후 브랜치 삭제 (gh pr merge --delete-branch)
 ```

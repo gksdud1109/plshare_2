@@ -49,12 +49,16 @@ class YouTubeQuotaGuard(
         const val PLAYLIST_INSERT_COST = 50L
         /** playlistItems.insert 1곡 비용 */
         const val ITEM_INSERT_COST = 50L
+        const val SEARCH_COST = 100L
 
         /**
          * N곡 export 예상 비용 계산.
          * = PLAYLIST_INSERT_COST + ITEM_INSERT_COST * trackCount
          */
         fun estimatedCost(trackCount: Int): Long = PLAYLIST_INSERT_COST + ITEM_INSERT_COST * trackCount
+
+        fun estimatedCost(trackCount: Int, searchCount: Int): Long =
+            estimatedCost(trackCount) + SEARCH_COST * searchCount
     }
 
     /**

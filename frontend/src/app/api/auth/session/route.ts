@@ -11,12 +11,9 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ||
   "http://localhost:8080";
 
-interface GrantStatus {
-  grantId: string;
-  userId?: string;
-  expiresAt?: string;
-  expiringSoon?: boolean;
-  scope?: string;
+interface BackendSession {
+  userId: string;
+  spotifyGrantId?: string | null;
 }
 
 export async function GET() {
@@ -26,29 +23,28 @@ export async function GET() {
   }
 
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/auth/spotify/me?grantId=${encodeURIComponent(session.grantId)}`,
-      { cache: "no-store" },
-    );
+    if (!session.sessionToken) throw new Error("Missing application session token");
+    const response = await fetch(`${API_BASE_URL}/api/auth/session`, {
+      cache: "no-store",
+      headers: { Authorization: `Bearer ${session.sessionToken}` },
+    });
 
     if (!response.ok) {
-      throw new Error(`Spotify grant validation failed with ${response.status}`);
+      throw new Error(`Application session validation failed with ${response.status}`);
     }
 
     const payload = (await response.json()) as unknown;
     // Unwrap the BE ApiResponse envelope `{ code, message, data }` if present.
-    const grant = (
+    const backendSession = (
       payload !== null && typeof payload === "object" && "data" in payload
-        ? (payload as { data: GrantStatus }).data
+        ? (payload as { data: BackendSession }).data
         : payload
-    ) as GrantStatus;
-    if (grant.grantId !== session.grantId) {
-      throw new Error("Spotify grant validation returned a different grant");
-    }
+    ) as BackendSession;
 
     const verifiedSession: Session = {
       ...session,
-      userId: grant.userId ?? session.userId,
+      userId: backendSession.userId,
+      grantId: backendSession.spotifyGrantId ?? undefined,
     };
 
     return NextResponse.json({

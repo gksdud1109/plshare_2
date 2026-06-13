@@ -2,6 +2,8 @@ package com.plshare.backend.domain.auth.service
 
 import com.plshare.backend.domain.user.model.User
 import com.plshare.backend.domain.user.repository.UserRepository
+import com.plshare.backend.global.exception.ApiException
+import com.plshare.backend.global.exception.ErrorCode
 import com.plshare.backend.infrastructure.google.GoogleUserInfo
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -49,6 +51,26 @@ class GoogleAuthService(
             avatarUrl = info.picture,
             googleSubject = info.sub
         )
+        return userRepository.save(user)
+    }
+
+    @Transactional
+    fun linkUser(userId: java.util.UUID, info: GoogleUserInfo): User {
+        val user = userRepository.findById(userId).orElseThrow {
+            ApiException(ErrorCode.NOT_FOUND, "User not found: $userId")
+        }
+        val linked = userRepository.findByGoogleSubject(info.sub)
+        if (linked != null && linked.id != userId) {
+            throw ApiException(ErrorCode.CONFLICT, "Google account is already linked to another user")
+        }
+
+        user.googleSubject = info.sub
+        if (user.email == null && !info.email.isNullOrBlank() && userRepository.findByEmail(info.email) == null) {
+            user.email = info.email
+        }
+        user.displayName = info.name ?: user.displayName
+        user.avatarUrl = info.picture ?: user.avatarUrl
+        user.updatedAt = java.time.LocalDateTime.now()
         return userRepository.save(user)
     }
 

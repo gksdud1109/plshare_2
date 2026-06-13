@@ -1,5 +1,9 @@
 # [PRD] plshare2 v0.2
 
+> **Status: SUPERSEDED.** 현재 제품 범위는
+> `docs/20-product/strategy/product-baseline-v2.md`를 따른다.
+> 이 문서는 Spotify -> Apple 시기의 역사적 PRD로 보존한다.
+
 ## Related Documents
 - `docs/20-product/requirements/playlist-first-product-intent.md`
 - `docs/20-product/requirements/functional-requirements-v0.2.md`

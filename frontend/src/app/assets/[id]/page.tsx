@@ -11,6 +11,7 @@ import { ProgressNarrative } from "@/components/ui/ProgressNarrative";
 import { TrackRow } from "@/components/ui/TrackRow";
 import { EmotionTagPicker } from "@/components/ui/EmotionTagPicker";
 import { Toast } from "@/components/ui/Toast";
+import { demoFixturesEnabled } from "@/lib/demo";
 
 type State =
   | { kind: "loading" }
@@ -43,11 +44,15 @@ export default function AssetDetailPage() {
         setTags(data.emotionTags ?? []);
       } catch {
         if (cancelled) return;
-        const fallback = buildDemoAssetDetail(id);
-        setState({ kind: "ready", data: fallback, usingFixture: true });
-        setDiary(fallback.diaryText ?? "");
-        setDescription(fallback.description ?? "");
-        setTags(fallback.emotionTags ?? []);
+        if (demoFixturesEnabled()) {
+          const fallback = buildDemoAssetDetail(id);
+          setState({ kind: "ready", data: fallback, usingFixture: true });
+          setDiary(fallback.diaryText ?? "");
+          setDescription(fallback.description ?? "");
+          setTags(fallback.emotionTags ?? []);
+        } else {
+          setState({ kind: "error", message: "자산을 불러오지 못했어요." });
+        }
       }
     })();
     return () => {

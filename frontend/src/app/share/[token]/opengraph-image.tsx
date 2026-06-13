@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { fetchShareDataServer } from "@/lib/api/share";
 import { buildDemoSharedAsset } from "@/lib/api/fixtures";
 import type { SharedAsset } from "@/types/asset";
+import { demoFixturesEnabled } from "@/lib/demo";
 
 export const runtime = "nodejs";
 export const alt = "plshare 취향 자산 카드";
@@ -28,7 +29,16 @@ export default async function OpenGraphImage({ params }: RouteProps) {
   try {
     data = await fetchShareDataServer(token);
   } catch {
+    if (!demoFixturesEnabled()) {
+      data = {
+        id: token,
+        title: "공유할 수 없는 플레이리스트",
+        emotionTags: [],
+        tracks: [],
+      };
+    } else {
     data = buildDemoSharedAsset(token);
+    }
   }
 
   const excerpt = clampLine(data.diaryText ?? data.description, 140);

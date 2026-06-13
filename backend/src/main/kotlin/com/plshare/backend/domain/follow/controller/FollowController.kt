@@ -5,6 +5,8 @@ import com.plshare.backend.domain.follow.service.FollowService
 import com.plshare.backend.global.response.ApiResponse
 import org.springframework.web.bind.annotation.*
 import java.util.UUID
+import com.plshare.backend.global.security.ApplicationPrincipal
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 
 /**
  * 팔로우 REST 컨트롤러.
@@ -23,18 +25,20 @@ class FollowController(private val followService: FollowService) {
     @PostMapping("/follow")
     fun follow(
         @PathVariable handle: String,
-        @RequestParam followerId: UUID,
+        @RequestParam(required = false) followerId: UUID?,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
     ): ApiResponse<Unit> {
-        followService.follow(followerId, handle)
+        followService.follow(principal?.userId ?: requireNotNull(followerId), handle)
         return ApiResponse.ok(null)
     }
 
     @DeleteMapping("/follow")
     fun unfollow(
         @PathVariable handle: String,
-        @RequestParam followerId: UUID,
+        @RequestParam(required = false) followerId: UUID?,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
     ): ApiResponse<Unit> {
-        followService.unfollow(followerId, handle)
+        followService.unfollow(principal?.userId ?: requireNotNull(followerId), handle)
         return ApiResponse.ok(null)
     }
 
@@ -42,6 +46,7 @@ class FollowController(private val followService: FollowService) {
     fun stats(
         @PathVariable handle: String,
         @RequestParam(required = false) viewerId: UUID?,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
     ): ApiResponse<FollowStatsResponse> =
-        ApiResponse.ok(followService.stats(handle, viewerId))
+        ApiResponse.ok(followService.stats(handle, principal?.userId ?: viewerId))
 }

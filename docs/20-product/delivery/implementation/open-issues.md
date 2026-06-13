@@ -1,83 +1,106 @@
-# Open Issues
+# Implementation Contract And Open Issues
 
-## UX→API required fields (Finalized for Backend Scaffolding)
+제품 범위는 `docs/20-product/strategy/product-baseline-v2.md`를 따른다.
+모든 API 응답은 `{ code, message, data }` envelope를 사용한다.
 
-이 문서는 시니어 백엔드 엔지니어의 리뷰를 거쳐 데이터 정합성과 멱등성이 보장되도록 확정된 API 계약입니다.
+## Current API Contract
 
-### 1. Dashboard / Asset List
-- `assets`: Array
-  - `id`: UUID (Primary Key)
-  - `title`: String
-  - `cover_url`: String
-  - `tag_list`: Array<String>
-  - `created_at`: ISO8601
-  - `track_count`: Integer
-  - `source_platform`: Enum (spotify)
+인증 요청:
 
-### 2. Import Request (POST /api/v1/imports)
-- **Request Header**:
-  - `X-Idempotency-Key`: UUID (Required, 클라이언트 생성 멱등성 키)
-- **Request Body**:
-  - `spotify_playlist_id`: String
-- **Response**:
-  - `import_job_id`: UUID
-  - `status`: Enum (queued)
+```http
+Authorization: Bearer <application-session-token>
+```
 
-### 3. Import Status (Real-time / Polling)
-- `import_job_id`: UUID
-- `status`: Enum (queued, running, completed, failed)
-- `error_code`: String (optional, e.g., "EXTERNAL_API_ERROR", "AUTH_EXPIRED")
-- `progress`: Object
-  - `total_tracks`: Integer
-  - `processed_tracks`: Integer
-  - `current_track_name`: String
-- `normalization_results`: Array (Summary only)
-  - `match_rate`: Float (0.0 ~ 1.0)
-  - `exact_match_count`: Integer
+### Session
 
-### 4. Asset Detail (The Card)
-- `asset`: Object
-  - (All fields from List)
-  - `description`: String
-  - `diary_text`: String
-  - `tracks`: Array
-    - `id`: UUID
-    - `name`: String
-    - `artist`: String
-    - `isrc`: String (Unique identifier for normalization)
-    - `platform_meta`: Object (spotify_id, apple_music_id 등 플랫폼별 메타데이터)
+```http
+GET /api/auth/session
+```
 
-### 5. Export Request (POST /api/v1/exports)
-- **Request Header**:
-  - `X-Idempotency-Key`: UUID (Required)
-- **Request Body**:
-  - `asset_id`: UUID
-  - `target_platform`: Enum (apple_music)
-- **Response**:
-  - `export_job_id`: UUID
+```json
+{
+  "userId": "uuid",
+  "spotifyGrantId": "uuid-or-null"
+}
+```
 
-### 6. Export Status
-- `export_job_id`: UUID
-- `target_platform`: Enum (apple_music)
-- `status`: Enum (queued, running, completed, partially_completed, failed)
-- `results`: Object
-  - `success_count`: Integer
-  - `fail_count`: Integer
-  - `failed_tracks`: Array<Object> (name, isrc, reason)
-  - `target_playlist_id`: String (Apple Music 내 생성된 ID)
-  - `target_playlist_url`: String (Deep link)
+### Import
 
----
+```http
+POST /api/imports
+X-Idempotency-Key: <client-generated-key>
+Content-Type: application/json
+```
 
-## Backend Implementation Notes (from Toss Payments Review Skill)
+```json
+{
+  "playlistId": "provider-playlist-id",
+  "sourcePlatform": "spotify | youtube"
+}
+```
 
-1. **Transaction Isolation**: 
-   - Spotify/Apple Music API 호출은 트랜잭션 외부에서 수행한다.
-   - DB 저장은 API 호출 성공 후 별도 트랜잭션으로 처리하여 DB 커넥션 점유 시간을 최소화한다.
-2. **Idempotency**: 
-   - `X-Idempotency-Key`를 Redis 또는 DB에 저장하여 24시간 내 동일 요청 시 기존 `job_id`를 반환한다.
-3. **Resilience**:
-   - 외부 API 호출 시 반드시 Timeout(Default 5s)을 설정한다.
-   - 429(Too Many Requests) 발생 시 지수 백오프(Exponential Backoff)를 적용한 재시도 큐를 활용한다.
-4. **Data Integrity**:
-   - ISRC가 없는 트랙은 별도 'Unmatched' 상태로 관리하며, 사용자에게 알림을 제공한다.
+```http
+GET /api/imports/{jobId}
+```
+
+Import status values: `queued`, `running`, `completed`, `failed`.
+
+### Assets
+
+```http
+GET /api/assets
+GET /api/assets/{assetId}
+PATCH /api/assets/{assetId}
+POST /api/assets/{assetId}/share
+```
+
+인증된 사용자는 자기 `ownerId`와 일치하는 asset만 조회·수정·공유할 수 있다.
+공개 공유 링크만 `GET /api/share/{token}`으로 익명 접근한다.
+
+### Export
+
+```http
+POST /api/exports
+X-Idempotency-Key: <client-generated-key>
+Content-Type: application/json
+```
+
+```json
+{
+  "assetId": "uuid",
+  "targetPlatform": "youtube | apple"
+}
+```
+
+```http
+GET /api/exports/{jobId}
+GET /api/exports/{jobId}/result
+```
+
+Export status values:
+`queued`, `matching`, `ready`, `executing`, `completed`, `partial`, `failed`.
+
+## Required Engineering Rules
+
+- 외부 provider 호출은 장시간 DB transaction 안에서 실행하지 않는다.
+- mutation 요청은 `X-Idempotency-Key`를 사용한다.
+- idempotency key와 import/export job은 사용자 소유권 경계를 넘지 않는다.
+- provider timeout, 429, token expiry는 사용자에게 실패 상태로 노출한다.
+- 프로덕션 장애를 fixture 성공 데이터로 대체하지 않는다.
+
+## Open Issues
+
+1. **Production storage is not implemented.**
+   `S3StorageAdapter`는 현재 fail-fast stub이다. Emotional Context 사진 업로드를
+   프로덕션에서 열기 전에 AWS SDK v2 presigner와 authenticated delete를 구현해야 한다.
+2. **Live OAuth has not been integration-tested.**
+   Spotify PKCE, Google incremental YouTube consent, refresh token 보존, 동일 사용자
+   grant 연결을 실제 provider 계정으로 검증해야 한다.
+3. **Production migrations need a PostgreSQL smoke test.**
+   V9-V11의 ownership/OAuth FK와 기존 nullable legacy row 호환을 staging DB에서 검증한다.
+4. **YouTube quota operations need policy.**
+   search 100 units + playlist write 비용에 대한 일일 예산, 사용자별 제한,
+   quota exhaustion UX를 운영 기준으로 확정해야 한다.
+5. **Application sessions have no server-side revocation.**
+   현재 HMAC 세션은 만료 전 강제 폐기할 수 없다. 계정 탈취 대응이 필요해지면
+   session version 또는 revocation store를 추가한다.

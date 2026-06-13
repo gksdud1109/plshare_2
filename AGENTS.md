@@ -8,18 +8,21 @@ Codex가 이 저장소에서 작업할 때 읽는 컨텍스트 파일이다.
 
 **plshare2** — Taste Asset Management Layer
 
-Spotify 플레이리스트를 감정 컨텍스트(일기, 태그, 사진)와 함께 플랫폼 독립 자산으로 보존하고
-Apple Music으로 이식 가능하게 하는 서비스.
+Spotify 또는 YouTube Music 플레이리스트를 감정 컨텍스트와 함께
+플랫폼 독립 자산으로 보존하고 공유·전환·선물하는 소셜 서비스.
 
 ---
 
-## MVP 범위 (절대 변경 금지)
+## 현재 제품 범위
 
-- **P0:** `Spotify import → Assetize (컨텍스트 추가) → Apple Music export`
+- **P0:** `Google identity → Spotify/YTM import → Assetize → Social share`
+- **Primary corridor:** `Spotify → YouTube Music` (write quota에 따라 선택 개방)
+- **P1:** ranking, emotional gift, Apple Music export
 - B2B 데이터 패키징은 MVP 범위 외
 - In-app music player 없음 — deep link만 제공
-- YouTube 어댑터는 MVP 대상 아님
 - 온체인 민팅 없음 — 오프체인 자산 등록만
+
+제품 기준: `docs/20-product/strategy/product-baseline-v2.md`
 
 ---
 
@@ -29,9 +32,9 @@ Apple Music으로 이식 가능하게 하는 서비스.
 |--------|------|
 | Frontend | Next.js App Router (TypeScript) |
 | Backend | Kotlin + Spring Boot |
-| DB | Supabase (PostgreSQL) |
-| Auth | Supabase Auth + Spring Security |
-| Storage | Supabase Storage (cover images) |
+| DB | PostgreSQL + Flyway (demo: H2) |
+| Auth | Google OAuth + Spring Security application session |
+| Storage | S3-compatible storage (demo: local filesystem) |
 | Infra | Vercel (FE), Cloud Run (BE) |
 
 ---
@@ -61,24 +64,24 @@ Backend Engineer 또는 Frontend Engineer 태스크를 담당한다.
 
 ## API 계약 (확정)
 
-### Import (Spotify)
+### Import
 ```
-POST /api/v1/imports
-Body: { spotify_playlist_id: String }
-Response: { import_job_id: UUID, status: Enum }
+POST /api/imports
+Body: { playlistId: String, sourcePlatform: "spotify" | "youtube" }
+Response: { jobId: UUID, status: Enum }
 ```
 
-### Export (Apple Music)
+### Export
 ```
-POST /api/v1/exports
-Body: { asset_id: UUID, target_platform: "apple_music" }
-Response: { export_job_id: UUID }
+POST /api/exports
+Body: { assetId: UUID, targetPlatform: "youtube" | "apple" }
+Response: { jobId: UUID }
 ```
 
 ### 잡 상태 조회
 ```
-GET /api/v1/imports/{import_job_id}
-GET /api/v1/exports/{export_job_id}
+GET /api/imports/{jobId}
+GET /api/exports/{jobId}
 Response: { status, progress, results }
 ```
 

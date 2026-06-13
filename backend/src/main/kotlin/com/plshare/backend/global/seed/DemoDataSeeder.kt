@@ -36,6 +36,7 @@ class DemoDataSeeder(
             return
         }
         val asset = Asset(
+            ownerId = demoUser.id,
             title = "Sample - Sunset Walks",
             coverUrl = "https://picsum.photos/seed/sunset/600/600",
             description = "A small playlist seeded for demo purposes",

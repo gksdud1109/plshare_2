@@ -8,10 +8,12 @@ import type { AssetSummary } from "@/types/asset";
 import { AssetCard } from "@/components/ui/AssetCard";
 import { PageShell } from "@/components/ui/PageShell";
 import { ProgressNarrative } from "@/components/ui/ProgressNarrative";
+import { demoFixturesEnabled } from "@/lib/demo";
 
 type State =
   | { kind: "loading" }
-  | { kind: "ready"; data: AssetSummary[]; usingFixture: boolean };
+  | { kind: "ready"; data: AssetSummary[]; usingFixture: boolean }
+  | { kind: "error"; message: string };
 
 export default function AssetsPage() {
   const [state, setState] = useState<State>({ kind: "loading" });
@@ -23,8 +25,10 @@ export default function AssetsPage() {
         const data = await listAssets();
         if (!cancelled) setState({ kind: "ready", data, usingFixture: false });
       } catch {
-        if (!cancelled)
+        if (!cancelled && demoFixturesEnabled())
           setState({ kind: "ready", data: demoAssets, usingFixture: true });
+        else if (!cancelled)
+          setState({ kind: "error", message: "라이브러리를 불러오지 못했어요." });
       }
     })();
     return () => {
@@ -68,6 +72,8 @@ export default function AssetsPage() {
             intervalMs={2400}
           />
         </div>
+      ) : state.kind === "error" ? (
+        <p className="py-20 text-danger">{state.message}</p>
       ) : state.data.length === 0 ? (
         <div className="flex flex-col items-start gap-6 py-20">
           <p className="text-2xl font-semibold text-text-mid">

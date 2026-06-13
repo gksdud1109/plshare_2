@@ -6,6 +6,7 @@ import Link from "next/link";
 import { openGift, saveGift } from "@/lib/api/gift";
 import { buildDemoGiftView } from "@/lib/api/fixtures-gift";
 import { useSessionUser } from "@/lib/auth/useSessionUser";
+import { demoFixturesEnabled } from "@/lib/demo";
 import { UnboxingView } from "@/components/gift/UnboxingView";
 import type { GiftView } from "@/types/gift";
 
@@ -34,14 +35,16 @@ export default function GiftUnboxPage({
         if (!cancelled) setPageState({ kind: "success", gift });
       } catch (err: unknown) {
         if (cancelled) return;
-        // 404 → not-found; anything else → fall back to demo fixture
+        // Demo builds keep an inspectable unboxing flow; production surfaces failures.
         const status = err instanceof Error && "status" in err
           ? (err as { status: number }).status
           : 0;
         if (status === 404) {
           setPageState({ kind: "not-found" });
-        } else {
+        } else if (demoFixturesEnabled()) {
           setPageState({ kind: "success", gift: buildDemoGiftView(token) });
+        } else {
+          setPageState({ kind: "not-found" });
         }
       }
     })();
@@ -59,7 +62,7 @@ export default function GiftUnboxPage({
       setPageState({ kind: "success", gift: updated });
       setSaved(true);
     } catch {
-      setSaved(true); // demo graceful degradation
+      if (demoFixturesEnabled()) setSaved(true);
     } finally {
       setSaving(false);
     }

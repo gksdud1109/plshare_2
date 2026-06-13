@@ -2,6 +2,8 @@ package com.plshare.backend.domain.importing.service
 
 import com.plshare.backend.domain.importing.model.ImportJob
 import com.plshare.backend.domain.importing.repository.ImportJobRepository
+import com.plshare.backend.global.exception.ApiException
+import com.plshare.backend.global.exception.ErrorCode
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.*
@@ -21,16 +23,23 @@ class ImportService(
     fun requestImport(
         idempotencyKey: String,
         playlistId: String,
-        sourcePlatform: String = "spotify"
+        sourcePlatform: String = "spotify",
+        ownerId: UUID? = null,
+        spotifyGrantId: UUID? = null,
     ): UUID {
         // 1. 기존 멱등성 키 존재 여부 확인
         val existingJob = importJobRepository.findByIdempotencyKey(idempotencyKey)
         if (existingJob != null) {
+            if (ownerId != null && existingJob.ownerId != ownerId) {
+                throw ApiException(ErrorCode.CONFLICT, "Idempotency key belongs to another user")
+            }
             return existingJob.id // 기존 작업 ID 반환 (중복 생성 방지)
         }
 
         // 2. 새 작업 생성 (Queued 상태)
         val newJob = ImportJob(
+            ownerId = ownerId,
+            spotifyGrantId = spotifyGrantId,
             idempotencyKey = idempotencyKey,
             sourcePlatform = sourcePlatform,
             sourcePlaylistId = playlistId,

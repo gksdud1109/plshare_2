@@ -5,7 +5,7 @@
  * - Throws ApiError with status + body for predictable handling.
  */
 
-const BASE_URL =
+const BACKEND_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "http://localhost:8080";
 
 export class ApiError extends Error {
@@ -42,7 +42,11 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
     finalHeaders["X-Idempotency-Key"] = idempotencyKey;
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const target =
+    typeof window === "undefined"
+      ? `${BACKEND_URL}${path}`
+      : `/api/backend${path}`;
+  const res = await fetch(target, {
     ...rest,
     headers: finalHeaders,
     body: serializedBody,
@@ -81,4 +85,4 @@ export function makeIdempotencyKey(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export const apiBaseUrl = BASE_URL;
+export const apiBaseUrl = BACKEND_URL;

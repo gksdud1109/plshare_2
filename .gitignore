@@ -66,3 +66,4 @@ logs/
 .claude/logs/
 .claude/worktrees/
 frontend/e2e/screenshots/
+frontend/e2e/demo-reel/

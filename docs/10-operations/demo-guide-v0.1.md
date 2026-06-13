@@ -25,11 +25,12 @@ cd /Users/hanyoung-jeong/Development/plshare_2/backend
 ```zsh
 cd /Users/hanyoung-jeong/Development/plshare_2/frontend
 npm install   # 최초 1회
-npm run dev
+NEXT_PUBLIC_DEMO_MODE=true npm run dev
 ```
 - 포트: `3000`
 - 환경변수 `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080` (`.env.local`)
-- 백엔드 미가동 시 자동 fixture 폴백 (UI에 "Demo data" 배지 노출)
+- `NEXT_PUBLIC_DEMO_MODE=true`일 때만 백엔드 장애 시 fixture 폴백
+- 프로덕션 빌드는 `NEXT_PUBLIC_DEMO_MODE=false`로 유지
 
 ### 1.3 정리
 

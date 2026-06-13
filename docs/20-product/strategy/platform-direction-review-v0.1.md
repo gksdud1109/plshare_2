@@ -1,5 +1,8 @@
 # Platform Direction Review v0.1
 
+> **Status: SUPERSEDED.** 2026-06-10의
+> `platform-strategy-v2-research-v0.1.md` 결정이 이 권고를 대체한다.
+
 ## 문서 정보
 - Date: `2026-04-14`
 - Role: `Product Owner`

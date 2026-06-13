@@ -6,6 +6,7 @@ import { listAssets } from "@/lib/api/assets";
 import { createGift } from "@/lib/api/gift";
 import { demoAssets } from "@/lib/api/fixtures";
 import { buildDemoGiftCreated } from "@/lib/api/fixtures-gift";
+import { demoFixturesEnabled } from "@/lib/demo";
 import { WrapSkinPicker } from "@/components/gift/WrapSkinPicker";
 import { WRAP_SKINS } from "@/types/gift";
 import type { AssetSummary } from "@/types/asset";
@@ -36,7 +37,7 @@ export default function GiftSendPage() {
           if (data.length > 0) setSelectedAssetId(data[0].id);
         }
       } catch {
-        if (!cancelled) {
+        if (!cancelled && demoFixturesEnabled()) {
           setAssets(demoAssets);
           setUsingFixture(true);
           if (demoAssets.length > 0) setSelectedAssetId(demoAssets[0].id);
@@ -80,7 +81,7 @@ export default function GiftSendPage() {
     if (!selectedAssetId || !message.trim()) return;
     setSendState({ kind: "submitting" });
     try {
-      const result = usingFixture
+      const result = usingFixture && demoFixturesEnabled()
         ? buildDemoGiftCreated()
         : await createGift({
             senderId: userId,

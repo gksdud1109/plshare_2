@@ -14,6 +14,8 @@ import com.plshare.backend.infrastructure.youtube.normalizeVideoId
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
+import com.plshare.backend.domain.auth.service.SpotifyAccessGrantService
+import com.plshare.backend.domain.auth.service.GoogleAccessGrantService
 import org.springframework.transaction.annotation.Transactional
 
 @Service
@@ -22,7 +24,9 @@ class NormalizationEngine(
     private val assetRepository: AssetRepository,
     private val spotifyClient: SpotifyClient,
     private val youTubeClient: YouTubeClient,
-    private val matchingEngine: MatchingEngine
+    private val matchingEngine: MatchingEngine,
+    private val spotifyGrantService: SpotifyAccessGrantService? = null,
+    private val googleAccessGrantService: GoogleAccessGrantService? = null,
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -98,7 +102,12 @@ class NormalizationEngine(
                 }
                 else -> {
                     // Spotify 경로 (기본, 기존 동작 불변)
-                    val accessToken = spotifyClient.getAccessToken().block()
+                    val accessToken = job.spotifyGrantId
+                        ?.let {
+                            spotifyGrantService?.getValidAccessToken(it)?.block()
+                                ?: throw IllegalStateException("Spotify grant service unavailable")
+                        }
+                        ?: spotifyClient.getAccessToken().block()
                         ?: throw IllegalStateException("Failed to get Spotify access token")
 
                     val playlistId = job.spotifyPlaylistId
@@ -127,6 +136,7 @@ class NormalizationEngine(
 
         // Asset 생성
         val asset = Asset(
+            ownerId = job.ownerId,
             title = playlist.name,
             coverUrl = playlist.images.firstOrNull()?.url,
             sourcePlatform = "spotify"
@@ -184,6 +194,7 @@ class NormalizationEngine(
         val job = importJobRepository.findById(jobId).orElseThrow()
 
         val asset = Asset(
+            ownerId = job.ownerId,
             title = summary.title,
             coverUrl = summary.coverUrl,
             sourcePlatform = "youtube"
@@ -253,10 +264,10 @@ class NormalizationEngine(
     /**
      * YouTube import job의 accessToken 조회.
      *
-     * 현재는 demo(mock) 환경에서만 사용되며 mock은 토큰 무검증.
-     * production에서는 GoogleOAuthSession 등에서 토큰을 주입해야 한다.
-     * TODO: production YouTube token 조달 경로는 be-ytm-auth 태스크에서 구현.
+     * 인증된 작업은 사용자 Google grant를 사용하고, owner가 없는 demo 작업만
+     * mock token을 사용한다.
      */
     private fun com.plshare.backend.domain.importing.model.ImportJob.youtubeAccessToken(): String? =
-        "demo-youtube-token"  // demo에서는 MockYouTubeClient가 토큰 무검증
+        ownerId?.let { googleAccessGrantService?.getValidYouTubeToken(it) }
+            ?: "demo-youtube-token"
 }

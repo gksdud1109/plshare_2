@@ -11,6 +11,7 @@ import { TrackRow } from "@/components/ui/TrackRow";
 import { getExportResult, getExportStatus } from "@/lib/api/exports";
 import { getAsset } from "@/lib/api/assets";
 import { demoConvertResult, buildDemoAssetDetail } from "@/lib/api/fixtures";
+import { demoFixturesEnabled } from "@/lib/demo";
 import type { AssetTrack, ExportMappingStatus } from "@/types/asset";
 import { cn } from "@/lib/utils/cn";
 
@@ -36,6 +37,7 @@ interface ResultData {
 
 type State =
   | { kind: "loading" }
+  | { kind: "error" }
   | { kind: "ready"; data: ResultData };
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -52,7 +54,7 @@ function ConvertResultPageInner() {
   const noParams = !assetId && !jobId;
 
   const [state, setState] = useState<State>(() =>
-    noParams
+    noParams && demoFixturesEnabled()
       ? {
           kind: "ready",
           data: {
@@ -61,7 +63,9 @@ function ConvertResultPageInner() {
             usingFixture: true,
           },
         }
-      : { kind: "loading" },
+      : noParams
+        ? { kind: "error" }
+        : { kind: "loading" },
   );
   const [accordionOpen, setAccordionOpen] = useState(false);
 
@@ -78,6 +82,7 @@ function ConvertResultPageInner() {
 
     (async () => {
       try {
+        const allowFixture = demoFixturesEnabled();
         const [resultData, assetData] = await Promise.allSettled([
           jobId ? getExportResult(jobId) : Promise.reject(new Error("no jobId")),
           assetId ? getAsset(assetId) : Promise.reject(new Error("no assetId")),
@@ -86,12 +91,12 @@ function ConvertResultPageInner() {
         if (cancelled) return;
 
         // Export result
-        let matched = demoConvertResult.matchedTracks;
-        let failed = demoConvertResult.failedTracks;
-        let total = demoConvertResult.totalTracks;
-        let externalUrl: string | null = demoConvertResult.externalUrl;
-        let failedMappings: FailedMapping[] = demoConvertResult.failedMappings;
-        let usingFixture = true;
+        let matched = allowFixture ? demoConvertResult.matchedTracks : 0;
+        let failed = allowFixture ? demoConvertResult.failedTracks : 0;
+        let total = allowFixture ? demoConvertResult.totalTracks : 0;
+        let externalUrl: string | null = allowFixture ? demoConvertResult.externalUrl : null;
+        let failedMappings: FailedMapping[] = allowFixture ? demoConvertResult.failedMappings : [];
+        let usingFixture = allowFixture;
 
         if (resultData.status === "fulfilled") {
           const r = resultData.value;
@@ -115,7 +120,7 @@ function ConvertResultPageInner() {
               usingFixture = false;
             }
           } catch {
-            // Keep fixture values
+            if (!allowFixture) throw new Error("Export result unavailable");
           }
         }
 
@@ -126,7 +131,7 @@ function ConvertResultPageInner() {
           const failedIds = new Set(failedMappings.map((m) => m.trackId));
           failedTrackDetails = asset.tracks.filter((t) => failedIds.has(t.id));
           if (!titleParam) setAssetTitle(asset.title);
-        } else {
+        } else if (allowFixture) {
           // Build demo asset detail for track names
           const demo = buildDemoAssetDetail(assetId || "demo");
           const failedIds = new Set(failedMappings.map((m) => m.trackId));
@@ -136,13 +141,13 @@ function ConvertResultPageInner() {
         setState({
           kind: "ready",
           data: {
-            assetId: assetId || demoConvertResult.assetId,
+            assetId: assetId || (allowFixture ? demoConvertResult.assetId : ""),
             externalUrl,
             matchedTracks: matched,
             failedTracks: failed,
             totalTracks: total,
-            title: titleParam || demoConvertResult.title,
-            coverUrl: coverParam || demoConvertResult.coverUrl,
+            title: titleParam || (allowFixture ? demoConvertResult.title : "변환 결과"),
+            coverUrl: coverParam || (allowFixture ? demoConvertResult.coverUrl : ""),
             failedMappings,
             failedTrackDetails,
             usingFixture,
@@ -150,14 +155,18 @@ function ConvertResultPageInner() {
         });
       } catch {
         if (!cancelled) {
-          setState({
-            kind: "ready",
-            data: {
-              ...demoConvertResult,
-              failedTrackDetails: [],
-              usingFixture: true,
-            },
-          });
+          if (demoFixturesEnabled()) {
+            setState({
+              kind: "ready",
+              data: {
+                ...demoConvertResult,
+                failedTrackDetails: [],
+                usingFixture: true,
+              },
+            });
+          } else {
+            setState({ kind: "error" });
+          }
         }
       }
     })();
@@ -185,6 +194,19 @@ function ConvertResultPageInner() {
       <PageShell>
         <div className="flex min-h-[60vh] items-center justify-center py-32">
           <p className="text-sm text-text-mid animate-pulse">집계 중이에요…</p>
+        </div>
+      </PageShell>
+    );
+  }
+
+  if (state.kind === "error") {
+    return (
+      <PageShell>
+        <div className="flex min-h-[60vh] flex-col items-center justify-center gap-5 py-32 text-center">
+          <p className="text-xl font-semibold text-text-hi">변환 결과를 불러오지 못했어요.</p>
+          <Link className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white" href="/convert">
+            다시 시도하기
+          </Link>
         </div>
       </PageShell>
     );

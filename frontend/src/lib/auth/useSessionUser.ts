@@ -20,7 +20,8 @@ export interface SessionUser {
 interface SessionResponse {
   authenticated: boolean;
   session?: {
-    grantId: string;
+    sessionToken?: string;
+    grantId?: string;
     userId?: string;
     demo?: boolean;
   };

@@ -41,5 +41,6 @@
 - 주 산출물은 코드와 `delivery` 문서에만 남긴다.
 - 전략, UX, 정책 방향을 직접 다시 쓰지 않는다.
 - 문서와 다른 구현 판단은 `decision-log` 또는 `open-issues`로 넘긴다.
-- 현재 서버 범위는 `Spotify import`, `asset 저장`, `Apple Music export`를 우선한다.
-- `proof signal`은 `P1`, `B2B`는 `Future Expansion` 전제로 구조만 과도하게 넓히지 않는다.
+- 현재 서버 범위는 Google identity, provider OAuth, Spotify/YouTube import,
+  Emotional Context, social API, Spotify -> YouTube Music export를 우선한다.
+- ranking, gift, Apple export는 P1이며 B2B와 proof signal을 P0로 확장하지 않는다.

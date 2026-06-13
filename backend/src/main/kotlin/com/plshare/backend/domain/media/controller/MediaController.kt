@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
+import com.plshare.backend.global.security.ApplicationPrincipal
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 
 /**
  * Photo upload endpoints for Emotional Context.
@@ -46,12 +48,11 @@ class MediaController(
     @PostMapping("/presign")
     fun presign(
         @PathVariable assetId: UUID,
-        @RequestBody body: PresignRequest
+        @RequestBody body: PresignRequest,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
     ): ApiResponse<PresignResponse> {
         // Verify the asset exists so we don't issue presigns for ghosts.
-        if (!assetRepository.existsById(assetId)) {
-            throw ApiException(ErrorCode.NOT_FOUND, "Asset not found: $assetId")
-        }
+        requireOwnedAsset(assetId, principal)
         val key = buildKey(assetId, body.filename)
         val result = storage.presignUpload(key, body.contentType)
         return ApiResponse.ok(
@@ -69,11 +70,13 @@ class MediaController(
     @Transactional
     fun attach(
         @PathVariable assetId: UUID,
-        @RequestBody body: AttachRequest
+        @RequestBody body: AttachRequest,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
     ): ApiResponse<AssetDetailDto> {
         val asset = assetRepository.findById(assetId).orElseThrow {
             ApiException(ErrorCode.NOT_FOUND, "Asset not found: $assetId")
         }
+        requireOwner(asset.ownerId, principal)
         if (body.publicUrl.isBlank()) {
             throw ApiException(ErrorCode.VALIDATION_FAILED, "publicUrl required")
         }
@@ -89,11 +92,13 @@ class MediaController(
     @ResponseStatus(HttpStatus.OK)
     fun delete(
         @PathVariable assetId: UUID,
-        @PathVariable photoIndex: Int
+        @PathVariable photoIndex: Int,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
     ): ApiResponse<AssetDetailDto> {
         val asset = assetRepository.findById(assetId).orElseThrow {
             ApiException(ErrorCode.NOT_FOUND, "Asset not found: $assetId")
         }
+        requireOwner(asset.ownerId, principal)
         if (photoIndex < 0 || photoIndex >= asset.photoUrls.size) {
             throw ApiException(
                 ErrorCode.VALIDATION_FAILED,
@@ -111,6 +116,19 @@ class MediaController(
     private fun buildKey(assetId: UUID, filename: String): String {
         val safe = sanitizeFilename(filename)
         return "assets/$assetId/${UUID.randomUUID()}-$safe"
+    }
+
+    private fun requireOwnedAsset(assetId: UUID, principal: ApplicationPrincipal?) {
+        val asset = assetRepository.findById(assetId).orElseThrow {
+            ApiException(ErrorCode.NOT_FOUND, "Asset not found: $assetId")
+        }
+        requireOwner(asset.ownerId, principal)
+    }
+
+    private fun requireOwner(ownerId: UUID?, principal: ApplicationPrincipal?) {
+        if (principal != null && ownerId != principal.userId) {
+            throw ApiException(ErrorCode.FORBIDDEN, "Asset does not belong to the current user")
+        }
     }
 
     private fun sanitizeFilename(raw: String): String {

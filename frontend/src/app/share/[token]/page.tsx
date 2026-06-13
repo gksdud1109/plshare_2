@@ -5,6 +5,8 @@ import { buildDemoSharedAsset } from "@/lib/api/fixtures";
 import type { SharedAsset } from "@/types/asset";
 import { TrackRow } from "@/components/ui/TrackRow";
 import { ShareCallToAction } from "@/components/share/ShareCallToAction";
+import { notFound } from "next/navigation";
+import { demoFixturesEnabled } from "@/lib/demo";
 
 // ISR: regenerate the public share page at most every 5 minutes.
 export const revalidate = 300;
@@ -69,6 +71,7 @@ export default async function SharePage({ params }: PageProps) {
   try {
     data = await fetchShareDataServer(token);
   } catch {
+    if (!demoFixturesEnabled()) notFound();
     data = buildDemoSharedAsset(token);
     usingFixture = true;
   }

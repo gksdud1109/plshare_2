@@ -99,6 +99,24 @@ class RealGoogleOAuthClient(
             .timeout(Duration.ofSeconds(10))
     }
 
+    override fun refreshAccessToken(refreshToken: String): Mono<GoogleTokenSet> {
+        requireCredentials()
+        val form: MultiValueMap<String, String> = LinkedMultiValueMap<String, String>().apply {
+            add("grant_type", "refresh_token")
+            add("refresh_token", refreshToken)
+            add("client_id", clientId)
+            add("client_secret", clientSecret)
+        }
+        return tokenClient.post()
+            .uri("/token")
+            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+            .body(BodyInserters.fromFormData(form))
+            .retrieve()
+            .bodyToMono<GoogleTokenResponse>()
+            .timeout(Duration.ofSeconds(10))
+            .map { it.toTokenSet().copy(refreshToken = it.refreshToken ?: refreshToken) }
+    }
+
     /**
      * Fail fast at call time (not at boot) when credentials are unconfigured.
      * Matches Apple / Spotify convention: demo profile boots without credentials,

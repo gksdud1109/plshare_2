@@ -137,6 +137,19 @@ class MockYouTubeClient : YouTubeClient {
         return Mono.just(results)
     }
 
+    override fun searchVideo(title: String, artist: String, accessToken: String): Mono<String> {
+        val existing = playlists.asSequence()
+            .flatMap { it.items.asSequence() }
+            .firstOrNull {
+                it.title.equals(title, ignoreCase = true) ||
+                    (it.title.contains(title, ignoreCase = true) &&
+                        it.artistHint.orEmpty().contains(artist, ignoreCase = true))
+            }
+            ?.videoId
+        val synthetic = "mock${(title + artist).hashCode().toUInt().toString(16).padStart(7, '0').take(7)}"
+        return Mono.just(existing ?: synthetic)
+    }
+
     // ─── private helpers ──────────────────────────────────────────────────────
 
     /** Long ms → ISO 8601 PT string (mock 전용 역변환 헬퍼). */

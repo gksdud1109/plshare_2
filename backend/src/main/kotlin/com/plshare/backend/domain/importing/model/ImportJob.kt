@@ -14,6 +14,12 @@ class ImportJob(
     @Id
     val id: UUID = UUID.randomUUID(),
 
+    @Column(name = "owner_id")
+    val ownerId: UUID? = null,
+
+    @Column(name = "spotify_grant_id")
+    val spotifyGrantId: UUID? = null,
+
     @Column(nullable = false, unique = true)
     val idempotencyKey: String,
 
