@@ -1,0 +1,40 @@
+# Postgres-backed local stack — real Flyway migrations, mocked external APIs.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.postgres.yml up --build
+#
+# Overlay on the base (demo) compose. Credential-free: external adapters stay
+# mocked via the demo profile; only the datasource switches to a bundled
+# PostgreSQL, so the migration chain (V1..) runs and Hibernate validates the
+# entities against it. Stop with: docker compose ... down (add -v to drop data).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: plshare
+      POSTGRES_PASSWORD: plshare
+      POSTGRES_DB: plshare
+    ports:
+      - "5432:5432"
+    volumes:
+      - plshare-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U plshare"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    environment:
+      # demo = mocked adapters + seeder; postgres = real datasource + migrations.
+      SPRING_PROFILES_ACTIVE: demo,postgres
+      DATABASE_URL: jdbc:postgresql://postgres:5432/plshare
+      DATABASE_USERNAME: plshare
+      DATABASE_PASSWORD: plshare
+      APP_SESSION_SECRET: local-dev-secret-not-for-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  plshare-pg-data:

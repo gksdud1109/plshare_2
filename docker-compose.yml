@@ -1,16 +1,18 @@
 # plshare2 — 로컬 원커맨드 실행
 #
-#   docker compose up --build
+#   (A) 빠른 데모:   docker compose up --build
+#       백엔드(:8080, demo=H2 인메모리+Mock) + 프론트엔드(:3000). 외부 자격증명/DB 불필요.
 #
-# 위 명령 하나로 백엔드(:8080) + 프론트엔드(:3000)가 뜬다.
-# 외부 자격증명/DB 불필요 — 백엔드는 demo 프로파일(H2 인메모리 + Mock Spotify/Apple),
-# 프론트엔드는 그 백엔드에 붙는다. 브라우저로 http://localhost:3000 접속.
+#   (B) Postgres + 마이그레이션 검증:
+#       docker compose -f docker-compose.yml -f docker-compose.postgres.yml up --build
+#       번들 PostgreSQL + 실제 Flyway 마이그레이션(V1..) + ddl-auto=validate. 외부 어댑터는
+#       여전히 Mock(demo,postgres 프로파일)이라 자격증명 불필요. 데이터는 named volume에 영속.
 #
-# 끄기:   docker compose down
-# 재빌드: docker compose up --build
+# 브라우저로 http://localhost:3000 접속.
+# 끄기:   docker compose down   (Postgres 데이터까지 삭제: ... down -v)
 #
-# ※ 프로덕션 인프라(PostgreSQL, 실제 어댑터)는 아래 맨 끝에 주석으로 보존돼 있다.
-#   실제 배포 여력이 생기면 그 블록을 켜고 backend 의 SPRING_PROFILES_ACTIVE 를 prod 로 바꾸면 된다.
+# ※ 실제 외부 어댑터(prod)는 자격증명이 필요하다. application-prod.yml 참고 +
+#   SPRING_PROFILES_ACTIVE=prod + .env 의 SPOTIFY/GOOGLE 키를 채워야 한다.
 
 services:
   backend:
@@ -47,37 +49,7 @@ services:
         condition: service_healthy
 
 # ──────────────────────────────────────────────────────────────────────────
-# 프로덕션 인프라 (현재 비활성 — 실제 배포 준비되면 주석 해제)
+# PostgreSQL + 실제 마이그레이션으로 띄우려면 → docker-compose.postgres.yml 오버레이 사용:
+#   docker compose -f docker-compose.yml -f docker-compose.postgres.yml up --build
+# (postgres 서비스 + backend 의 demo,postgres 프로파일 + DATABASE_URL 을 그 파일이 추가한다)
 # ──────────────────────────────────────────────────────────────────────────
-# 1) 아래 postgres 서비스 블록의 주석을 해제
-# 2) backend.environment 를 아래처럼 교체:
-#      SPRING_PROFILES_ACTIVE: prod
-#      DATABASE_URL: jdbc:postgresql://postgres:5432/plshare
-#      DATABASE_USERNAME: plshare
-#      DATABASE_PASSWORD: plshare
-#      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
-#      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
-#      APPLE_TEAM_ID: ${APPLE_TEAM_ID:-}
-#      APPLE_KEY_ID: ${APPLE_KEY_ID:-}
-#      APPLE_PRIVATE_KEY_PEM: ${APPLE_PRIVATE_KEY_PEM:-}
-# 3) backend.depends_on 에 postgres(condition: service_healthy) 추가
-# 4) 맨 아래 volumes 블록 주석 해제
-#
-#   postgres:
-#     image: postgres:16-alpine
-#     environment:
-#       POSTGRES_USER: plshare
-#       POSTGRES_PASSWORD: plshare
-#       POSTGRES_DB: plshare
-#     ports:
-#       - "5432:5432"
-#     volumes:
-#       - plshare-pg-data:/var/lib/postgresql/data
-#     healthcheck:
-#       test: ["CMD-SHELL", "pg_isready -U plshare"]
-#       interval: 5s
-#       timeout: 3s
-#       retries: 10
-#
-# volumes:
-#   plshare-pg-data:
