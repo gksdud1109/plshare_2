@@ -1,7 +1,7 @@
 # Product Baseline v2
 
 - Effective date: `2026-06-10`
-- Status: `CURRENT`
+- Status: `SUPERSEDED` by [`product-baseline-v2.1.md`](product-baseline-v2.1.md) (2026-06-13, gift-first pivot)
 - Supersedes: Spotify-to-Apple-only MVP baseline
 
 ## Product
