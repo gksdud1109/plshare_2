@@ -73,6 +73,13 @@ class Track(
     var appleMusicId: String? = null,
 
     /**
+     * YouTube videoId (youtube 소스로 import된 트랙). YouTube write export가 이 값을 사용한다.
+     * spotifyId에 끼워넣지 않고 전용 컬럼으로 둔다(식별자 의미 혼동 방지).
+     */
+    @Column(name = "youtube_video_id")
+    var youtubeVideoId: String? = null,
+
+    /**
      * MatchingEngine이 결정한 canonical_tracks 레코드의 PK.
      * nullable: import 직후에는 null이 될 수 없으나, 향후 재처리 전 임시 상태 허용.
      * canonical_tracks 테이블과 FK 없이 UUID만 보관 — 도메인 경계(asset vs track)를 넘는

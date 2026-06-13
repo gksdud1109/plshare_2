@@ -30,12 +30,26 @@ export function PageShell({
           </Link>
           <div className="flex items-center gap-5">
             {showHomeLink ? (
-              <Link
-                href="/assets"
-                className="text-xs font-semibold uppercase tracking-[0.18em] text-text-mid transition-colors duration-200 hover:text-text-hi"
-              >
-                Library
-              </Link>
+              <>
+                <Link
+                  href="/convert"
+                  className="text-xs font-semibold uppercase tracking-[0.18em] text-text-mid transition-colors duration-200 hover:text-text-hi"
+                >
+                  변환
+                </Link>
+                <Link
+                  href="/feed"
+                  className="text-xs font-semibold uppercase tracking-[0.18em] text-text-mid transition-colors duration-200 hover:text-text-hi"
+                >
+                  피드
+                </Link>
+                <Link
+                  href="/assets"
+                  className="text-xs font-semibold uppercase tracking-[0.18em] text-text-mid transition-colors duration-200 hover:text-text-hi"
+                >
+                  Library
+                </Link>
+              </>
             ) : null}
             <SessionBadge />
           </div>

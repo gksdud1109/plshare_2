@@ -157,3 +157,67 @@ export const EMOTION_TAGS = [
   "운전",
   "추억",
 ] as const;
+
+// ── YouTube / Convert demo fixtures ───────────────────────────────────────
+// Used by /convert when the BE is unreachable (same SpotifyPlaylist shape).
+
+export const demoYoutubePlaylists: SpotifyPlaylist[] = [
+  {
+    id: "PLyt_morning",
+    name: "새벽 산책 플레이리스트",
+    description: "유튜브에서 모아둔 새벽 감성 곡들",
+    imageUrl:
+      "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&q=80",
+    trackCount: 14,
+  },
+  {
+    id: "PLyt_focus",
+    name: "집중할 때 듣는 음악",
+    description: "딥 포커스 / 로파이 믹스",
+    imageUrl:
+      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&q=80",
+    trackCount: 22,
+  },
+];
+
+/**
+ * Demo import progression for the /convert/progress page.
+ * Two-stage: "가져오는 중" (import) then transitions to export phase externally.
+ */
+export const demoConvertImportProgression: ImportJobStatus[] = [
+  { status: "queued", progress: 8 },
+  { status: "matching", progress: 30 },
+  { status: "matching", progress: 58 },
+  { status: "matching", progress: 84 },
+  { status: "completed", progress: 100, assetId: "a_morning" },
+];
+
+/**
+ * Demo export progression for the /convert/progress export phase.
+ * Reuses buildDemoExportStatus from the same file.
+ */
+export const demoConvertExportNarratives = [
+  "트랙 정보를 모으는 중이에요",
+  "ISRC 기준으로 정규화하는 중이에요",
+  "Apple Music에서 트랙을 찾는 중이에요",
+  "플레이리스트를 만들고 있어요",
+];
+
+/**
+ * A convert result fixture that matches the /convert/result expected shape.
+ * Reuses demoExportResult and demoTrackList data.
+ */
+export const demoConvertResult = {
+  assetId: "a_morning",
+  externalPlaylistId: "apl_convert_demo",
+  externalUrl: "https://music.apple.com/us/playlist/convert-demo",
+  matchedTracks: 5,
+  failedTracks: 1,
+  totalTracks: 6,
+  title: "새벽 다섯시의 산책",
+  coverUrl:
+    "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&q=80",
+  failedMappings: [
+    { trackId: "t4", status: "failed" as const },
+  ],
+};

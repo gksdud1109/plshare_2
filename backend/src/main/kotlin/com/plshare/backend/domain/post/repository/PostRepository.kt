@@ -26,4 +26,10 @@ interface PostRepository : JpaRepository<Post, UUID> {
 
     /** 단건 조회 (soft-delete 필터 포함). */
     fun findByIdAndDeletedFalse(id: UUID): Post?
+
+    /** 프로필 피드: 특정 작성자의 포스트 (deleted=false, 최신순). author_id+created_at 인덱스 사용. */
+    fun findAllByAuthorIdAndDeletedFalseOrderByCreatedAtDesc(
+        authorId: UUID,
+        pageable: Pageable,
+    ): Page<Post>
 }

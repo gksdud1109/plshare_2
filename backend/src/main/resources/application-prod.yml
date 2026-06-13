@@ -36,6 +36,9 @@ google:
   redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/api/auth/google/callback}
   fe-redirect: ${FE_REDIRECT_URL:http://localhost:3000/import}
 
+youtube:
+  daily-write-budget: ${YOUTUBE_DAILY_WRITE_BUDGET:8000}
+
 storage:
   bucket: ${S3_BUCKET:plshare-photos}
   endpoint: ${S3_ENDPOINT:}

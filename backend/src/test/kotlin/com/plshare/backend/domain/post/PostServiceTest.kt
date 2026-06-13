@@ -158,6 +158,10 @@ class FakePostRepo : PostRepository {
         val list = store.values.filter { !it.deleted && it.authorId in authorIds }.sortedByDescending { it.createdAt }
         return PageImpl(list, pageable, list.size.toLong())
     }
+    override fun findAllByAuthorIdAndDeletedFalseOrderByCreatedAtDesc(authorId: UUID, pageable: Pageable): Page<Post> {
+        val list = store.values.filter { !it.deleted && it.authorId == authorId }.sortedByDescending { it.createdAt }
+        return PageImpl(list, pageable, list.size.toLong())
+    }
 
     override fun <S : Post> save(entity: S): S { store[entity.id] = entity; return entity }
     override fun findById(id: UUID): Optional<Post> = Optional.ofNullable(store[id])

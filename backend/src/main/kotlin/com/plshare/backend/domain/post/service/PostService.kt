@@ -87,6 +87,17 @@ class PostService(
         return toPageResponse(page.content, pageable, page.totalElements, userId)
     }
 
+    /**
+     * 프로필 피드: handle 작성자가 쓴 포스트 목록 (최신순).
+     * fe-feed-001 BLOCKER 해소 — /u/[handle] 프로필 탭이 클라이언트 필터 없이 사용한다.
+     */
+    fun listByAuthorHandle(handle: String, viewerId: UUID?, pageable: Pageable): PageResponse<PostResponse> {
+        val author = users.findByHandle(handle)
+            ?: throw ApiException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다: $handle")
+        val page = posts.findAllByAuthorIdAndDeletedFalseOrderByCreatedAtDesc(author.id, pageable)
+        return toPageResponse(page.content, pageable, page.totalElements, viewerId)
+    }
+
     fun getById(id: UUID, viewerId: UUID?): PostResponse {
         val post = requirePost(id)
         return toResponse(post, viewerId)
