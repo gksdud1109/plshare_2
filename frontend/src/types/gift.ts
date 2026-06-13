@@ -25,6 +25,7 @@ export interface GiftTrack {
   isrc?: string;
   spotifyId?: string;
   appleMusicId?: string;
+  youtubeVideoId?: string | null;
 }
 
 /** POST /api/gifts response */

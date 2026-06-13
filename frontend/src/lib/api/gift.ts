@@ -33,3 +33,13 @@ export async function saveGift(token: string, userId: string): Promise<GiftView>
     body: { userId },
   });
 }
+
+/**
+ * GET /api/tracks/{trackId}/youtube — 트랙을 재생 가능한 YouTube videoId로 resolve.
+ * 공개(인증 불필요). videoId 가 null 이면 재생 후보를 못 찾은 것.
+ */
+export async function resolveTrackYouTube(
+  trackId: string,
+): Promise<{ videoId: string | null }> {
+  return apiFetch<{ videoId: string | null }>(`/api/tracks/${trackId}/youtube`);
+}

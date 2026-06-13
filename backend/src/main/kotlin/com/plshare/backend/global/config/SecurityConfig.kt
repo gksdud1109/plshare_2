@@ -48,7 +48,7 @@ class SecurityConfig(
                         "/api/auth/spotify/start",
                         "/api/auth/spotify/callback",
                     ).permitAll()
-                    .requestMatchers(HttpMethod.GET, "/api/share/**", "/api/gifts/*").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/share/**", "/api/gifts/*", "/api/tracks/*/youtube").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/gifts/*/open").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
                     .requestMatchers(
