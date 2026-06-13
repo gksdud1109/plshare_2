@@ -84,10 +84,27 @@ data class YouTubeSearchListResponse(
 
 data class YouTubeSearchItem(
     @JsonProperty("id") val id: YouTubeSearchId,
+    @JsonProperty("snippet") val snippet: YouTubeSearchSnippet? = null,
 )
 
 data class YouTubeSearchId(
     @JsonProperty("videoId") val videoId: String? = null,
+)
+
+data class YouTubeSearchSnippet(
+    @JsonProperty("title") val title: String? = null,
+    @JsonProperty("channelTitle") val channelTitle: String? = null,
+)
+
+/**
+ * Domain-level search candidate returned by [YouTubeClient.searchVideoCandidates].
+ * Used to compute match confidence and to offer the user alternatives when a
+ * match is low-confidence or failed.
+ */
+data class YouTubeSearchCandidate(
+    val videoId: String,
+    val title: String,
+    val channelTitle: String? = null,
 )
 
 // ─── domain-level summary returned by YouTubeClient ──────────────────────────

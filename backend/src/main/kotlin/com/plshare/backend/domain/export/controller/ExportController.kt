@@ -1,9 +1,13 @@
 package com.plshare.backend.domain.export.controller
 
 import com.plshare.backend.domain.export.dto.CreateExportRequest
+import com.plshare.backend.domain.export.dto.ExportCandidateDto
 import com.plshare.backend.domain.export.dto.ExportJobDto
+import com.plshare.backend.domain.export.dto.ExportMappingDto
 import com.plshare.backend.domain.export.dto.ExportResultDto
+import com.plshare.backend.domain.export.dto.OverrideMatchRequest
 import com.plshare.backend.domain.export.repository.ExportJobRepository
+import com.plshare.backend.domain.export.repository.ExportTrackMatchRepository
 import com.plshare.backend.domain.export.service.ExportService
 import com.plshare.backend.global.exception.ApiException
 import com.plshare.backend.global.exception.ErrorCode
@@ -19,7 +23,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal
 @RequestMapping("/api")
 class ExportController(
     private val exportService: ExportService,
-    private val exportJobRepository: ExportJobRepository
+    private val exportJobRepository: ExportJobRepository,
+    private val exportTrackMatchRepository: ExportTrackMatchRepository,
 ) {
     @PostMapping("/exports")
     fun createExport(
@@ -49,7 +54,8 @@ class ExportController(
             ApiException(ErrorCode.NOT_FOUND, "Export job not found: $jobId")
         }
         requireOwner(job.ownerId, principal)
-        return ApiResponse.ok(ExportJobDto.from(job))
+        val matches = exportTrackMatchRepository.findByExportJobId(jobId)
+        return ApiResponse.ok(ExportJobDto.from(job, matches))
     }
 
     @GetMapping("/exports/{jobId}/result")
@@ -70,6 +76,32 @@ class ExportController(
             matchedTracks = job.matchedTracks,
             failedTracks = job.failedTracks
         ))
+    }
+
+    /** Alternative video candidates for reviewing a low-confidence/failed track match. */
+    @GetMapping("/exports/{jobId}/matches/{trackId}/candidates")
+    fun getMatchCandidates(
+        @PathVariable jobId: UUID,
+        @PathVariable trackId: UUID,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
+    ): ApiResponse<List<ExportCandidateDto>> {
+        val candidates = exportService.getCandidates(jobId, trackId, principal?.userId)
+        return ApiResponse.ok(candidates.map { ExportCandidateDto.from(it) })
+    }
+
+    /** Confirm a user-chosen video for a track — adds it to the playlist and marks the match reviewed. */
+    @PostMapping("/exports/{jobId}/matches/{trackId}")
+    fun overrideMatch(
+        @PathVariable jobId: UUID,
+        @PathVariable trackId: UUID,
+        @RequestBody body: OverrideMatchRequest,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
+    ): ApiResponse<ExportMappingDto> {
+        if (body.videoId.isBlank()) {
+            throw ApiException(ErrorCode.VALIDATION_FAILED, "videoId is required")
+        }
+        val match = exportService.overrideMatch(jobId, trackId, body.videoId, body.title, principal?.userId)
+        return ApiResponse.ok(ExportMappingDto.from(match))
     }
 
     private fun requireOwner(ownerId: UUID?, principal: ApplicationPrincipal?) {

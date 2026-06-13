@@ -150,6 +150,52 @@ class MockYouTubeClient : YouTubeClient {
         return Mono.just(existing ?: synthetic)
     }
 
+    /**
+     * Deterministic candidate generator for the demo. Varies the top result by a
+     * stable hash of (title, artist) so the manual-review UI has realistic
+     * material to exercise:
+     *   - h % 7 == 0 → no candidates (FAILED — nothing to add)
+     *   - h % 4 == 1 → top candidate is a "(Live)" variant (lower similarity →
+     *                  ALTERNATIVE / low confidence → needs review)
+     *   - otherwise  → top candidate is the exact title (high confidence → MATCHED)
+     * Always offers extra alternatives so an override actually has choices.
+     */
+    override fun searchVideoCandidates(
+        title: String,
+        artist: String,
+        accessToken: String,
+    ): Mono<List<YouTubeSearchCandidate>> {
+        val h = (title + "|" + artist).hashCode().toUInt()
+        if (h % 7u == 0u) return Mono.just(emptyList())
+
+        val existingVideoId = playlists.asSequence()
+            .flatMap { it.items.asSequence() }
+            .firstOrNull { it.title.equals(title, ignoreCase = true) }
+            ?.videoId
+        val baseId = existingVideoId
+            ?: "mock${h.toString(16).padStart(7, '0').take(7)}"
+
+        val lowConfidence = h % 4u == 1u
+        val primary = YouTubeSearchCandidate(
+            videoId = baseId,
+            title = if (lowConfidence) "$title (Live)" else title,
+            channelTitle = artist,
+        )
+        val alternatives = listOf(
+            YouTubeSearchCandidate(
+                videoId = "mockalt1${h.toString(16).take(5)}",
+                title = "$title (Official Audio)",
+                channelTitle = "$artist - Topic",
+            ),
+            YouTubeSearchCandidate(
+                videoId = "mockalt2${h.toString(16).take(5)}",
+                title = "$title (Lyrics)",
+                channelTitle = "Lyrics Library",
+            ),
+        )
+        return Mono.just(listOf(primary) + alternatives)
+    }
+
     // ─── private helpers ──────────────────────────────────────────────────────
 
     /** Long ms → ISO 8601 PT string (mock 전용 역변환 헬퍼). */

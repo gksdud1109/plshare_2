@@ -5,22 +5,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PageShell } from "@/components/ui/PageShell";
-import { MatchConfidenceBadge } from "@/components/ui/MatchConfidenceBadge";
 import { EmotionTagPicker } from "@/components/ui/EmotionTagPicker";
-import { TrackRow } from "@/components/ui/TrackRow";
-import { getExportResult, getExportStatus } from "@/lib/api/exports";
+import { MatchReviewSection } from "@/components/convert/MatchReviewSection";
+import { getExportStatus } from "@/lib/api/exports";
 import { getAsset } from "@/lib/api/assets";
 import { demoConvertResult, buildDemoAssetDetail } from "@/lib/api/fixtures";
 import { demoFixturesEnabled } from "@/lib/demo";
-import type { AssetTrack, ExportMappingStatus } from "@/types/asset";
+import type { ExportMapping } from "@/types/asset";
 import { cn } from "@/lib/utils/cn";
 
 // ── Types ──────────────────────────────────────────────────────────────────
-
-interface FailedMapping {
-  trackId: string;
-  status: ExportMappingStatus;
-}
 
 interface ResultData {
   assetId: string;
@@ -30,9 +24,27 @@ interface ResultData {
   totalTracks: number;
   title: string;
   coverUrl: string;
-  failedMappings: FailedMapping[];
-  failedTrackDetails: AssetTrack[];
+  /** Mappings needing review (status !== "matched"): low-confidence + failed. */
+  reviewMappings: ExportMapping[];
   usingFixture: boolean;
+}
+
+/** ResultData built purely from demo fixtures (no backend). */
+function fixtureResultData(): ResultData {
+  return {
+    assetId: demoConvertResult.assetId,
+    externalUrl: demoConvertResult.externalUrl,
+    matchedTracks: demoConvertResult.matchedTracks,
+    failedTracks: demoConvertResult.failedTracks,
+    totalTracks: demoConvertResult.totalTracks,
+    title: demoConvertResult.title,
+    coverUrl: demoConvertResult.coverUrl,
+    reviewMappings: demoConvertResult.failedMappings.map((m) => ({
+      trackId: m.trackId,
+      status: m.status,
+    })),
+    usingFixture: true,
+  };
 }
 
 type State =
@@ -55,20 +67,11 @@ function ConvertResultPageInner() {
 
   const [state, setState] = useState<State>(() =>
     noParams && demoFixturesEnabled()
-      ? {
-          kind: "ready",
-          data: {
-            ...demoConvertResult,
-            failedTrackDetails: [],
-            usingFixture: true,
-          },
-        }
+      ? { kind: "ready", data: fixtureResultData() }
       : noParams
         ? { kind: "error" }
         : { kind: "loading" },
   );
-  const [accordionOpen, setAccordionOpen] = useState(false);
-
   // Assetization invite form state
   const [assetTitle, setAssetTitle] = useState(titleParam);
   const [tags, setTags] = useState<string[]>([]);
@@ -83,87 +86,70 @@ function ConvertResultPageInner() {
     (async () => {
       try {
         const allowFixture = demoFixturesEnabled();
-        const [resultData, assetData] = await Promise.allSettled([
-          jobId ? getExportResult(jobId) : Promise.reject(new Error("no jobId")),
+        const [statusResult, assetResult] = await Promise.allSettled([
+          jobId ? getExportStatus(jobId) : Promise.reject(new Error("no jobId")),
           assetId ? getAsset(assetId) : Promise.reject(new Error("no assetId")),
         ]);
 
         if (cancelled) return;
 
-        // Export result
-        let matched = allowFixture ? demoConvertResult.matchedTracks : 0;
-        let failed = allowFixture ? demoConvertResult.failedTracks : 0;
-        let total = allowFixture ? demoConvertResult.totalTracks : 0;
-        let externalUrl: string | null = allowFixture ? demoConvertResult.externalUrl : null;
-        let failedMappings: FailedMapping[] = allowFixture ? demoConvertResult.failedMappings : [];
-        let usingFixture = allowFixture;
+        // Primary path: the export status carries counts, external URL, and the
+        // per-track mappings used for manual review.
+        if (statusResult.status === "fulfilled") {
+          const s = statusResult.value;
+          const asset =
+            assetResult.status === "fulfilled" ? assetResult.value : null;
+          if (asset && !titleParam) setAssetTitle(asset.title);
 
-        if (resultData.status === "fulfilled") {
-          const r = resultData.value;
-          matched = r.matchedTracks;
-          failed = r.failedTracks;
-          total = matched + failed;
-          externalUrl = r.externalUrl ?? null;
-          usingFixture = false;
-        } else {
-          // Try getting mappings from status endpoint
-          try {
-            const status = jobId ? await getExportStatus(jobId) : null;
-            if (status && !cancelled) {
-              matched = status.matchedTracks;
-              failed = status.failedTracks;
-              total = status.totalTracks;
-              externalUrl = status.externalUrl ?? null;
-              failedMappings = status.mappings
-                .filter((m) => m.status === "failed")
-                .map((m) => ({ trackId: m.trackId, status: m.status }));
-              usingFixture = false;
-            }
-          } catch {
-            if (!allowFixture) throw new Error("Export result unavailable");
-          }
+          setState({
+            kind: "ready",
+            data: {
+              assetId: assetId || "",
+              externalUrl: s.externalUrl ?? null,
+              matchedTracks: s.matchedTracks,
+              failedTracks: s.failedTracks,
+              totalTracks: s.totalTracks,
+              title: titleParam || asset?.title || "변환 결과",
+              coverUrl: coverParam || asset?.coverUrl || "",
+              reviewMappings: (s.mappings ?? []).filter(
+                (m) => m.status !== "matched",
+              ),
+              usingFixture: false,
+            },
+          });
+          return;
         }
 
-        // Asset detail for failed track names
-        let failedTrackDetails: AssetTrack[] = [];
-        if (assetData.status === "fulfilled") {
-          const asset = assetData.value;
-          const failedIds = new Set(failedMappings.map((m) => m.trackId));
-          failedTrackDetails = asset.tracks.filter((t) => failedIds.has(t.id));
-          if (!titleParam) setAssetTitle(asset.title);
-        } else if (allowFixture) {
-          // Build demo asset detail for track names
+        // Backend unavailable — fall back to demo fixtures, enriched with names.
+        if (allowFixture) {
           const demo = buildDemoAssetDetail(assetId || "demo");
-          const failedIds = new Set(failedMappings.map((m) => m.trackId));
-          failedTrackDetails = demo.tracks.filter((t) => failedIds.has(t.id));
+          const byId = new Map(demo.tracks.map((t) => [t.id, t]));
+          setState({
+            kind: "ready",
+            data: {
+              ...fixtureResultData(),
+              assetId: assetId || demoConvertResult.assetId,
+              title: titleParam || demoConvertResult.title,
+              coverUrl: coverParam || demoConvertResult.coverUrl,
+              reviewMappings: demoConvertResult.failedMappings.map((m) => {
+                const t = byId.get(m.trackId);
+                return {
+                  trackId: m.trackId,
+                  status: m.status,
+                  title: t?.name,
+                  artist: t?.artist,
+                };
+              }),
+            },
+          });
+          return;
         }
 
-        setState({
-          kind: "ready",
-          data: {
-            assetId: assetId || (allowFixture ? demoConvertResult.assetId : ""),
-            externalUrl,
-            matchedTracks: matched,
-            failedTracks: failed,
-            totalTracks: total,
-            title: titleParam || (allowFixture ? demoConvertResult.title : "변환 결과"),
-            coverUrl: coverParam || (allowFixture ? demoConvertResult.coverUrl : ""),
-            failedMappings,
-            failedTrackDetails,
-            usingFixture,
-          },
-        });
+        throw new Error("Export result unavailable");
       } catch {
         if (!cancelled) {
           if (demoFixturesEnabled()) {
-            setState({
-              kind: "ready",
-              data: {
-                ...demoConvertResult,
-                failedTrackDetails: [],
-                usingFixture: true,
-              },
-            });
+            setState({ kind: "ready", data: fixtureResultData() });
           } else {
             setState({ kind: "error" });
           }
@@ -172,7 +158,6 @@ function ConvertResultPageInner() {
     })();
 
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assetId, jobId, titleParam, coverParam, noParams]);
 
   async function handleSaveAsset() {
@@ -286,8 +271,8 @@ function ConvertResultPageInner() {
             }}
           >
             {allFailed
-              ? "Apple Music에서 찾을 수 없었어요"
-              : "Apple Music으로 옮겨졌어요"}
+              ? "YouTube Music에서 찾지 못했어요"
+              : "YouTube Music으로 옮겼어요"}
           </h1>
           {d.title && (
             <p className="mt-1 text-sm text-text-mid">{d.title}</p>
@@ -297,13 +282,13 @@ function ConvertResultPageInner() {
           {!allFailed && (
             <div className="mt-6 flex flex-wrap gap-3">
               <a
-                href={d.externalUrl || "https://music.apple.com"}
+                href={d.externalUrl || "https://music.youtube.com"}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex h-12 items-center rounded-full bg-accent px-6 text-sm font-semibold text-white transition-all duration-200 hover:bg-accent-hi hover:-translate-y-0.5 focus-ring"
                 style={{ boxShadow: "var(--shadow-glow)" }}
               >
-                Apple Music에서 열기
+                YouTube Music에서 열기
               </a>
             </div>
           )}
@@ -315,72 +300,13 @@ function ConvertResultPageInner() {
           )}
         </section>
 
-        {/* ── Failed tracks accordion ────────────────────────────────────── */}
-        {d.failedTracks > 0 && (
-          <section
-            className="mb-8 rounded-[var(--radius-card)] border border-hairline bg-surface-1 animate-fade-up overflow-hidden"
-            style={{ animationDelay: "80ms", boxShadow: "var(--shadow-card)" }}
-          >
-            <button
-              type="button"
-              onClick={() => setAccordionOpen((v) => !v)}
-              className="flex w-full items-center justify-between px-5 py-4 transition-colors duration-150 hover:bg-surface-2 focus-ring"
-              aria-expanded={accordionOpen}
-            >
-              <span className="text-sm font-semibold text-text-hi">
-                {d.totalTracks}곡 중{" "}
-                <span className="text-danger tabular-nums">{d.failedTracks}곡</span>{" "}
-                매칭 안 됨
-              </span>
-              <span
-                className="text-text-low transition-transform duration-300"
-                style={{ transform: accordionOpen ? "rotate(180deg)" : "none" }}
-                aria-hidden
-              >
-                ▾
-              </span>
-            </button>
-
-            {accordionOpen && (
-              <div className="border-t border-hairline">
-                {d.failedTrackDetails.length > 0 ? (
-                  d.failedTrackDetails.map((track, i) => (
-                    <TrackRow
-                      key={track.id}
-                      track={track}
-                      index={i}
-                      trailing={<MatchConfidenceBadge status="failed" />}
-                    />
-                  ))
-                ) : (
-                  // Fallback when track details unavailable
-                  d.failedMappings.map((m, i) => (
-                    <TrackRow
-                      key={m.trackId}
-                      track={{
-                        id: m.trackId,
-                        name: `트랙 ${i + 1}`,
-                        artist: "—",
-                        durationMs: 0,
-                      }}
-                      index={i}
-                      trailing={<MatchConfidenceBadge status={m.status} />}
-                    />
-                  ))
-                )}
-
-                {/* "나중에 해결" CTA */}
-                <div className="border-t border-hairline px-5 py-4">
-                  <Link
-                    href={`/assets/${d.assetId}`}
-                    className="text-sm text-text-mid transition-colors duration-200 hover:text-text-hi focus-ring rounded-full px-2 py-1"
-                  >
-                    나중에 해결하기 →
-                  </Link>
-                </div>
-              </div>
-            )}
-          </section>
+        {/* ── Match review (low-confidence + failed) ──────────────────────── */}
+        {d.reviewMappings.length > 0 && (
+          <MatchReviewSection
+            jobId={jobId}
+            mappings={d.reviewMappings}
+            interactive={!d.usingFixture}
+          />
         )}
 
         {/* ── Assetization invite (Option B — post-conversion) ───────────── */}
