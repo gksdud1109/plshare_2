@@ -24,6 +24,7 @@ export interface AssetTrack {
   artist: string;
   isrc?: string;
   durationMs: number;
+  youtubeVideoId?: string | null;
 }
 
 /**

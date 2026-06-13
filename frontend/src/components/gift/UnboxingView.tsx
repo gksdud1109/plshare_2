@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import type { GiftTrack, GiftView, WrapSkin } from "@/types/gift";
 import { WRAP_SKINS } from "@/types/gift";
-import { resolveTrackYouTube } from "@/lib/api/gift";
+import { useTrackPlayer } from "@/components/gift/useTrackPlayer";
+import { TrackEmbed } from "@/components/gift/TrackEmbed";
 
 function formatDuration(ms?: number): string {
   if (!ms) return "";
@@ -49,33 +50,8 @@ export function UnboxingView({
     return () => clearTimeout(timer);
   }, [visibleCount, gift.asset.tracks]);
 
-  // 인라인 재생: 트랙 탭 → YouTube 임베드. videoId 없으면 lazy resolve 후 재생.
-  const [playingId, setPlayingId] = useState<string | null>(null);
-  const [resolvingId, setResolvingId] = useState<string | null>(null);
-  const [resolvedIds, setResolvedIds] = useState<Record<string, string | null>>({});
-
-  function videoIdFor(track: GiftTrack): string | null | undefined {
-    return track.youtubeVideoId ?? resolvedIds[track.id];
-  }
-
-  async function togglePlay(track: GiftTrack) {
-    if (playingId === track.id) {
-      setPlayingId(null);
-      return;
-    }
-    if (videoIdFor(track) === undefined) {
-      setResolvingId(track.id);
-      try {
-        const { videoId } = await resolveTrackYouTube(track.id);
-        setResolvedIds((m) => ({ ...m, [track.id]: videoId }));
-      } catch {
-        setResolvedIds((m) => ({ ...m, [track.id]: null }));
-      } finally {
-        setResolvingId(null);
-      }
-    }
-    setPlayingId(track.id);
-  }
+  // 인라인 재생 (선물 언박싱 + 공유 페이지가 공유하는 훅).
+  const player = useTrackPlayer();
 
   return (
     <div className="relative min-h-screen overflow-hidden" style={{ background: "#0b0b0f" }}>
@@ -198,8 +174,8 @@ export function UnboxingView({
             style={{ borderRadius: "var(--radius-card)" }}
           >
             {gift.asset.tracks.map((track: GiftTrack, i: number) => {
-              const isPlaying = playingId === track.id;
-              const vid = videoIdFor(track);
+              const isPlaying = player.playingId === track.id;
+              const vid = player.videoIdFor(track);
               return (
                 <div
                   key={track.id}
@@ -213,7 +189,7 @@ export function UnboxingView({
                 >
                   <button
                     type="button"
-                    onClick={() => togglePlay(track)}
+                    onClick={() => player.toggle(track)}
                     className="flex w-full items-center gap-4 px-4 py-3 text-left transition-colors duration-200 hover:bg-surface-2 focus-ring"
                     aria-label={isPlaying ? `${track.name} 닫기` : `${track.name} 재생`}
                   >
@@ -221,7 +197,7 @@ export function UnboxingView({
                       className="flex w-6 shrink-0 items-center justify-center text-xs tabular-nums"
                       style={{ color: isPlaying ? skin.accentColor : "var(--color-text-low)" }}
                     >
-                      {resolvingId === track.id ? (
+                      {player.resolvingId === track.id ? (
                         <span
                           className="inline-block h-3 w-3 animate-spin rounded-full border border-current border-t-transparent"
                           aria-hidden
@@ -269,27 +245,8 @@ export function UnboxingView({
                     )}
                   </button>
 
-                  {isPlaying && vid ? (
-                    <div className="px-4 pb-3">
-                      <div
-                        className="overflow-hidden"
-                        style={{ borderRadius: "var(--radius-image)", aspectRatio: "16 / 9" }}
-                      >
-                        <iframe
-                          title={`${track.name} — YouTube`}
-                          src={`https://www.youtube.com/embed/${vid}?autoplay=1&rel=0`}
-                          allow="autoplay; encrypted-media; picture-in-picture"
-                          allowFullScreen
-                          className="h-full w-full"
-                          style={{ border: 0 }}
-                        />
-                      </div>
-                    </div>
-                  ) : null}
-                  {isPlaying && vid === null ? (
-                    <p className="px-4 pb-3 text-xs text-text-low">
-                      이 곡은 지금 재생할 수 없어요.
-                    </p>
+                  {isPlaying ? (
+                    <TrackEmbed videoId={vid ?? null} title={track.name} />
                   ) : null}
                 </div>
               );

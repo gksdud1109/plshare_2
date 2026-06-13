@@ -3,7 +3,7 @@ import Link from "next/link";
 import { fetchShareDataServer } from "@/lib/api/share";
 import { buildDemoSharedAsset } from "@/lib/api/fixtures";
 import type { SharedAsset } from "@/types/asset";
-import { TrackRow } from "@/components/ui/TrackRow";
+import { ShareTrackList } from "@/components/share/ShareTrackList";
 import { ShareCallToAction } from "@/components/share/ShareCallToAction";
 import { notFound } from "next/navigation";
 import { demoFixturesEnabled } from "@/lib/demo";
@@ -244,14 +244,7 @@ function ShareView({
         <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-text-low">
           Tracks
         </p>
-        <div
-          className="mt-4 border border-hairline bg-surface-1"
-          style={{ borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)" }}
-        >
-          {data.tracks.map((t, i) => (
-            <TrackRow key={t.id} track={t} index={i} />
-          ))}
-        </div>
+        <ShareTrackList tracks={data.tracks} />
       </section>
 
       {/* CTA */}
