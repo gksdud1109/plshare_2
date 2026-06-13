@@ -46,13 +46,11 @@ const assert = (cond, step, detail) => {
     await page.goto(FE, { waitUntil: 'networkidle' });
     await page.screenshot({ path: `${SCREENSHOT_DIR}/01-landing.png` });
     const landingText = await page.textContent('body');
-    assert(/Spotify/i.test(landingText), 'FE.landing', 'Landing has Spotify CTA');
+    assert(/선물 만들기|선물로/i.test(landingText), 'FE.landing', 'Landing is gift-first');
 
-    // Step 2: Click CTA → /auth/spotify
-    const ctaLink = page.locator('a:has-text("Spotify로 시작")').first();
-    await ctaLink.click();
-    await page.waitForURL(/auth\/spotify/, { timeout: 5000 });
-    log('FE.auth-redirect', 'PASS', 'Reached /auth/spotify');
+    // Step 2: Establish a demo session via /auth/spotify (gift-first 랜딩엔 전환 진입이 없으므로 직접 이동).
+    await page.goto(`${FE}/auth/spotify`, { waitUntil: 'networkidle' });
+    log('FE.auth-redirect', 'PASS', 'Reached /auth/spotify (demo session)');
     await page.screenshot({ path: `${SCREENSHOT_DIR}/02-auth.png` });
 
     // Step 3: Auto-redirect to /import after ~1.5s
@@ -163,6 +161,46 @@ const assert = (cond, step, detail) => {
     const shareText = await page.textContent('body');
     assert(/Late Night Drives|Weeknd|Daft Punk/i.test(shareText), 'FE.share-public',
       'Public share page renders asset');
+
+    // ── Gift-first 풀플로우: 선물 생성 → 포장 → 열기 → 재생 → 저장 ──────────────
+    // Step 14: 선물 생성 (API) — 위 플로우에서 만든 asset 을 데모 유저가 선물
+    const demoUser = await fetch(`${BE}/api/users/demo`).then(r => r.json()).then(j => j?.data ?? j);
+    const giftRes = await fetch(`${BE}/api/gifts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ senderId: demoUser.id, assetId, message: '늦은 밤 운전할 때 들어.', wrapSkin: 'nocturne-violet' }),
+    }).then(r => r.json()).then(j => j?.data ?? j);
+    assert(!!giftRes.token, 'BE.gift-create', `Gift token ${giftRes.token?.slice(0, 8)}…`);
+
+    // Step 15: 수신자 — 포장된 상태로 진입
+    await page.goto(`${FE}/gift/${giftRes.token}`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1200);
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/10-gift-wrapped.png` });
+    assert(/선물 열기/.test(await page.textContent('body')), 'FE.gift-wrapped', 'Gift starts wrapped');
+
+    // Step 16: 선물 열기 → 언박싱
+    await page.locator('text=선물 열기').first().click();
+    await page.waitForTimeout(3200);
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/11-gift-opened.png`, fullPage: true });
+    const playBtn = page.locator('button[aria-label$="재생"]').first();
+    assert(await playBtn.count() > 0, 'FE.gift-opened', 'Unboxing shows playable tracks');
+
+    // Step 17: 트랙 재생 (resolve + YouTube 임베드)
+    await playBtn.click();
+    await page.waitForTimeout(3000);
+    const embeds = await page.locator('iframe[src*="youtube.com/embed"]').count();
+    assert(embeds > 0, 'FE.gift-play', 'Track plays via YouTube embed');
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/12-gift-play.png`, fullPage: true });
+
+    // Step 18: 라이브러리에 저장 (데모 세션 인증 상태)
+    const saveGiftBtn = page.locator('button').filter({ hasText: /라이브러리에 저장/ }).first();
+    if (await saveGiftBtn.count() > 0) {
+      await saveGiftBtn.click();
+      await page.waitForTimeout(1500);
+      log('FE.gift-save', 'PASS', 'Gift saved to library');
+    } else {
+      log('FE.gift-save', 'WARN', '저장 버튼 없음 (미인증 또는 자동저장)');
+    }
 
     // Final: console error check
     const fatalErrors = consoleErrors.filter(e => !/favicon|404.*png/i.test(e));
