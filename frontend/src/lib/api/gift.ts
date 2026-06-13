@@ -43,3 +43,29 @@ export async function resolveTrackYouTube(
 ): Promise<{ videoId: string | null }> {
   return apiFetch<{ videoId: string | null }>(`/api/tracks/${trackId}/youtube`);
 }
+
+/**
+ * 서버사이드 gift 조회 (generateMetadata / OG 이미지 라우트용). 읽기 전용 —
+ * 선물 상태를 바꾸지 않는다. 내부 base URL 우선, 실패 시 throw하여 호출측 폴백.
+ */
+export async function fetchGiftServer(token: string): Promise<GiftView> {
+  const base =
+    process.env.API_BASE_INTERNAL_URL?.trim() ||
+    process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ||
+    "http://localhost:8080";
+
+  const res = await fetch(`${base}/api/gifts/${token}`, {
+    headers: { Accept: "application/json" },
+    cache: "force-cache",
+    next: { revalidate: 60, tags: [`gift-${token}`] },
+  });
+  if (!res.ok) {
+    throw new Error(`fetchGiftServer: ${res.status} ${res.statusText}`);
+  }
+  const json: unknown = await res.json();
+  const payload =
+    json !== null && typeof json === "object" && "data" in json
+      ? (json as { data: unknown }).data
+      : json;
+  return payload as GiftView;
+}
