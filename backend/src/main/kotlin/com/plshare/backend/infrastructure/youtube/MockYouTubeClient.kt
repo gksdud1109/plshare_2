@@ -151,6 +151,20 @@ class MockYouTubeClient : YouTubeClient {
     }
 
     /**
+     * Verified real, embeddable official YouTube ids for the demo pl-late-night
+     * tracks (oEmbed-checked). Keyed by lowercase title so the gift/share inline
+     * player plays real music in demo instead of a synthetic, unplayable id.
+     */
+    private val realDemoVideoIds = mapOf(
+        "blinding lights" to "4NRXx6U8ABQ",
+        "something about us" to "em0MknB6wFo",
+        "midnight city" to "dX3k_QDnzHE",
+        "the less i know the better" to "sBzrzS1Ag_g",
+        "1901" to "cFElidiwxYU",
+        "all my friends" to "aygY5OqMuKE",
+    )
+
+    /**
      * Deterministic candidate generator for the demo. Varies the top result by a
      * stable hash of (title, artist) so the manual-review UI has realistic
      * material to exercise:
@@ -165,6 +179,16 @@ class MockYouTubeClient : YouTubeClient {
         artist: String,
         accessToken: String,
     ): Mono<List<YouTubeSearchCandidate>> {
+        // Mapped demo tracks → verified real, embeddable id (clean MATCHED, plays).
+        realDemoVideoIds[title.lowercase()]?.let { realId ->
+            return Mono.just(
+                listOf(
+                    YouTubeSearchCandidate(realId, title, artist),
+                    YouTubeSearchCandidate(realId, "$title (Official Audio)", "$artist - Topic"),
+                )
+            )
+        }
+
         val h = (title + "|" + artist).hashCode().toUInt()
         if (h % 7u == 0u) return Mono.just(emptyList())
 
