@@ -3,6 +3,8 @@ package com.plshare.backend.global.seed
 import com.plshare.backend.domain.asset.model.Asset
 import com.plshare.backend.domain.asset.model.Track
 import com.plshare.backend.domain.asset.repository.AssetRepository
+import com.plshare.backend.domain.gift.model.Gift
+import com.plshare.backend.domain.gift.repository.GiftRepository
 import com.plshare.backend.domain.post.model.Post
 import com.plshare.backend.domain.post.repository.PostRepository
 import com.plshare.backend.domain.user.model.User
@@ -19,6 +21,7 @@ class DemoDataSeeder(
     private val assetRepository: AssetRepository,
     private val userRepository: UserRepository,
     private val postRepository: PostRepository,
+    private val giftRepository: GiftRepository,
 ) : CommandLineRunner {
     private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -29,6 +32,7 @@ class DemoDataSeeder(
         if (assetRepository.count() > 0L) {
             log.info("Skipping demo seed: assets already present")
             seedDemoPosts(demoUser, existingAssetId = null)
+            seedDemoGift(demoUser, existingAssetId = null)
             return
         }
         val asset = Asset(
@@ -61,6 +65,7 @@ class DemoDataSeeder(
         log.info("Seeded demo asset: {}", asset.id)
 
         seedDemoPosts(demoUser, existingAssetId = asset.id)
+        seedDemoGift(demoUser, existingAssetId = asset.id)
     }
 
     private fun seedDemoUser(): User {
@@ -108,5 +113,31 @@ class DemoDataSeeder(
         postRepository.save(post1)
         postRepository.save(post2)
         log.info("Seeded 2 demo posts for user: {}", demoUser.id)
+    }
+
+    /**
+     * demo 선물 1건을 idempotent 시딩.
+     * demo 유저가 자신의 첫 번째 자산에 감성 메시지를 붙여 선물로 포장.
+     * 토큰 "demo0000000000001"로 고정해 재시작 시 중복 생성을 방지한다.
+     */
+    private fun seedDemoGift(demoUser: User, existingAssetId: java.util.UUID?) {
+        val demoToken = "demo0000000001"
+        if (giftRepository.findByToken(demoToken) != null) {
+            log.info("Skipping demo gift seed: already present")
+            return
+        }
+        val assetId = existingAssetId ?: assetRepository.findAll().firstOrNull()?.id ?: run {
+            log.info("Skipping demo gift seed: no asset available")
+            return
+        }
+        val gift = Gift(
+            senderId = demoUser.id,
+            assetId = assetId,
+            message = "노을이 질 때 들으면 좋은 곡들을 골라봤어요. 오늘 하루도 수고했어요 🌅",
+            wrapSkin = "nocturne-violet",
+            token = demoToken,
+        )
+        giftRepository.save(gift)
+        log.info("Seeded demo gift: token={}", demoToken)
     }
 }

@@ -462,7 +462,7 @@ tasks:
   last_error: 
 - id: ranking-001
   title: Playlist/user ranking (aggregation + discovery feed UI)
-  status: pending
+  status: done
   priority: p1
   role: full-stack
   agent: claude-code
@@ -477,7 +477,7 @@ tasks:
   last_error: 
 - id: gift-flow-001
   title: Emotional gift flow (send story-wrapped asset, unboxing receive)
-  status: pending
+  status: done
   priority: p1
   role: full-stack
   agent: claude-code
