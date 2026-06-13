@@ -106,6 +106,7 @@ class FakePostRepository : PostRepository {
     override fun findByIdAndDeletedFalse(id: UUID): Post? = store[id]?.takeIf { !it.deleted }
     override fun findAllByDeletedFalseOrderByCreatedAtDesc(pageable: Pageable): Page<Post> = throw NotImplementedError()
     override fun findAllByAuthorIdInAndDeletedFalseOrderByCreatedAtDesc(authorIds: Collection<UUID>, pageable: Pageable): Page<Post> = throw NotImplementedError()
+    override fun findAllByAuthorIdAndDeletedFalseOrderByCreatedAtDesc(authorId: UUID, pageable: Pageable): Page<Post> = throw NotImplementedError()
 
     override fun <S : Post> save(entity: S): S { store[entity.id] = entity; return entity }
     override fun findById(id: UUID): Optional<Post> = Optional.ofNullable(store[id])

@@ -213,6 +213,7 @@ class NormalizationEngine(
                 durationMs = if (ytTrack.durationMs > 0) ytTrack.durationMs.toInt() else null,
                 isrc = null,
                 spotifyId = null,  // YouTube 트랙은 spotifyId 없음
+                youtubeVideoId = normalizedVideoId,  // export(YouTube write)가 이 값을 사용
                 canonicalTrackId = matchResult.canonical.canonicalId,
                 matchConfidence = matchResult.confidence
             )

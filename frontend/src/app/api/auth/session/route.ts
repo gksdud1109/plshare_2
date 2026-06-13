@@ -57,7 +57,41 @@ export async function GET() {
     });
   } catch {
     if (session.demo) {
-      return NextResponse.json({ authenticated: true, session });
+      /**
+       * DESIGN NOTE (pre-session integration, fe-feed-001):
+       * Demo sessions have grantId="demo-grant" and no userId.
+       * We resolve the demo user's UUID by calling GET /api/users/demo
+       * (handle "demo" is seeded by DemoDataSeeder on @Profile("demo")).
+       * On failure we fall back to the bare session so existing demo flows
+       * (E2E, convert, assets) are not disrupted.
+       *
+       * Once Spring Security + JWT lands, this entire block is replaced by
+       * @AuthenticationPrincipal on the BE side — the session cookie will
+       * carry userId directly.
+       */
+      let resolvedSession = session;
+      if (!session.userId) {
+        try {
+          const demoRes = await fetch(`${API_BASE_URL}/api/users/demo`, {
+            cache: "no-store",
+          });
+          if (demoRes.ok) {
+            const demoPayload = (await demoRes.json()) as unknown;
+            const demoData =
+              demoPayload !== null &&
+              typeof demoPayload === "object" &&
+              "data" in demoPayload
+                ? (demoPayload as { data: { id?: string } }).data
+                : (demoPayload as { id?: string });
+            if (demoData?.id) {
+              resolvedSession = { ...session, userId: demoData.id };
+            }
+          }
+        } catch {
+          // fall back to bare session — existing demo flow unaffected
+        }
+      }
+      return NextResponse.json({ authenticated: true, session: resolvedSession });
     }
 
     await clearSessionCookie();

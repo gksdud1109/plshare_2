@@ -48,6 +48,16 @@ class PostController(private val postService: PostService) {
     ): ApiResponse<PageResponse<PostResponse>> =
         ApiResponse.ok(postService.listFeed(userId, PageRequest.of(page, size)))
 
+    /** 프로필 피드: handle 작성자의 포스트 목록 (fe-feed-001 BLOCKER 해소). */
+    @GetMapping("/users/{handle}/posts")
+    fun listByAuthor(
+        @PathVariable handle: String,
+        @RequestParam(required = false) viewerId: UUID?,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "20") size: Int,
+    ): ApiResponse<PageResponse<PostResponse>> =
+        ApiResponse.ok(postService.listByAuthorHandle(handle, viewerId, PageRequest.of(page, size)))
+
     /** 포스트 단건 조회. */
     @GetMapping("/posts/{id}")
     fun getById(

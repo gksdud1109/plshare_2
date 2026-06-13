@@ -43,6 +43,9 @@ google:
   redirect-uri: http://localhost:8080/api/auth/google/callback
   fe-redirect: http://localhost:3000/import
 
+youtube:
+  daily-write-budget: 8000
+
 logging:
   level:
     com.plshare: DEBUG

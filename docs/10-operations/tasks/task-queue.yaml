@@ -399,7 +399,7 @@ tasks:
   last_error: 
 - id: be-ytm-write-adapter-001
   title: YouTube Music write adapter (export, quota-gated)
-  status: blocked
+  status: done
   priority: p1
   role: backend-engineer
   agent: claude-code
@@ -413,7 +413,7 @@ tasks:
   last_error: 
 - id: fe-one-click-convert-001
   title: One-click conversion flow (paste link -> pick destination -> convert)
-  status: blocked
+  status: done
   priority: p0
   role: frontend-engineer
   agent: claude-code
@@ -446,7 +446,7 @@ tasks:
   last_error: 
 - id: fe-feed-001
   title: Feed + post composer + profile pages
-  status: blocked
+  status: done
   priority: p0
   role: frontend-engineer
   agent: claude-code
@@ -462,7 +462,7 @@ tasks:
   last_error: 
 - id: ranking-001
   title: Playlist/user ranking (aggregation + discovery feed UI)
-  status: blocked
+  status: pending
   priority: p1
   role: full-stack
   agent: claude-code
@@ -477,7 +477,7 @@ tasks:
   last_error: 
 - id: gift-flow-001
   title: Emotional gift flow (send story-wrapped asset, unboxing receive)
-  status: blocked
+  status: pending
   priority: p1
   role: full-stack
   agent: claude-code
