@@ -12,7 +12,8 @@ data class TrackDto(
     val durationMs: Int?,
     val isrc: String?,
     val spotifyId: String?,
-    val appleMusicId: String?
+    val appleMusicId: String?,
+    val youtubeVideoId: String?
 ) {
     companion object {
         fun from(t: Track) = TrackDto(
@@ -22,7 +23,8 @@ data class TrackDto(
             durationMs = t.durationMs,
             isrc = t.isrc,
             spotifyId = t.spotifyId,
-            appleMusicId = t.appleMusicId
+            appleMusicId = t.appleMusicId,
+            youtubeVideoId = t.youtubeVideoId
         )
     }
 }

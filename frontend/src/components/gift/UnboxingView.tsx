@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { GiftTrack, GiftView, WrapSkin } from "@/types/gift";
 import { WRAP_SKINS } from "@/types/gift";
+import { resolveTrackYouTube } from "@/lib/api/gift";
 
 function formatDuration(ms?: number): string {
   if (!ms) return "";
@@ -47,6 +48,34 @@ export function UnboxingView({
     }, visibleCount === 0 ? 800 : 350);
     return () => clearTimeout(timer);
   }, [visibleCount, gift.asset.tracks]);
+
+  // 인라인 재생: 트랙 탭 → YouTube 임베드. videoId 없으면 lazy resolve 후 재생.
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [resolvedIds, setResolvedIds] = useState<Record<string, string | null>>({});
+
+  function videoIdFor(track: GiftTrack): string | null | undefined {
+    return track.youtubeVideoId ?? resolvedIds[track.id];
+  }
+
+  async function togglePlay(track: GiftTrack) {
+    if (playingId === track.id) {
+      setPlayingId(null);
+      return;
+    }
+    if (videoIdFor(track) === undefined) {
+      setResolvingId(track.id);
+      try {
+        const { videoId } = await resolveTrackYouTube(track.id);
+        setResolvedIds((m) => ({ ...m, [track.id]: videoId }));
+      } catch {
+        setResolvedIds((m) => ({ ...m, [track.id]: null }));
+      } finally {
+        setResolvingId(null);
+      }
+    }
+    setPlayingId(track.id);
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden" style={{ background: "#0b0b0f" }}>
@@ -168,33 +197,103 @@ export function UnboxingView({
             className="overflow-hidden border border-hairline bg-surface-1"
             style={{ borderRadius: "var(--radius-card)" }}
           >
-            {gift.asset.tracks.map((track: GiftTrack, i: number) => (
-              <div
-                key={track.id}
-                className="flex items-center gap-4 border-b border-hairline px-4 py-3 last:border-b-0 transition-all duration-500"
-                style={{
-                  opacity: i < visibleCount ? 1 : 0,
-                  transform: i < visibleCount ? "translateY(0)" : "translateY(10px)",
-                  transitionDelay: `${i * 80}ms`,
-                }}
-                aria-hidden={i >= visibleCount}
-              >
-                <span className="w-6 shrink-0 text-right text-xs tabular-nums text-text-low">
-                  {i + 1}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[0.9375rem] font-medium text-text-hi">
-                    {track.name}
-                  </p>
-                  <p className="mt-0.5 truncate text-xs text-text-mid">{track.artist}</p>
+            {gift.asset.tracks.map((track: GiftTrack, i: number) => {
+              const isPlaying = playingId === track.id;
+              const vid = videoIdFor(track);
+              return (
+                <div
+                  key={track.id}
+                  className="border-b border-hairline last:border-b-0 transition-all duration-500"
+                  style={{
+                    opacity: i < visibleCount ? 1 : 0,
+                    transform: i < visibleCount ? "translateY(0)" : "translateY(10px)",
+                    transitionDelay: `${i * 80}ms`,
+                  }}
+                  aria-hidden={i >= visibleCount}
+                >
+                  <button
+                    type="button"
+                    onClick={() => togglePlay(track)}
+                    className="flex w-full items-center gap-4 px-4 py-3 text-left transition-colors duration-200 hover:bg-surface-2 focus-ring"
+                    aria-label={isPlaying ? `${track.name} 닫기` : `${track.name} 재생`}
+                  >
+                    <span
+                      className="flex w-6 shrink-0 items-center justify-center text-xs tabular-nums"
+                      style={{ color: isPlaying ? skin.accentColor : "var(--color-text-low)" }}
+                    >
+                      {resolvingId === track.id ? (
+                        <span
+                          className="inline-block h-3 w-3 animate-spin rounded-full border border-current border-t-transparent"
+                          aria-hidden
+                        />
+                      ) : isPlaying ? (
+                        <svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor" aria-hidden>
+                          <rect x="1" y="1" width="3" height="9" rx="1" />
+                          <rect x="7" y="1" width="3" height="9" rx="1" />
+                        </svg>
+                      ) : (
+                        i + 1
+                      )}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className="truncate text-[0.9375rem] font-medium"
+                        style={{ color: isPlaying ? skin.accentColor : "var(--color-text-hi)" }}
+                      >
+                        {track.name}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs text-text-mid">{track.artist}</p>
+                    </div>
+                    {isPlaying ? (
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 14 14"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        className="shrink-0 text-text-low"
+                        aria-hidden
+                      >
+                        <path d="M11 4L4 11M4 4l7 7" strokeLinecap="round" />
+                      </svg>
+                    ) : (
+                      <span className="flex shrink-0 items-center gap-2 text-text-low">
+                        {track.durationMs ? (
+                          <span className="text-xs tabular-nums">{formatDuration(track.durationMs)}</span>
+                        ) : null}
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+                          <path d="M4 3.5v9a.5.5 0 00.76.43l7.5-4.5a.5.5 0 000-.86l-7.5-4.5A.5.5 0 004 3.5z" />
+                        </svg>
+                      </span>
+                    )}
+                  </button>
+
+                  {isPlaying && vid ? (
+                    <div className="px-4 pb-3">
+                      <div
+                        className="overflow-hidden"
+                        style={{ borderRadius: "var(--radius-image)", aspectRatio: "16 / 9" }}
+                      >
+                        <iframe
+                          title={`${track.name} — YouTube`}
+                          src={`https://www.youtube.com/embed/${vid}?autoplay=1&rel=0`}
+                          allow="autoplay; encrypted-media; picture-in-picture"
+                          allowFullScreen
+                          className="h-full w-full"
+                          style={{ border: 0 }}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+                  {isPlaying && vid === null ? (
+                    <p className="px-4 pb-3 text-xs text-text-low">
+                      이 곡은 지금 재생할 수 없어요.
+                    </p>
+                  ) : null}
                 </div>
-                {track.durationMs ? (
-                  <span className="shrink-0 text-xs tabular-nums text-text-low">
-                    {formatDuration(track.durationMs)}
-                  </span>
-                ) : null}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
