@@ -56,29 +56,29 @@ export default function LandingPage() {
           >
             당신의 취향을
             <br />
-            <span className="text-accent">자산으로.</span>
+            <span className="text-accent">선물로.</span>
           </h1>
 
           <p
             className="mt-8 max-w-lg leading-relaxed text-text-mid"
             style={{ fontSize: "1.0625rem" }}
           >
-            플레이리스트에 감성 맥락을 더하고,
+            좋아하는 곡에 감성 맥락을 담아,
             <br className="hidden sm:block" />
-            공유하거나 YouTube Music으로 옮기세요.
+            소중한 사람에게 선물하세요.
             <br />
-            가볍게 흘려보내지 않도록.
+            받는 사람은 앱 없이 바로 듣습니다.
           </p>
 
           <div className="mt-12 flex flex-wrap items-center gap-4">
-            {/* Auth-start is a backend redirect endpoint (creates an OAuth handshake
-                and 302s to the provider) — use a plain <a> so Next never prefetches it. */}
+            {/* Gift-first 입구. Auth-start는 백엔드 redirect 엔드포인트(OAuth handshake
+                + 302)라 plain <a> — Next prefetch 방지. 로그인 후 선물 생성으로 이동. */}
             <a
-              href="/api/auth/google/start?returnTo=%2Fauth%2Fspotify%3Flive%3D1%26next%3D%2Fimport"
+              href="/api/auth/google/start?returnTo=%2Fgift%2Fsend"
               className="inline-flex h-12 items-center gap-3 rounded-full bg-accent px-6 text-sm font-semibold text-white transition-all duration-300 hover:bg-accent-hi hover:shadow-[0_0_24px_-4px_rgba(124,92,255,0.7)] active:bg-accent-press focus-ring"
               style={{ letterSpacing: "0.01em" }}
             >
-              Google로 시작하기
+              선물 만들기
               <svg
                 aria-hidden
                 width="16"
@@ -96,16 +96,10 @@ export default function LandingPage() {
               </svg>
             </a>
             <Link
-              href="/auth/spotify"
-              className="inline-flex h-12 items-center rounded-full px-5 text-sm font-medium text-text-mid transition-colors duration-300 hover:text-text-hi"
-            >
-              Spotify로 시작하기
-            </Link>
-            <Link
-              href="/assets"
+              href="/feed"
               className="inline-flex h-12 items-center rounded-full px-6 text-sm font-medium text-text-mid transition-colors duration-300 hover:text-text-hi"
             >
-              라이브러리 둘러보기
+              둘러보기
             </Link>
           </div>
         </div>
@@ -291,8 +285,8 @@ export default function LandingPage() {
                 />
               </svg>
             }
-            title="Spotify에서 가져오기"
-            body="플레이리스트를 선택해 자산으로 정리합니다."
+            title="취향을 담다"
+            body="좋아하는 곡을 모아 한 장의 자산으로 정리합니다."
           />
           <Step
             n="02"
@@ -339,8 +333,8 @@ export default function LandingPage() {
                 />
               </svg>
             }
-            title="공유하거나 YouTube Music으로"
-            body="취향 자산을 나누고 새 플랫폼에서 다시 듣습니다."
+            title="선물하거나 공유하다"
+            body="포장해 선물하면, 받는 사람은 앱 없이 바로 듣습니다."
           />
         </div>
       </section>

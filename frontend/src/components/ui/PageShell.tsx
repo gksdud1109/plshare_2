@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SessionBadge } from "@/components/ui/SessionBadge";
+import { conversionEnabled } from "@/lib/flags";
 import { cn } from "@/lib/utils/cn";
 
 export function PageShell({
@@ -32,11 +33,19 @@ export function PageShell({
             {showHomeLink ? (
               <>
                 <Link
-                  href="/convert"
-                  className="text-xs font-semibold uppercase tracking-[0.18em] text-text-mid transition-colors duration-200 hover:text-text-hi"
+                  href="/gift/send"
+                  className="text-xs font-semibold uppercase tracking-[0.18em] text-accent transition-colors duration-200 hover:text-accent-hi"
                 >
-                  변환
+                  선물
                 </Link>
+                {conversionEnabled() ? (
+                  <Link
+                    href="/convert"
+                    className="text-xs font-semibold uppercase tracking-[0.18em] text-text-mid transition-colors duration-200 hover:text-text-hi"
+                  >
+                    변환
+                  </Link>
+                ) : null}
                 <Link
                   href="/feed"
                   className="text-xs font-semibold uppercase tracking-[0.18em] text-text-mid transition-colors duration-200 hover:text-text-hi"
