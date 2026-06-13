@@ -72,7 +72,21 @@ export type ExportMappingStatus = "matched" | "alternative" | "failed";
 export interface ExportMapping {
   trackId: string;
   appleTrackId?: string;
+  // YouTube Music corridor: per-track match detail for manual review.
+  title?: string;
+  artist?: string;
+  videoId?: string | null;
+  matchedTitle?: string | null;
+  confidence?: number | null;
   status: ExportMappingStatus;
+  reviewed?: boolean;
+}
+
+/** Alternative video offered when reviewing a low-confidence/failed match. */
+export interface ExportCandidate {
+  videoId: string;
+  title: string;
+  channelTitle?: string | null;
 }
 
 export type ExportJobStatusValue =

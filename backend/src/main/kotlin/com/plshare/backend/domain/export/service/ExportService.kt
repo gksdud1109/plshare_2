@@ -1,14 +1,18 @@
 package com.plshare.backend.domain.export.service
 
+import com.plshare.backend.domain.asset.model.Track
 import com.plshare.backend.domain.asset.repository.AssetRepository
 import com.plshare.backend.domain.export.model.ExportJob
+import com.plshare.backend.domain.export.model.ExportJobStatus
+import com.plshare.backend.domain.export.model.ExportMatchStatus
+import com.plshare.backend.domain.export.model.ExportTrackMatch
 import com.plshare.backend.domain.export.repository.ExportJobRepository
 import com.plshare.backend.global.exception.ApiException
 import com.plshare.backend.global.exception.ErrorCode
 import com.plshare.backend.infrastructure.apple.AppleMusicTrackInput
 import com.plshare.backend.infrastructure.apple.AppleMusicWriteAdapter
-import com.plshare.backend.infrastructure.youtube.YouTubeMusicTrackResult
 import com.plshare.backend.infrastructure.youtube.YouTubeQuotaGuard
+import com.plshare.backend.infrastructure.youtube.YouTubeSearchCandidate
 import com.plshare.backend.infrastructure.youtube.YouTubeWriteAdapter
 import com.plshare.backend.infrastructure.youtube.YouTubeClient
 import com.plshare.backend.domain.auth.service.GoogleAccessGrantService
@@ -16,6 +20,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 import java.util.UUID
 
 /**
@@ -42,10 +47,22 @@ class ExportService(
     private val appleAdapter: AppleMusicWriteAdapter,
     private val youtubeWriteAdapter: YouTubeWriteAdapter,
     private val youtubeQuotaGuard: YouTubeQuotaGuard,
+    private val exportTrackMatchRepository: com.plshare.backend.domain.export.repository.ExportTrackMatchRepository,
     private val youtubeClient: YouTubeClient? = null,
     private val googleAccessGrantService: GoogleAccessGrantService? = null,
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
+
+    companion object {
+        /** Match confidence at or above this is treated as a confident MATCHED. */
+        const val CONFIDENCE_THRESHOLD = 0.7
+        /** search.list costs 100 quota units; reserve before a candidate lookup. */
+        const val CANDIDATE_SEARCH_UNITS = 100L
+        private val NOISE_TOKENS = setOf(
+            "live", "cover", "remix", "acoustic", "lyric", "lyrics", "sped",
+            "slowed", "reverb", "instrumental", "karaoke", "performance", "concert",
+        )
+    }
 
     @Transactional
     fun requestExport(
@@ -201,46 +218,49 @@ class ExportService(
             job.markExecuting()
             exportJobRepository.save(job)
 
-            // 트랙별 videoId 확보 및 추가
-            val results = mutableListOf<YouTubeMusicTrackResult>()
+            // 트랙별 매칭 + 추가 + per-track match 영속화.
+            // 재실행 안전: 같은 job의 기존 match 레코드를 먼저 제거한다.
+            exportTrackMatchRepository.findByExportJobId(job.id)
+                .takeIf { it.isNotEmpty() }
+                ?.let { exportTrackMatchRepository.deleteAll(it) }
+
+            var added = 0
+            var failed = 0
             for (track in asset.tracks) {
-                val videoId = resolveVideoId(track, accessToken)
-                if (videoId == null) {
-                    results.add(
-                        YouTubeMusicTrackResult(
-                            videoId = null,
-                            title = track.name,
-                            status = "failed",
-                            reason = "no_video_id: ${track.artist} - ${track.name} 검색 결과가 없습니다."
+                val resolved = resolveMatch(track, accessToken)
+                var status = resolved.status
+                var matchedVideoId = resolved.videoId
+
+                if (matchedVideoId != null) {
+                    try {
+                        youtubeWriteAdapter.addItem(playlistRef.externalId, matchedVideoId, accessToken)
+                        added++
+                    } catch (e: ApiException) {
+                        log.warn(
+                            "YouTube addItem failed for track '{}' (videoId={}): {}",
+                            track.name, matchedVideoId, e.message,
                         )
-                    )
-                    continue
+                        status = ExportMatchStatus.FAILED
+                        matchedVideoId = null
+                        failed++
+                    }
+                } else {
+                    failed++
                 }
 
-                try {
-                    youtubeWriteAdapter.addItem(playlistRef.externalId, videoId, accessToken)
-                    results.add(
-                        YouTubeMusicTrackResult(
-                            videoId = videoId,
-                            title = track.name,
-                            status = "added"
-                        )
+                exportTrackMatchRepository.save(
+                    ExportTrackMatch(
+                        exportJobId = job.id,
+                        trackId = track.id,
+                        title = track.name,
+                        artist = track.artist,
+                        matchedVideoId = matchedVideoId,
+                        matchedTitle = if (matchedVideoId != null) resolved.title else null,
+                        confidence = resolved.confidence,
+                        status = status,
                     )
-                } catch (e: ApiException) {
-                    log.warn("YouTube addItem failed for track '{}' (videoId={}): {}", track.name, videoId, e.message)
-                    results.add(
-                        YouTubeMusicTrackResult(
-                            videoId = videoId,
-                            title = track.name,
-                            status = "failed",
-                            reason = e.message ?: "addItem_error"
-                        )
-                    )
-                }
+                )
             }
-
-            val added = results.count { it.status == "added" }
-            val failed = results.count { it.status == "failed" }
 
             job.complete(
                 externalPlaylistId = playlistRef.externalId,
@@ -250,7 +270,12 @@ class ExportService(
             )
             exportJobRepository.save(job)
 
-            log.info("YouTube export completed for job {}: added={}, failed={}", job.id, added, failed)
+            val needsReview = exportTrackMatchRepository.findByExportJobId(job.id)
+                .count { it.status != ExportMatchStatus.MATCHED }
+            log.info(
+                "YouTube export completed for job {}: added={}, failed={}, needsReview={}",
+                job.id, added, failed, needsReview,
+            )
         } catch (e: Exception) {
             log.error("YouTube export failed for job {}", job.id, e)
             job.fail(e.message ?: "unknown_error")
@@ -258,17 +283,137 @@ class ExportService(
         }
     }
 
+    // ─── 트랙 매칭 (confidence) ────────────────────────────────────────────────
+
+    private data class ResolvedMatch(
+        val videoId: String?,
+        val title: String?,
+        val confidence: Double?,
+        val status: ExportMatchStatus,
+    )
+
     /**
-     * 트랙에서 YouTube videoId를 확보한다.
-     *
-     * @param track 대상 트랙
-     * @return videoId (없으면 null)
+     * 트랙을 대상 YouTube 비디오에 매칭하고 신뢰도/상태를 산출한다.
+     *   - youtube 소스 트랙: 저장된 videoId를 그대로 사용(exact, 1.0).
+     *   - 그 외: searchVideoCandidates의 top 후보와 제목/아티스트 유사도로 신뢰도 산출.
+     *     threshold 미만이면 ALTERNATIVE(검토 필요), 후보 없으면 FAILED.
      */
-    private fun resolveVideoId(
-        track: com.plshare.backend.domain.asset.model.Track,
-        accessToken: String,
-    ): String? {
-        track.youtubeVideoId?.takeIf { it.isNotBlank() }?.let { return it }
-        return youtubeClient?.searchVideo(track.name, track.artist, accessToken)?.block()
+    private fun resolveMatch(track: Track, accessToken: String): ResolvedMatch {
+        track.youtubeVideoId?.takeIf { it.isNotBlank() }?.let {
+            return ResolvedMatch(it, track.name, 1.0, ExportMatchStatus.MATCHED)
+        }
+        val primary = youtubeClient
+            ?.searchVideoCandidates(track.name, track.artist, accessToken)
+            ?.block()
+            ?.firstOrNull()
+            ?: return ResolvedMatch(null, null, null, ExportMatchStatus.FAILED)
+
+        val confidence = matchConfidence(track.name, track.artist, primary)
+        val status = if (confidence >= CONFIDENCE_THRESHOLD) {
+            ExportMatchStatus.MATCHED
+        } else {
+            ExportMatchStatus.ALTERNATIVE
+        }
+        return ResolvedMatch(primary.videoId, primary.title, confidence, status)
+    }
+
+    /**
+     * 트랙(아티스트+제목)과 후보(채널+제목)의 토큰 Jaccard 유사도(0–1).
+     * 소스가 요청하지 않은 live/cover/remix 류 노이즈 토큰이 후보에 있으면 감점한다
+     * — 스튜디오 플레이리스트 변환에서 라이브/커버는 보통 의도한 곡이 아니다.
+     */
+    fun matchConfidence(trackName: String, trackArtist: String, candidate: YouTubeSearchCandidate): Double {
+        val query = tokenize("$trackArtist $trackName")
+        val target = tokenize("${candidate.channelTitle.orEmpty()} ${candidate.title}")
+        if (query.isEmpty() || target.isEmpty()) return 0.0
+        val jaccard = query.intersect(target).size.toDouble() / query.union(target).size.toDouble()
+        val noisePenalty = if (target.any { it in NOISE_TOKENS && it !in query }) 0.25 else 0.0
+        return (jaccard - noisePenalty).coerceIn(0.0, 1.0)
+    }
+
+    private fun tokenize(s: String): Set<String> =
+        s.lowercase()
+            .replace(Regex("[^a-z0-9가-힣\\s]"), " ")
+            .split(Regex("\\s+"))
+            .filter { it.isNotBlank() }
+            .toSet()
+
+    // ─── 수동 검토 (manual review) ─────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    fun getMatches(jobId: UUID, requesterId: UUID?): List<ExportTrackMatch> {
+        val job = exportJobRepository.findById(jobId).orElseThrow {
+            ApiException(ErrorCode.NOT_FOUND, "Export job not found: $jobId")
+        }
+        requireOwner(job.ownerId, requesterId)
+        return exportTrackMatchRepository.findByExportJobId(jobId)
+    }
+
+    /**
+     * 한 트랙에 대한 대체 후보를 재검색한다(quota 100u 예약). 검토 UI가 이 목록에서
+     * 올바른 비디오를 고른 뒤 [overrideMatch]로 확정한다.
+     */
+    fun getCandidates(jobId: UUID, trackId: UUID, requesterId: UUID?): List<YouTubeSearchCandidate> {
+        val job = exportJobRepository.findById(jobId).orElseThrow {
+            ApiException(ErrorCode.NOT_FOUND, "Export job not found: $jobId")
+        }
+        requireOwner(job.ownerId, requesterId)
+        val match = exportTrackMatchRepository.findByExportJobIdAndTrackId(jobId, trackId)
+            ?: throw ApiException(ErrorCode.NOT_FOUND, "No match for track $trackId in job $jobId")
+
+        youtubeQuotaGuard.reserve(CANDIDATE_SEARCH_UNITS)
+        val token = youtubeTokenFor(job.ownerId)
+        return youtubeClient?.searchVideoCandidates(match.title, match.artist, token)?.block() ?: emptyList()
+    }
+
+    /**
+     * 사용자가 선택한 비디오로 트랙 매칭을 확정한다. 외부 플레이리스트에 추가하고
+     * match를 MATCHED(reviewed=true)로 갱신한 뒤 job 집계를 재계산한다.
+     */
+    @Transactional
+    fun overrideMatch(
+        jobId: UUID,
+        trackId: UUID,
+        videoId: String,
+        videoTitle: String?,
+        requesterId: UUID?,
+    ): ExportTrackMatch {
+        val job = exportJobRepository.findById(jobId).orElseThrow {
+            ApiException(ErrorCode.NOT_FOUND, "Export job not found: $jobId")
+        }
+        requireOwner(job.ownerId, requesterId)
+        val match = exportTrackMatchRepository.findByExportJobIdAndTrackId(jobId, trackId)
+            ?: throw ApiException(ErrorCode.NOT_FOUND, "No match for track $trackId in job $jobId")
+
+        val token = youtubeTokenFor(job.ownerId)
+        job.externalPlaylistId?.let { playlistId ->
+            youtubeWriteAdapter.addItem(playlistId, videoId, token)
+        }
+
+        match.applyOverride(videoId, videoTitle)
+        exportTrackMatchRepository.save(match)
+        recomputeJobCounts(job)
+        return match
+    }
+
+    /** override 이후 per-track match를 진실의 원천으로 job 집계/상태를 재계산. */
+    private fun recomputeJobCounts(job: ExportJob) {
+        val matches = exportTrackMatchRepository.findByExportJobId(job.id)
+        val matched = matches.count { it.matchedVideoId != null && it.status != ExportMatchStatus.FAILED }
+        val failed = matches.size - matched
+        job.matchedTracks = matched
+        job.failedTracks = failed
+        job.status = if (failed == 0) ExportJobStatus.COMPLETED else ExportJobStatus.PARTIAL
+        job.updatedAt = LocalDateTime.now()
+        exportJobRepository.save(job)
+    }
+
+    private fun youtubeTokenFor(ownerId: UUID?): String =
+        ownerId?.let { googleAccessGrantService?.getValidYouTubeToken(it) } ?: "demo-youtube-token"
+
+    private fun requireOwner(jobOwnerId: UUID?, requesterId: UUID?) {
+        if (requesterId != null && jobOwnerId != requesterId) {
+            throw ApiException(ErrorCode.FORBIDDEN, "Export job does not belong to the current user")
+        }
     }
 }

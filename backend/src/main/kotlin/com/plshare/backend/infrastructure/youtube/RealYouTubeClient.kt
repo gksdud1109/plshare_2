@@ -126,6 +126,38 @@ class RealYouTubeClient : YouTubeClient {
             .onErrorMap { it.toUpstreamError("searchVideo($artist - $title)") }
     }
 
+    override fun searchVideoCandidates(
+        title: String,
+        artist: String,
+        accessToken: String,
+    ): Mono<List<YouTubeSearchCandidate>> {
+        return client.get()
+            .uri { b ->
+                b.path("/search")
+                    .queryParam("part", "snippet")
+                    .queryParam("type", "video")
+                    .queryParam("videoCategoryId", "10")
+                    .queryParam("maxResults", 5)
+                    .queryParam("q", "$artist $title")
+                    .build()
+            }
+            .headers { it.setBearerAuth(accessToken) }
+            .retrieve()
+            .bodyToMono<YouTubeSearchListResponse>()
+            .timeout(Duration.ofSeconds(10))
+            .map { response ->
+                response.items.mapNotNull { item ->
+                    val videoId = item.id.videoId ?: return@mapNotNull null
+                    YouTubeSearchCandidate(
+                        videoId = videoId,
+                        title = item.snippet?.title ?: "$artist - $title",
+                        channelTitle = item.snippet?.channelTitle,
+                    )
+                }
+            }
+            .onErrorMap { it.toUpstreamError("searchVideoCandidates($artist - $title)") }
+    }
+
     // ─── private helpers ──────────────────────────────────────────────────────
 
     /** playlists.list 전체 페이지를 수집해 YouTubePlaylistItem 목록으로 반환. */

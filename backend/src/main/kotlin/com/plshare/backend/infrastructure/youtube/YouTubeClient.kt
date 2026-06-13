@@ -56,4 +56,16 @@ interface YouTubeClient {
      */
     fun searchVideo(title: String, artist: String, accessToken: String): Mono<String> =
         Mono.empty()
+
+    /**
+     * Like [searchVideo] but returns the top-N candidates (videoId + title +
+     * channel) so the caller can score match confidence and offer the user
+     * alternatives for manual review. Also costs 100 quota units per call, so
+     * callers must reserve quota first.
+     */
+    fun searchVideoCandidates(
+        title: String,
+        artist: String,
+        accessToken: String,
+    ): Mono<List<YouTubeSearchCandidate>> = Mono.just(emptyList())
 }
