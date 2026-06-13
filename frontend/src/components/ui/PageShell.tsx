@@ -44,6 +44,12 @@ export function PageShell({
                   피드
                 </Link>
                 <Link
+                  href="/ranking"
+                  className="hidden text-xs font-semibold uppercase tracking-[0.18em] text-text-mid transition-colors duration-200 hover:text-text-hi sm:inline"
+                >
+                  랭킹
+                </Link>
+                <Link
                   href="/assets"
                   className="text-xs font-semibold uppercase tracking-[0.18em] text-text-mid transition-colors duration-200 hover:text-text-hi"
                 >
