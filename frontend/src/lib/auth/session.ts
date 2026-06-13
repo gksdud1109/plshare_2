@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 
 export interface Session {
-  grantId: string;
+  sessionToken?: string;
+  grantId?: string;
   userId?: string;
   demo?: boolean;
 }
@@ -21,8 +22,8 @@ function isSession(value: unknown): value is Session {
 
   const session = value as Record<string, unknown>;
   return (
-    typeof session.grantId === "string" &&
-    session.grantId.length > 0 &&
+    (typeof session.sessionToken === "string" ||
+      typeof session.grantId === "string") &&
     (session.userId === undefined || typeof session.userId === "string") &&
     (session.demo === undefined || typeof session.demo === "boolean")
   );

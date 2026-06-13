@@ -11,6 +11,7 @@ import {
   demoPlaylistRankingPage,
   demoUserRankingPage,
 } from "@/lib/api/fixtures-ranking";
+import { demoFixturesEnabled } from "@/lib/demo";
 
 // ── 기간 레이블 ───────────────────────────────────────────────────────
 
@@ -55,7 +56,7 @@ export default function RankingPage() {
         setPlaylistHasNext(data.hasNext);
         setStatus("success");
       } catch {
-        if (reset) {
+        if (reset && demoFixturesEnabled()) {
           setPlaylists(demoPlaylistRankingPage.content);
           setPlaylistHasNext(demoPlaylistRankingPage.hasNext);
           setPlaylistPage(0);
@@ -84,7 +85,7 @@ export default function RankingPage() {
         setUserHasNext(data.hasNext);
         setStatus("success");
       } catch {
-        if (reset) {
+        if (reset && demoFixturesEnabled()) {
           setUsers(demoUserRankingPage.content);
           setUserHasNext(demoUserRankingPage.hasNext);
           setUserPage(0);

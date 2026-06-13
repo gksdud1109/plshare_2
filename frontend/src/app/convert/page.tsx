@@ -9,6 +9,7 @@ import type { SpotifyPlaylist } from "@/types/asset";
 import { demoPlaylists, demoYoutubePlaylists } from "@/lib/api/fixtures";
 import { listPlaylists } from "@/lib/api/playlists";
 import { listYoutubePlaylists } from "@/lib/api/youtube";
+import { demoFixturesEnabled } from "@/lib/demo";
 import { cn } from "@/lib/utils/cn";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -60,8 +61,8 @@ function ConvertPageInner() {
     let cancelled = false;
     setLibraryLoading(true);
     Promise.all([
-      listPlaylists().catch(() => demoPlaylists),
-      listYoutubePlaylists().catch(() => demoYoutubePlaylists),
+      listPlaylists().catch(() => demoFixturesEnabled() ? demoPlaylists : []),
+      listYoutubePlaylists().catch(() => demoFixturesEnabled() ? demoYoutubePlaylists : []),
     ]).then(([sp, yt]) => {
       if (cancelled) return;
       setSpotifyPlaylists(sp);
@@ -156,7 +157,14 @@ function ConvertPageInner() {
       ...(preview.coverUrl ? { coverUrl: preview.coverUrl } : {}),
       ...(preview.trackCount ? { trackCount: String(preview.trackCount) } : {}),
     });
-    router.push(`/convert/progress?${params.toString()}`);
+    const progressPath = `/convert/progress?${params.toString()}`;
+    if (destination === "youtube_music" && !demoFixturesEnabled()) {
+      window.location.assign(
+        `/api/auth/google/start?scope=youtube&returnTo=${encodeURIComponent(progressPath)}`,
+      );
+      return;
+    }
+    router.push(progressPath);
   }
 
   const isReady = linkState.kind === "ready";
@@ -438,7 +446,7 @@ function ConvertPageInner() {
                 <DestinationCard
                   id="youtube_music"
                   label="YouTube Music"
-                  description="변환 UI만 완성 (통합 단계)"
+                  description="현재 권장 변환 경로"
                   icon={
                     <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden>
                       <rect width="28" height="28" rx="7" fill="#FF0000" />

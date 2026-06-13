@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { getImportStatus, startImport } from "@/lib/api/imports";
 import { makeIdempotencyKey } from "@/lib/api/client";
 import { demoImportProgression } from "@/lib/api/fixtures";
+import { demoFixturesEnabled } from "@/lib/demo";
 import type { ImportJobStatus } from "@/types/asset";
 import { PageShell } from "@/components/ui/PageShell";
 import { ProgressNarrative } from "@/components/ui/ProgressNarrative";
@@ -79,14 +80,14 @@ export default function ImportProgressPage() {
             }
             timer = setTimeout(poll, 1000);
           } catch {
-            // Polling failure mid-flight: drop to demo path silently.
-            runDemo();
+            if (demoFixturesEnabled()) runDemo();
+            else setError("가져오기 상태를 확인하지 못했어요.");
           }
         };
         poll();
       } catch {
-        // BE unreachable from the start — show demo progression so the UX is verifiable.
-        runDemo();
+        if (demoFixturesEnabled()) runDemo();
+        else setError("가져오기를 시작하지 못했어요.");
       }
     };
 

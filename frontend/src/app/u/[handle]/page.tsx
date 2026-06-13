@@ -27,6 +27,7 @@ import {
 } from "@/lib/api/social";
 import { demoUsers } from "@/lib/api/fixtures-social";
 import { useSessionUser } from "@/lib/auth/useSessionUser";
+import { demoFixturesEnabled } from "@/lib/demo";
 
 type ProfileState =
   | { kind: "loading" }
@@ -76,7 +77,9 @@ export default function ProfilePage() {
       } catch (err: unknown) {
         if (cancelled) return;
         // Try fixture fallback first
-        const demoUser = demoUsers.find((u) => u.handle === handle);
+        const demoUser = demoFixturesEnabled()
+          ? demoUsers.find((u) => u.handle === handle)
+          : undefined;
         if (demoUser) {
           setState({
             kind: "success",

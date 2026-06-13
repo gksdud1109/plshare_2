@@ -8,13 +8,21 @@ import com.plshare.backend.global.exception.ErrorCode
 import com.plshare.backend.global.response.ApiResponse
 import com.plshare.backend.infrastructure.spotify.PkceHelper
 import com.plshare.backend.infrastructure.spotify.SpotifyClient
+import com.plshare.backend.domain.user.model.User
+import com.plshare.backend.domain.user.repository.UserRepository
+import com.plshare.backend.global.security.ApplicationSessionService
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.servlet.view.RedirectView
+import com.plshare.backend.global.security.ApplicationPrincipal
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
+import java.net.URI
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.util.UUID
 
 @RestController
@@ -24,6 +32,8 @@ class AuthController(
     private val grantService: SpotifyAccessGrantService,
     private val handshakeRepository: OauthHandshakeRepository,
     private val pkceHelper: PkceHelper,
+    private val userRepository: UserRepository,
+    private val applicationSessions: ApplicationSessionService,
     @Value("\${spotify.redirect-uri:http://localhost:8080/api/auth/spotify/callback}")
     private val redirectUri: String,
     @Value("\${spotify.scopes:playlist-read-private,playlist-read-collaborative}")
@@ -40,7 +50,10 @@ class AuthController(
      */
     @GetMapping("/start")
     @Transactional
-    fun start(): RedirectView {
+    fun start(
+        @RequestParam("returnTo", required = false) returnTo: String?,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
+    ): RedirectView {
         val state = pkceHelper.generateState()
         val verifier = pkceHelper.generateCodeVerifier()
         val challenge = pkceHelper.codeChallenge(verifier)
@@ -49,7 +62,9 @@ class AuthController(
             OauthHandshake(
                 state = state,
                 codeVerifier = verifier,
-                redirectUri = redirectUri
+                redirectUri = redirectUri,
+                userId = principal?.userId,
+                returnPath = safeReturnPath(returnTo),
             )
         )
 
@@ -97,18 +112,34 @@ class AuthController(
         handshake.consumedAt = LocalDateTime.now()
         handshakeRepository.save(handshake)
 
-        // No real auth/identity yet — assign an anonymous user id per grant.
-        val grant = grantService.saveNewGrant(UUID.randomUUID(), tokens)
-        return RedirectView("$frontendRedirect?session=${grant.id}")
+        val user = handshake.userId
+            ?.let { userRepository.findById(it).orElseThrow {
+                ApiException(ErrorCode.NOT_FOUND, "User not found: $it")
+            } }
+            ?: userRepository.save(
+                User(
+                    displayName = "Spotify User",
+                    handle = uniqueSpotifyHandle(),
+                )
+            )
+        val grant = grantService.saveNewGrant(user.id, tokens)
+        return RedirectView(frontendCallbackUrl(
+            applicationSessions.issue(user.id, grant.id),
+            handshake.returnPath,
+        ))
     }
 
     /**
      * Force-refresh the access token for a grant.
      */
     @PostMapping("/refresh")
-    fun refresh(@RequestBody body: RefreshRequest): ApiResponse<GrantStatusResponse> {
+    fun refresh(
+        @RequestBody body: RefreshRequest,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
+    ): ApiResponse<GrantStatusResponse> {
         val grant = grantService.findGrant(body.grantId)
             ?: throw ApiException(ErrorCode.NOT_FOUND, "Grant not found: ${body.grantId}")
+        requireGrantOwner(grant.userId, grant.id, principal)
         val refreshToken = grant.refreshToken
             ?: throw ApiException(ErrorCode.VALIDATION_FAILED, "Grant has no refresh token")
 
@@ -122,9 +153,13 @@ class AuthController(
      * Lightweight grant introspection used by the FE to know whether to refresh.
      */
     @GetMapping("/me")
-    fun me(@RequestParam("grantId") grantId: UUID): ApiResponse<GrantStatusResponse> {
+    fun me(
+        @RequestParam("grantId") grantId: UUID,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
+    ): ApiResponse<GrantStatusResponse> {
         val grant = grantService.findGrant(grantId)
             ?: throw ApiException(ErrorCode.NOT_FOUND, "Grant not found: $grantId")
+        requireGrantOwner(grant.userId, grant.id, principal)
         val expiringSoon = grantService.isExpiringSoon(grant)
         return ApiResponse.ok(GrantStatusResponse.from(grant, expiringSoon))
     }
@@ -153,4 +188,33 @@ class AuthController(
     companion object {
         private const val HANDSHAKE_TTL_MINUTES = 10
     }
+
+    private fun uniqueSpotifyHandle(): String {
+        repeat(10) {
+            val candidate = "spotify-${UUID.randomUUID().toString().take(8)}"
+            if (userRepository.findByHandle(candidate) == null) return candidate
+        }
+        return "spotify-${System.currentTimeMillis()}"
+    }
+
+    private fun requireGrantOwner(userId: UUID, grantId: UUID, principal: ApplicationPrincipal?) {
+        if (principal != null &&
+            (principal.userId != userId || principal.spotifyGrantId != grantId)
+        ) {
+            throw ApiException(ErrorCode.FORBIDDEN, "Spotify grant does not belong to the current user")
+        }
+    }
+
+    private fun frontendCallbackUrl(session: String, returnPath: String?): String {
+        val frontend = URI(frontendRedirect)
+        val origin = "${frontend.scheme}://${frontend.rawAuthority}"
+        val next = safeReturnPath(returnPath) ?: frontend.rawPath.ifBlank { "/import" }
+        return "$origin/api/auth/callback?session=${encode(session)}&next=${encode(next)}"
+    }
+
+    private fun safeReturnPath(value: String?): String? =
+        value?.takeIf { it.startsWith("/") && !it.startsWith("//") && it.length <= 1024 }
+
+    private fun encode(value: String): String =
+        URLEncoder.encode(value, StandardCharsets.UTF_8)
 }

@@ -8,7 +8,7 @@ import { apiFetch } from "./client";
 export async function startExport(
   assetId: string,
   idempotencyKey: string,
-  targetPlatform: "apple" = "apple",
+  targetPlatform: "apple" | "youtube",
 ): Promise<ExportJob> {
   return apiFetch<ExportJob>("/api/exports", {
     method: "POST",

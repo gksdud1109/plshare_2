@@ -17,11 +17,14 @@ class ExportJob(
     @Id
     val id: UUID = UUID.randomUUID(),
 
+    @Column(name = "owner_id")
+    val ownerId: UUID? = null,
+
     @Column(nullable = false)
     val assetId: UUID,
 
     @Column(nullable = false)
-    val targetPlatform: String = "apple",
+    val targetPlatform: String = "youtube",
 
     @Column(nullable = false, unique = true)
     val idempotencyKey: String,

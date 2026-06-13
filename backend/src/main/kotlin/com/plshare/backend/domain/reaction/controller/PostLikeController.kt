@@ -4,6 +4,8 @@ import com.plshare.backend.domain.reaction.service.PostLikeService
 import com.plshare.backend.global.response.ApiResponse
 import org.springframework.web.bind.annotation.*
 import java.util.UUID
+import com.plshare.backend.global.security.ApplicationPrincipal
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 
 /**
  * 포스트 좋아요 REST 컨트롤러.
@@ -19,14 +21,16 @@ class PostLikeController(private val postLikeService: PostLikeService) {
     @PostMapping
     fun like(
         @PathVariable id: UUID,
-        @RequestParam userId: UUID,
+        @RequestParam(required = false) userId: UUID?,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
     ): ApiResponse<Long> =
-        ApiResponse.ok(postLikeService.like(id, userId))
+        ApiResponse.ok(postLikeService.like(id, principal?.userId ?: requireNotNull(userId)))
 
     @DeleteMapping
     fun unlike(
         @PathVariable id: UUID,
-        @RequestParam userId: UUID,
+        @RequestParam(required = false) userId: UUID?,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
     ): ApiResponse<Long> =
-        ApiResponse.ok(postLikeService.unlike(id, userId))
+        ApiResponse.ok(postLikeService.unlike(id, principal?.userId ?: requireNotNull(userId)))
 }

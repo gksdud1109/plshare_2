@@ -37,12 +37,18 @@ class GiftService(
      * token = UUID.randomUUID().toString().replace("-","").take(16) (share token 패턴 동일).
      */
     @Transactional
-    fun create(req: CreateGiftRequest): GiftCreatedResponse {
+    fun create(
+        req: CreateGiftRequest,
+        requireOwnedAsset: Boolean = false,
+    ): GiftCreatedResponse {
         userRepository.findById(req.senderId).orElseThrow {
             ApiException(ErrorCode.NOT_FOUND, "발신자를 찾을 수 없습니다: ${req.senderId}")
         }
-        assetRepository.findById(req.assetId).orElseThrow {
+        val asset = assetRepository.findById(req.assetId).orElseThrow {
             ApiException(ErrorCode.NOT_FOUND, "자산을 찾을 수 없습니다: ${req.assetId}")
+        }
+        if (requireOwnedAsset && asset.ownerId != req.senderId) {
+            throw ApiException(ErrorCode.FORBIDDEN, "본인 소유 자산만 선물할 수 있습니다")
         }
         if (req.message.length > 500) {
             throw ApiException(ErrorCode.VALIDATION_FAILED, "메시지는 500자를 초과할 수 없습니다")
@@ -113,6 +119,9 @@ class GiftService(
         val gift = giftRepository.findByToken(token)
             ?: throw ApiException(ErrorCode.NOT_FOUND, "선물을 찾을 수 없습니다: $token")
 
+        userRepository.findById(req.userId).orElseThrow {
+            ApiException(ErrorCode.NOT_FOUND, "수신자를 찾을 수 없습니다: ${req.userId}")
+        }
         gift.status = GiftStatus.SAVED
         gift.savedByUserId = req.userId
         giftRepository.save(gift)

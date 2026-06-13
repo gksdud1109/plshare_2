@@ -18,13 +18,14 @@
 - Reviewer / Operator: `delivery/`
 
 현재 핵심 문서:
-- 최신 PRD: `strategy/prd-v0.2.md`
+- 현재 제품 baseline: `strategy/product-baseline-v2.md`
+- 현재 플랫폼 전략: `strategy/platform-strategy-v2-research-v0.1.md`
 - 최신 시장 리서치: `research/market-research-v0.3.md`
 - 최신 기능 요구사항: `requirements/functional-requirements-v0.2.md`
 - 최신 비기능 요구사항: `requirements/non-functional-requirements-v0.2.md`
 
 현재 제품 기준:
-- P0는 `Spotify import -> Assetize -> Apple Music export`
-- P0는 `감성 맥락 저장과 이동성` 검증에 집중한다
-- 기술적 `proof signal`은 `P1`
-- `B2B`는 `Future Expansion`
+- P0는 Google identity, Spotify/YouTube import, Emotional Context, social sharing,
+  Spotify -> YouTube Music conversion이다.
+- ranking, gift, Apple export는 P1이다.
+- 기술적 proof signal과 B2B 데이터 패키징은 현재 범위 밖이다.

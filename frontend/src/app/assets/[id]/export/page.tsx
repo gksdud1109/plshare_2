@@ -17,6 +17,7 @@ import { PageShell } from "@/components/ui/PageShell";
 import { ProgressNarrative } from "@/components/ui/ProgressNarrative";
 import { MatchConfidenceBadge } from "@/components/ui/MatchConfidenceBadge";
 import { TrackRow } from "@/components/ui/TrackRow";
+import { demoFixturesEnabled } from "@/lib/demo";
 
 const NARRATIVE = [
   "Apple Music에서 같은 트랙을 찾고 있어요…",
@@ -35,6 +36,7 @@ export default function ExportPage() {
   const [status, setStatus] = useState<ExportJobStatus | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>("live");
+  const [error, setError] = useState<string | null>(null);
   const startedRef = useRef(false);
 
   // Load asset metadata for the track titles.
@@ -45,7 +47,8 @@ export default function ExportPage() {
         const a = await getAsset(assetId);
         if (!cancelled) setAsset(a);
       } catch {
-        if (!cancelled) setAsset(buildDemoAssetDetail(assetId));
+        if (!cancelled && demoFixturesEnabled()) setAsset(buildDemoAssetDetail(assetId));
+        else if (!cancelled) setError("자산 정보를 불러오지 못했어요.");
       }
     })();
     return () => {
@@ -90,6 +93,7 @@ export default function ExportPage() {
         const job = await startExport(
           assetId,
           makeIdempotencyKey(`export-${assetId}`),
+          "apple",
         );
         setJobId(job.jobId);
         const poll = async () => {
@@ -108,12 +112,14 @@ export default function ExportPage() {
             }
             timer = setTimeout(poll, 1100);
           } catch {
-            runDemo(job.jobId);
+            if (demoFixturesEnabled()) runDemo(job.jobId);
+            else setError("내보내기 상태를 확인하지 못했어요.");
           }
         };
         poll();
       } catch {
-        runDemo();
+        if (demoFixturesEnabled()) runDemo();
+        else setError("내보내기를 시작하지 못했어요.");
       }
     };
 
@@ -126,6 +132,14 @@ export default function ExportPage() {
   }, [assetId, router]);
 
   const trackById = new Map((asset?.tracks ?? []).map((t) => [t.id, t]));
+
+  if (error) {
+    return (
+      <PageShell>
+        <p className="py-20 text-danger">{error}</p>
+      </PageShell>
+    );
+  }
 
   // Progress ratio for the accent bar
   const total = status?.totalTracks ?? 0;

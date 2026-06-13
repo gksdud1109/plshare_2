@@ -10,6 +10,8 @@ import com.plshare.backend.infrastructure.apple.AppleMusicWriteAdapter
 import com.plshare.backend.infrastructure.youtube.YouTubeMusicTrackResult
 import com.plshare.backend.infrastructure.youtube.YouTubeQuotaGuard
 import com.plshare.backend.infrastructure.youtube.YouTubeWriteAdapter
+import com.plshare.backend.infrastructure.youtube.YouTubeClient
+import com.plshare.backend.domain.auth.service.GoogleAccessGrantService
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
@@ -25,9 +27,9 @@ import java.util.UUID
  *   - 기타 → [ApiException](VALIDATION_FAILED)
  *
  * ## YouTube export videoId 확보 정책
- *   소스가 "youtube"인 트랙: Track.youtubeVideoId 컬럼에 videoId가 저장됨.
- *   소스가 "youtube"가 아닌 트랙: videoId 없음 → failed 처리 + reason="no_video_id".
- *   search.list(100u/호출) 기반 매칭은 현재 범위 외(TODO 후속).
+ *   소스가 "youtube"인 트랙은 저장된 Track.youtubeVideoId를 사용한다.
+ *   그 외 플랫폼 트랙은 search.list로 videoId를 검색한다.
+ *   검색 결과가 없을 때만 failed 처리한다.
  *
  * ## YouTube 쿼터 예약
  *   export 시작 전 [YouTubeQuotaGuard.reserve](50 + 50*트랙수)를 호출한다.
@@ -39,17 +41,32 @@ class ExportService(
     private val assetRepository: AssetRepository,
     private val appleAdapter: AppleMusicWriteAdapter,
     private val youtubeWriteAdapter: YouTubeWriteAdapter,
-    private val youtubeQuotaGuard: YouTubeQuotaGuard
+    private val youtubeQuotaGuard: YouTubeQuotaGuard,
+    private val youtubeClient: YouTubeClient? = null,
+    private val googleAccessGrantService: GoogleAccessGrantService? = null,
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
 
     @Transactional
-    fun requestExport(idempotencyKey: String, assetId: UUID, targetPlatform: String): UUID {
+    fun requestExport(
+        idempotencyKey: String,
+        assetId: UUID,
+        targetPlatform: String,
+        ownerId: UUID? = null,
+    ): UUID {
         val existing = exportJobRepository.findByIdempotencyKey(idempotencyKey)
-        if (existing != null) return existing.id
+        if (existing != null) {
+            if (ownerId != null && existing.ownerId != ownerId) {
+                throw ApiException(ErrorCode.CONFLICT, "Idempotency key belongs to another user")
+            }
+            return existing.id
+        }
 
         val asset = assetRepository.findById(assetId).orElseThrow {
             ApiException(ErrorCode.NOT_FOUND, "Asset not found: $assetId")
+        }
+        if (ownerId != null && asset.ownerId != ownerId) {
+            throw ApiException(ErrorCode.FORBIDDEN, "Asset does not belong to the current user")
         }
 
         if (targetPlatform != "apple" && targetPlatform != "youtube") {
@@ -57,6 +74,7 @@ class ExportService(
         }
 
         val job = ExportJob(
+            ownerId = ownerId,
             assetId = asset.id,
             targetPlatform = targetPlatform,
             idempotencyKey = idempotencyKey,
@@ -143,12 +161,10 @@ class ExportService(
      * YouTube Music export 실행.
      *
      * videoId 확보 전략:
-     *   - asset.sourcePlatform == "youtube": Track.youtubeVideoId = videoId
-     *   - 그 외: videoId 없음 → failed + reason="no_video_id"
-     *     (search.list 매칭은 범위 외, TODO 후속 — 100u/호출로 추가 쿼터 필요)
+     *   - asset.sourcePlatform == "youtube": Track.youtubeVideoId 우선
+     *   - 그 외: search.list 결과 사용
      *
-     * accessToken은 현재 빈 문자열로 전달(demo 환경에서는 무시됨).
-     * 실제 연동 시 사용자 OAuth2 토큰을 ExportJob에 추가하거나 별도 토큰 저장소에서 조회해야 한다.
+     * 인증된 작업은 사용자 Google access grant를 사용한다.
      */
     private fun runYouTubeExport(job: ExportJob) {
         try {
@@ -158,7 +174,8 @@ class ExportService(
             val asset = assetRepository.findById(job.assetId).orElseThrow()
 
             // 쿼터 예약: 실패 시 QUOTA_EXCEEDED ApiException → fail()
-            val estimatedUnits = YouTubeQuotaGuard.estimatedCost(asset.tracks.size)
+            val searchCount = asset.tracks.count { it.youtubeVideoId.isNullOrBlank() }
+            val estimatedUnits = YouTubeQuotaGuard.estimatedCost(asset.tracks.size, searchCount)
             try {
                 youtubeQuotaGuard.reserve(estimatedUnits)
             } catch (e: ApiException) {
@@ -172,7 +189,10 @@ class ExportService(
             }
 
             // 플레이리스트 생성
-            val accessToken = "" // TODO: 실제 사용자 OAuth2 토큰 주입 (현재 demo 환경에서 무시됨)
+            val accessToken = job.ownerId?.let { ownerId ->
+                googleAccessGrantService?.getValidYouTubeToken(ownerId)
+                    ?: throw IllegalStateException("Google access grant service unavailable")
+            } ?: "demo-youtube-token"
             val playlistRef = youtubeWriteAdapter.createPlaylist(asset.title, asset.description, accessToken)
 
             job.markReady()
@@ -184,14 +204,14 @@ class ExportService(
             // 트랙별 videoId 확보 및 추가
             val results = mutableListOf<YouTubeMusicTrackResult>()
             for (track in asset.tracks) {
-                val videoId = resolveVideoId(track, asset.sourcePlatform)
+                val videoId = resolveVideoId(track, accessToken)
                 if (videoId == null) {
                     results.add(
                         YouTubeMusicTrackResult(
                             videoId = null,
                             title = track.name,
                             status = "failed",
-                            reason = "no_video_id: 소스 플랫폼(${asset.sourcePlatform})에서 YouTube videoId를 확인할 수 없습니다. search.list 매칭은 범위 외(TODO)"
+                            reason = "no_video_id: ${track.artist} - ${track.name} 검색 결과가 없습니다."
                         )
                     )
                     continue
@@ -241,21 +261,14 @@ class ExportService(
     /**
      * 트랙에서 YouTube videoId를 확보한다.
      *
-     * sourcePlatform="youtube"인 경우 Track.youtubeVideoId 컬럼에 videoId가 저장된다.
-     * 다른 플랫폼 소스 트랙은 videoId가 없으므로 null 반환.
-     *
      * @param track 대상 트랙
-     * @param assetSourcePlatform asset의 소스 플랫폼 ("youtube", "spotify" 등)
      * @return videoId (없으면 null)
      */
-    private fun resolveVideoId(track: com.plshare.backend.domain.asset.model.Track, assetSourcePlatform: String): String? {
-        return if (assetSourcePlatform == "youtube") {
-            // youtube 소스 트랙의 videoId는 전용 컬럼(youtubeVideoId)에 저장됨
-            track.youtubeVideoId
-        } else {
-            // 다른 플랫폼 소스: videoId 없음
-            // TODO 후속: search.list(100u/호출)로 매칭 — 현재 범위 외
-            null
-        }
+    private fun resolveVideoId(
+        track: com.plshare.backend.domain.asset.model.Track,
+        accessToken: String,
+    ): String? {
+        track.youtubeVideoId?.takeIf { it.isNotBlank() }?.let { return it }
+        return youtubeClient?.searchVideo(track.name, track.artist, accessToken)?.block()
     }
 }

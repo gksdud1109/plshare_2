@@ -16,6 +16,7 @@ import {
   demoPostAssets,
 } from "@/lib/api/fixtures-social";
 import { useSessionUser } from "@/lib/auth/useSessionUser";
+import { demoFixturesEnabled } from "@/lib/demo";
 
 // ── Feed page ─────────────────────────────────────────────────────────
 
@@ -85,7 +86,7 @@ export default function FeedPage() {
         setStatus("success");
         void fetchEmbeds(data.content);
       } catch {
-        if (reset) {
+        if (reset && demoFixturesEnabled()) {
           // Fall back to fixture data
           const fixtureData = demoPostsPage;
           setPosts(fixtureData.content);

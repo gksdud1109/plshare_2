@@ -49,4 +49,11 @@ interface YouTubeClient {
      * quota: videos.list ceil(videoIds.size / 50) unit
      */
     fun getVideoDetails(videoIds: List<String>, accessToken: String): Mono<List<YouTubeVideoItem>>
+
+    /**
+     * Spotify/Apple source tracks are resolved to a YouTube video before export.
+     * search.list costs 100 quota units, so callers must reserve quota first.
+     */
+    fun searchVideo(title: String, artist: String, accessToken: String): Mono<String> =
+        Mono.empty()
 }

@@ -1,5 +1,7 @@
 # MVP Feature Priority v0.1
 
+> **Status: SUPERSEDED.** 현재 우선순위는 `product-baseline-v2.md`를 따른다.
+
 ## 문서 정보
 - Version: `v0.1`
 - Based on: `docs/20-product/strategy/prd-v0.2.md`, `docs/20-product/requirements/functional-requirements-v0.2.md`, `docs/20-product/requirements/non-functional-requirements-v0.2.md`

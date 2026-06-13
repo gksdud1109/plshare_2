@@ -2,7 +2,7 @@
  * Domain types — aligned with the BE contract for the Import -> Assetize -> Export loop.
  */
 
-export type AssetSource = "spotify" | "apple_music";
+export type AssetSource = "spotify" | "youtube" | "apple_music";
 
 /**
  * Spotify-side playlist (pre-import). Returned by GET /api/playlists.

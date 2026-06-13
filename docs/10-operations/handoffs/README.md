@@ -10,4 +10,4 @@
 - 완료된 handoff는 `archive/`로 이동한다
 
 현재 handoff:
-- `design-fe-implementation-handoff-v0.1.md`
+- 없음. 다음 작업은 task queue에 등록한 뒤 새 handoff를 생성한다.

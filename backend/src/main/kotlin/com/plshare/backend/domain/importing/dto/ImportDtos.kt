@@ -46,7 +46,8 @@ data class CreateImportRequest(
      * 소스 플랫폼. 기본값 "spotify" — 기존 FE/E2E 요청(playlistId만 보내는 형태) 하위호환.
      * 지원값: "spotify" | "youtube"
      */
-    val sourcePlatform: String = "spotify"
+    val sourcePlatform: String = "spotify",
+    val spotifyGrantId: UUID? = null,
 )
 
 data class ImportJobDto(

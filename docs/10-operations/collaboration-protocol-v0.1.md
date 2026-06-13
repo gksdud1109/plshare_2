@@ -19,8 +19,8 @@
 
 ### Rule 2. 한 번에 하나의 기준 문서를 따른다
 - 동일한 주제에 대해 여러 문서를 동시에 source of truth로 사용하지 않는다
-- 현재 작업은 항상 최신 `strategy`, `requirements`, `design`, `data` 문서를 기준으로 삼는다
-- 문서가 충돌하면 `product-strategy -> prd -> mvp-feature-priority -> functional/non-functional requirements -> design/data/delivery` 순으로 맞춘다
+- 현재 제품 범위는 `docs/20-product/strategy/product-baseline-v2.md`를 기준으로 삼는다
+- 세부 문서가 baseline과 충돌하면 baseline을 우선하고 세부 문서를 후속 정리한다
 
 ### Rule 3. handoff 없이 역할을 넘기지 않는다
 - PO -> Designer
@@ -35,9 +35,10 @@
 - 결정하지 못한 것은 handoff나 open issues로 넘긴다
 
 ### Rule 5. 현재 동결된 제품 기준을 임의로 넓히지 않는다
-- P0는 `Spotify import -> Assetize -> Apple Music export`로 고정한다
-- 기술적 `proof signal`은 `P1`로 둔다
-- `B2B`는 `Future Expansion`으로만 다룬다
+- P0는 baseline v2의 Google identity, playlist assetization, social sharing,
+  Spotify -> YouTube Music conversion으로 고정한다
+- ranking, gift, Apple export는 P1로 둔다
+- 기술적 proof signal과 B2B는 P0 범위 밖으로 둔다
 - 이 기준을 바꾸려면 current 문서를 직접 넓히지 말고 PO handoff와 decision log를 먼저 갱신한다
 
 ---
@@ -123,6 +124,7 @@ decision log의 각 항목은 아래 필드를 포함해야 한다.
 
 ## 6. 현재 프로젝트 기준 다음 흐름
 
-1. Product Designer가 `Spotify import -> Assetize -> Apple export` UX 설계 시작
-2. Engineer가 asymmetric adapter architecture 설계 시작
-3. Reviewer / Operator가 handoff와 open issues를 current 기준으로 유지
+1. PO가 baseline v2의 미검증 가설과 quota 정책을 작업 단위로 분해한다
+2. Product Designer가 Google → provider 연결 → assetization → share/export 흐름을 정리한다
+3. Engineer가 인증·소유권·Spotify → YouTube Music corridor를 구현하고 검증한다
+4. Reviewer / Operator가 handoff, validation, open issues를 current 기준으로 유지한다

@@ -4,6 +4,8 @@ import com.plshare.backend.domain.gift.dto.*
 import com.plshare.backend.domain.gift.service.GiftService
 import com.plshare.backend.global.response.ApiResponse
 import org.springframework.web.bind.annotation.*
+import com.plshare.backend.global.security.ApplicationPrincipal
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 
 /**
  * 감성 선물 API.
@@ -20,8 +22,16 @@ class GiftController(
 ) {
 
     @PostMapping
-    fun create(@RequestBody req: CreateGiftRequest): ApiResponse<GiftCreatedResponse> =
-        ApiResponse.ok(giftService.create(req))
+    fun create(
+        @RequestBody req: CreateGiftRequest,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
+    ): ApiResponse<GiftCreatedResponse> =
+        ApiResponse.ok(
+            giftService.create(
+                req.copy(senderId = principal?.userId ?: req.senderId),
+                requireOwnedAsset = principal != null,
+            )
+        )
 
     @GetMapping("/{token}")
     fun view(@PathVariable token: String): ApiResponse<GiftViewResponse> =
@@ -35,6 +45,7 @@ class GiftController(
     fun save(
         @PathVariable token: String,
         @RequestBody req: SaveGiftRequest,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
     ): ApiResponse<GiftViewResponse> =
-        ApiResponse.ok(giftService.save(token, req))
+        ApiResponse.ok(giftService.save(token, req.copy(userId = principal?.userId ?: req.userId)))
 }

@@ -4,9 +4,6 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ProgressNarrative } from "@/components/ui/ProgressNarrative";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "http://localhost:8080";
-
 export default function SpotifyAuthPage() {
   const router = useRouter();
 
@@ -19,10 +16,14 @@ export default function SpotifyAuthPage() {
         window.location.hostname,
       );
       const liveMode = new URLSearchParams(window.location.search).has("live");
+      const next =
+        new URLSearchParams(window.location.search).get("next") || "/import";
 
       if (!isLocalDemo || liveMode) {
         redirectTimer = setTimeout(() => {
-          window.location.assign(`${API_BASE_URL}/api/auth/spotify/start`);
+          window.location.assign(
+            `/api/auth/spotify/start?returnTo=${encodeURIComponent(next)}`,
+          );
         }, 1500);
         return;
       }
@@ -43,7 +44,7 @@ export default function SpotifyAuthPage() {
       await elapsedDelay;
 
       if (!cancelled) {
-        router.push("/import");
+        router.push(next.startsWith("/") && !next.startsWith("//") ? next : "/import");
       }
     }
 

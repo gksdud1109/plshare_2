@@ -30,8 +30,10 @@
 - 한 작업에는 하나의 주 산출물만 둔다.
 - 다른 계층 문서를 직접 넓게 수정하지 않는다.
 - 다음 단계로 넘길 판단은 handoff 형식으로 남긴다.
-- 현재 동결 기준은 `Spotify import -> Assetize -> Apple Music export`다.
-- `proof signal`은 `P1`, `B2B`는 `Future Expansion`으로 본다.
+- 현재 제품 기준은 `docs/20-product/strategy/product-baseline-v2.md`다.
+- P0는 Google identity, Spotify/YouTube import, Emotional Context, social sharing,
+  Spotify -> YouTube Music conversion이다.
+- ranking, gift, Apple export는 P1이며 B2B는 범위 밖이다.
 - 문서 충돌 시 `docs/README.md`의 우선순위를 따른다.
 
 구성:

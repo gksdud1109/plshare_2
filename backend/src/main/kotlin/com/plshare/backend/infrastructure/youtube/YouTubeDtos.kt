@@ -78,6 +78,18 @@ data class YouTubeContentDetails(
     @JsonProperty("duration") val duration: String? = null
 )
 
+data class YouTubeSearchListResponse(
+    @JsonProperty("items") val items: List<YouTubeSearchItem> = emptyList(),
+)
+
+data class YouTubeSearchItem(
+    @JsonProperty("id") val id: YouTubeSearchId,
+)
+
+data class YouTubeSearchId(
+    @JsonProperty("videoId") val videoId: String? = null,
+)
+
 // ─── domain-level summary returned by YouTubeClient ──────────────────────────
 
 /**

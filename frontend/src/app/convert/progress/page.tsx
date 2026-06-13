@@ -13,6 +13,7 @@ import {
   demoConvertExportNarratives,
   buildDemoExportStatus,
 } from "@/lib/api/fixtures";
+import { demoFixturesEnabled } from "@/lib/demo";
 
 // ── Narrative copy ─────────────────────────────────────────────────────────
 
@@ -38,12 +39,13 @@ function ConvertProgressPageInner() {
   const sourcePlatform =
     (searchParams.get("sourcePlatform") as "spotify" | "youtube") ?? "spotify";
   const destination =
-    (searchParams.get("destination") as "apple" | "youtube_music") ?? "apple";
+    (searchParams.get("destination") as "apple" | "youtube_music") ?? "youtube_music";
   const coverUrl = searchParams.get("coverUrl") ?? "";
   const title = searchParams.get("title") ?? "";
 
   const [stage, setStage] = useState<Stage>("import");
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   const startedRef = useRef(false);
 
@@ -101,8 +103,7 @@ function ConvertProgressPageInner() {
         const job = await startExport(
           assetId,
           makeIdempotencyKey(`convert-export-${assetId}`),
-          // targetPlatform: only "apple" is live; ytm is ui-only per task spec
-          "apple",
+          destination === "youtube_music" ? "youtube" : "apple",
         );
         const poll = async () => {
           if (cancelled) return;
@@ -123,12 +124,14 @@ function ConvertProgressPageInner() {
             }
             timer = setTimeout(poll, 1100);
           } catch {
-            runExportDemo(assetId);
+            if (demoFixturesEnabled()) runExportDemo(assetId);
+            else setError("내보내기 상태를 확인하지 못했어요.");
           }
         };
         poll();
       } catch {
-        runExportDemo(assetId);
+        if (demoFixturesEnabled()) runExportDemo(assetId);
+        else setError("내보내기를 시작하지 못했어요.");
       }
     };
 
@@ -166,19 +169,20 @@ function ConvertProgressPageInner() {
               return;
             }
             if (s.status === "failed") {
-              // Fall through to demo for UX continuity
-              runImportDemo();
+              if (demoFixturesEnabled()) runImportDemo();
+              else setError("플레이리스트를 가져오지 못했어요.");
               return;
             }
             timer = setTimeout(poll, 1000);
           } catch {
-            runImportDemo();
+            if (demoFixturesEnabled()) runImportDemo();
+            else setError("가져오기 상태를 확인하지 못했어요.");
           }
         };
         poll();
       } catch {
-        // BE unreachable — demo mode
-        runImportDemo();
+        if (demoFixturesEnabled()) runImportDemo();
+        else setError("플레이리스트 변환을 시작하지 못했어요.");
       }
     };
 
@@ -188,13 +192,26 @@ function ConvertProgressPageInner() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [playlistId, sourcePlatform, coverUrl, title, router]);
+  }, [playlistId, sourcePlatform, destination, coverUrl, title, router]);
 
   const narratives = stage === "import" ? IMPORT_NARRATIVES : EXPORT_NARRATIVES;
   const stageLabel =
     stage === "import" ? "가져오는 중" : "변환 중";
   const destLabel =
     destination === "apple" ? "Apple Music" : "YouTube Music";
+
+  if (error) {
+    return (
+      <PageShell>
+        <section className="flex min-h-[70vh] flex-col items-center justify-center gap-5 px-6 text-center">
+          <p className="text-xl font-semibold text-text-hi">{error}</p>
+          <a className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white" href="/convert">
+            다시 시도하기
+          </a>
+        </section>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell>

@@ -10,10 +10,12 @@
 - 코드 작업 전에는 반드시 문서 기준점이 먼저 있어야 한다.
 
 현재 동결 기준:
-- P0는 `Spotify import -> Assetize -> Apple Music export`
-- P0의 증거층은 `감성 맥락`이고, 기술적 `proof signal`은 `P1`
-- `B2B`는 `Future Expansion`으로만 다룬다
-- 문서가 충돌하면 `product-strategy -> prd -> mvp-feature-priority -> functional/non-functional requirements` 순으로 맞춘다
+- 단일 기준은 `docs/20-product/strategy/product-baseline-v2.md`
+- P0는 Google identity, Spotify/YouTube import, Emotional Context, social sharing,
+  Spotify -> YouTube Music conversion
+- ranking, gift, Apple export는 P1
+- proof signal과 B2B는 P0 범위 밖
+- 문서가 충돌하면 product baseline이 우선한다
 
 ---
 

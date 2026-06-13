@@ -13,8 +13,9 @@ import type {
   PageResponse,
 } from "@/types/social";
 import { getPost, listComments, getPostAssetEmbed } from "@/lib/api/social";
-import { demoPostAssets, demoCommentsPage } from "@/lib/api/fixtures-social";
+import { demoPostAssets } from "@/lib/api/fixtures-social";
 import { useSessionUser } from "@/lib/auth/useSessionUser";
+import { demoFixturesEnabled } from "@/lib/demo";
 
 type PageState =
   | { kind: "loading" }
@@ -54,8 +55,8 @@ export default function PostDetailPage() {
         let assetEmbed: PostAssetEmbed | null = null;
         if (post.assetId) {
           assetEmbed =
-            demoPostAssets[post.assetId] ??
-            (await getPostAssetEmbed(post.assetId));
+            (await getPostAssetEmbed(post.assetId)) ??
+            (demoFixturesEnabled() ? demoPostAssets[post.assetId] ?? null : null);
         }
 
         setState({ kind: "success", post, assetEmbed, commentsPage });
@@ -84,7 +85,7 @@ export default function PostDetailPage() {
 
   // Demo fixture fallback: if error, try fixture data
   useEffect(() => {
-    if (state.kind !== "error") return;
+    if (state.kind !== "error" || !demoFixturesEnabled()) return;
     // Try matching a demo post
     import("@/lib/api/fixtures-social").then(({ demoPosts, demoPostAssets: embeds, demoCommentsPage: cp }) => {
       const found = demoPosts.find((p) => p.id === postId);

@@ -15,6 +15,11 @@ import com.plshare.backend.infrastructure.apple.AppleMusicVerifyResult
 import com.plshare.backend.infrastructure.apple.AppleMusicWriteAdapter
 import com.plshare.backend.infrastructure.youtube.FakeQuotaRepository
 import com.plshare.backend.infrastructure.youtube.YouTubeMusicPlaylistRef
+import com.plshare.backend.infrastructure.youtube.YouTubeClient
+import com.plshare.backend.infrastructure.youtube.YouTubePlaylistItem
+import com.plshare.backend.infrastructure.youtube.YouTubePlaylistItemEntry
+import com.plshare.backend.infrastructure.youtube.YouTubePlaylistSummary
+import com.plshare.backend.infrastructure.youtube.YouTubeVideoItem
 import com.plshare.backend.infrastructure.youtube.YouTubeQuotaGuard
 import com.plshare.backend.infrastructure.youtube.YouTubeWriteAdapter
 import org.junit.jupiter.api.Assertions.*
@@ -167,6 +172,72 @@ class ExportServiceYouTubeTest {
         assertEquals(ExportJobStatus.PARTIAL, saved.status)
         assertEquals(1, saved.failedTracks)
         // lastError가 아닌 job status로 확인; failed는 complete() 내부에서 결정
+    }
+
+    @Test
+    fun `Spotify 트랙은 YouTube search 결과로 export된다`() {
+        val searchClient = object : YouTubeClient {
+            override fun listUserPlaylists(accessToken: String) =
+                Mono.just(emptyList<YouTubePlaylistSummary>())
+
+            override fun getPlaylist(playlistId: String, accessToken: String) =
+                Mono.error<YouTubePlaylistItem>(UnsupportedOperationException())
+
+            override fun getPlaylistItems(playlistId: String, accessToken: String) =
+                Mono.just(emptyList<YouTubePlaylistItemEntry>())
+
+            override fun getVideoDetails(videoIds: List<String>, accessToken: String) =
+                Mono.just(emptyList<YouTubeVideoItem>())
+
+            override fun searchVideo(title: String, artist: String, accessToken: String): Mono<String> =
+                Mono.just("resolved123")
+        }
+        val searchService = ExportService(
+            exportRepo,
+            assetRepo,
+            appleAdapter,
+            youtubeAdapter,
+            quotaGuard,
+            youtubeClient = searchClient,
+        )
+        val asset = buildSpotifyAsset(listOf(TrackSpec("Spotify Song", videoId = null)))
+        assetRepo.save(asset)
+        val job = ExportJob(
+            assetId = asset.id,
+            targetPlatform = "youtube",
+            idempotencyKey = "key-yt-search",
+            totalTracks = 1,
+        )
+        exportRepo.save(job)
+
+        searchService.runExport(job.id)
+
+        val saved = exportRepo.store[job.id]!!
+        assertEquals(ExportJobStatus.COMPLETED, saved.status)
+        assertEquals(1, saved.matchedTracks)
+        assertEquals(0, saved.failedTracks)
+    }
+
+    @Test
+    fun `다른 사용자 소유 asset은 export 요청을 거부한다`() {
+        val ownerId = UUID.randomUUID()
+        val asset = Asset(
+            ownerId = ownerId,
+            title = "Private asset",
+            sourcePlatform = "spotify",
+        )
+        assetRepo.save(asset)
+
+        val error = assertThrows(ApiException::class.java) {
+            service.requestExport(
+                idempotencyKey = "private-export",
+                assetId = asset.id,
+                targetPlatform = "youtube",
+                ownerId = UUID.randomUUID(),
+            )
+        }
+
+        assertEquals(ErrorCode.FORBIDDEN, error.code)
     }
 
     // ─── (c) 쿼터 초과 → job FAILED ─────────────────────────────────────────

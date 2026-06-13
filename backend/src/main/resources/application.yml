@@ -11,3 +11,7 @@ server:
 logging:
   level:
     com.plshare: DEBUG
+
+app:
+  session-secret: ${APP_SESSION_SECRET:demo-session-secret-change-me}
+  session-ttl-seconds: ${APP_SESSION_TTL_SECONDS:2592000}

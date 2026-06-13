@@ -9,6 +9,8 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 import java.util.UUID
+import com.plshare.backend.global.security.ApplicationPrincipal
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 
 /**
  * 댓글 REST 컨트롤러.
@@ -26,8 +28,11 @@ class CommentController(private val commentService: CommentService) {
     fun create(
         @PathVariable postId: UUID,
         @RequestBody req: CreateCommentRequest,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
     ): ApiResponse<CommentResponse> =
-        ApiResponse.ok(commentService.create(postId, req))
+        ApiResponse.ok(
+            commentService.create(postId, req.copy(authorId = principal?.userId ?: req.authorId))
+        )
 
     @GetMapping("/api/posts/{postId}/comments")
     fun listByPost(
@@ -40,9 +45,10 @@ class CommentController(private val commentService: CommentService) {
     @DeleteMapping("/api/comments/{commentId}")
     fun delete(
         @PathVariable commentId: UUID,
-        @RequestParam requesterId: UUID,
+        @RequestParam(required = false) requesterId: UUID?,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
     ): ApiResponse<Unit> {
-        commentService.delete(commentId, requesterId)
+        commentService.delete(commentId, principal?.userId ?: requireNotNull(requesterId))
         return ApiResponse.ok(null)
     }
 }

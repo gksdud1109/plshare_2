@@ -38,6 +38,9 @@ class SpotifyAccessGrantService(
     fun findGrant(grantId: UUID): SpotifyAccessGrant? =
         grantRepository.findById(grantId).orElse(null)
 
+    fun findLatestGrant(userId: UUID): SpotifyAccessGrant? =
+        grantRepository.findFirstByUserIdOrderByUpdatedAtDesc(userId)
+
     fun isExpiringSoon(grant: SpotifyAccessGrant, now: LocalDateTime = LocalDateTime.now()): Boolean =
         grant.expiresAt.isBefore(now.plusMinutes(REFRESH_THRESHOLD_MINUTES))
 

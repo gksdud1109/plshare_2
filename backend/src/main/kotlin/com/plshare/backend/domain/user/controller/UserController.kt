@@ -9,6 +9,8 @@ import com.plshare.backend.global.response.ApiResponse
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
 import java.util.UUID
+import com.plshare.backend.global.security.ApplicationPrincipal
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 
 @RestController
 @RequestMapping("/api/users")
@@ -29,9 +31,13 @@ class UserController(
      */
     @GetMapping("/me")
     @Transactional(readOnly = true)
-    fun me(@RequestParam("userId") userId: UUID): ApiResponse<UserMeDto> {
-        val user = userRepository.findById(userId).orElseThrow {
-            ApiException(ErrorCode.NOT_FOUND, "User not found: $userId")
+    fun me(
+        @RequestParam("userId", required = false) userId: UUID?,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
+    ): ApiResponse<UserMeDto> {
+        val resolvedUserId = principal?.userId ?: requireNotNull(userId) { "userId required" }
+        val user = userRepository.findById(resolvedUserId).orElseThrow {
+            ApiException(ErrorCode.NOT_FOUND, "User not found: $resolvedUserId")
         }
         return ApiResponse.ok(UserMeDto.from(user))
     }

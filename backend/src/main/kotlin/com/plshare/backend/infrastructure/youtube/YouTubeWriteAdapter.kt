@@ -147,8 +147,7 @@ class MockYouTubeWriteAdapter : YouTubeWriteAdapter {
  *     ※ 이는 YouTube API 측 quota 오류이며 [YouTubeQuotaGuard]의 사전 차단과는 별개.
  *   - 기타 4xx/5xx → ApiException(UPSTREAM_ERROR)
  *
- * TODO(후속): search.list(100u) 기반 videoId 매칭은 현재 범위 외.
- *   소스가 YouTube가 아닌 트랙은 ExportService에서 failed 처리된다.
+ * YouTube가 아닌 소스 트랙의 videoId 검색은 ExportService와 YouTubeClient가 담당한다.
  */
 @Component
 @Profile("!demo")

@@ -26,6 +26,12 @@ class OauthHandshake(
     @Column(name = "redirect_uri", nullable = false, length = 512)
     val redirectUri: String,
 
+    @Column(name = "user_id")
+    val userId: UUID? = null,
+
+    @Column(name = "return_path", length = 1024)
+    val returnPath: String? = null,
+
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
 

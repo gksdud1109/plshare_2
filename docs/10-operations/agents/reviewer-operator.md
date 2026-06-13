@@ -39,4 +39,5 @@
 - 충돌, 누락, 소유권 문제를 먼저 정리한다.
 - 미해결 항목은 `open-issues` 또는 migration/handoff 메모로 남긴다.
 - 현재 합의 기준에서 벗어나는 확장 제안은 바로 current에 넣지 말고 분리 기록한다.
-- 리뷰 기준은 `Spotify import -> Assetize -> Apple Music export`, `proof P1`, `B2B future`다.
+- 리뷰 기준은 `product-baseline-v2.md`, 소유권/인증 경계, 실제 validation 명령,
+  프로덕션 fixture 금지다.

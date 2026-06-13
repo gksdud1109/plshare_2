@@ -8,8 +8,8 @@
 - `ai-agent-workflow.md`: 전체 작업 흐름과 브랜치/이슈 운영 방식
 
 현재 실행 기준:
-- 제품 baseline은 `Spotify import -> Assetize -> Apple Music export`
-- `proof signal`은 `P1`
+- 제품 baseline은 `docs/20-product/strategy/product-baseline-v2.md`
+- P0는 identity, import, Emotional Context, social share, Spotify→YTM corridor다
 - `B2B`는 current scope가 아니라 `Future Expansion`
 - 문서 충돌 시 `docs/README.md`의 현재 동결 기준을 따른다
 
@@ -25,4 +25,4 @@
 권장 읽기 순서:
 1. `agent-operating-model.md`
 2. `collaboration-protocol-v0.1.md`
-3. `handoffs/README.md`
+3. `multi-agent-workflow-v1.md`

@@ -44,4 +44,14 @@ class MockGoogleOAuthClient : GoogleOAuthClient {
             picture = "https://picsum.photos/seed/demouser/200/200"
         )
     )
+
+    override fun refreshAccessToken(refreshToken: String): Mono<GoogleTokenSet> = Mono.just(
+        GoogleTokenSet(
+            accessToken = "mock-google-refreshed",
+            refreshToken = refreshToken,
+            tokenType = "Bearer",
+            expiresInSeconds = 3600,
+            scope = "openid email profile https://www.googleapis.com/auth/youtube",
+        )
+    )
 }

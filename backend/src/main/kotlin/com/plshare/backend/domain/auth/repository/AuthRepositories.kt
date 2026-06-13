@@ -9,4 +9,6 @@ interface OauthHandshakeRepository : JpaRepository<OauthHandshake, UUID> {
     fun findByState(state: String): OauthHandshake?
 }
 
-interface SpotifyAccessGrantRepository : JpaRepository<SpotifyAccessGrant, UUID>
+interface SpotifyAccessGrantRepository : JpaRepository<SpotifyAccessGrant, UUID> {
+    fun findFirstByUserIdOrderByUpdatedAtDesc(userId: UUID): SpotifyAccessGrant?
+}
