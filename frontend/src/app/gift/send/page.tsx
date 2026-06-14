@@ -40,7 +40,14 @@ export default function GiftSendPage() {
         const data = await listAssets();
         if (!cancelled) {
           setAssets(data);
-          if (data.length > 0) setSelectedAssetId(data[0].id);
+          // /create 에서 갓 만든 플레이리스트(?assetId)를 우선 선택.
+          const wanted =
+            typeof window !== "undefined"
+              ? new URLSearchParams(window.location.search).get("assetId")
+              : null;
+          const pre =
+            wanted && data.some((a) => a.id === wanted) ? wanted : data[0]?.id ?? "";
+          if (pre) setSelectedAssetId(pre);
         }
       } catch {
         if (!cancelled && demoFixturesEnabled()) {
