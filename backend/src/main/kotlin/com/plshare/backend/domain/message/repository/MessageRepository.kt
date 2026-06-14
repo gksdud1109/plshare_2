@@ -7,8 +7,14 @@ import java.util.UUID
 
 interface MessageRepository : JpaRepository<Message, UUID> {
 
-    /** 스레드 시간순 메시지. */
+    /** 스레드 시간순 메시지(초기 로드). */
     fun findByConversationIdOrderByCreatedAtAsc(conversationId: UUID): List<Message>
+
+    /** 커서 이후 신규 메시지만(증분 폴링·Realtime 재사용). after = 클라가 가진 마지막 createdAt. */
+    fun findByConversationIdAndCreatedAtAfterOrderByCreatedAtAsc(
+        conversationId: UUID,
+        after: LocalDateTime,
+    ): List<Message>
 
     /**
      * 안 읽은 메시지 수: 내가 보낸 게 아니면서(senderId <>) createdAt 이 after 이후인 메시지.

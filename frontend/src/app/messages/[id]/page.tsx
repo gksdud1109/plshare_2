@@ -4,18 +4,26 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useSessionUser } from "@/lib/auth/useSessionUser";
-import { getThread, sendMessage } from "@/lib/api/messages";
+import { getThread, sendMessage, markConversationRead } from "@/lib/api/messages";
 import { messageFromError } from "@/lib/errors";
 import { useToast } from "@/components/ui/ToastProvider";
 import { PageShell } from "@/components/ui/PageShell";
 import { ProgressNarrative } from "@/components/ui/ProgressNarrative";
 import { formatClock } from "@/lib/time";
-import type { Thread } from "@/types/message";
+import type { Thread, Message } from "@/types/message";
 
 type State =
   | { kind: "loading" }
   | { kind: "ready"; thread: Thread }
   | { kind: "error"; message: string };
+
+/** 증분 폴링 결과를 기존 메시지에 id 기준으로 병합(중복 방지). 신규 없으면 동일 참조 유지. */
+function mergeMessages(existing: Message[], incoming: Message[]): Message[] {
+  if (incoming.length === 0) return existing;
+  const seen = new Set(existing.map((m) => m.id));
+  const fresh = incoming.filter((m) => !seen.has(m.id));
+  return fresh.length ? [...existing, ...fresh] : existing;
+}
 
 export default function ThreadPage() {
   const params = useParams<{ id: string }>();
@@ -28,19 +36,24 @@ export default function ThreadPage() {
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastCountRef = useRef(0);
+  const cursorRef = useRef<string | null>(null); // 마지막으로 받은 메시지 createdAt
 
-  // 로드 + 폴링.
+  // 초기 전체 로드 + 증분 폴링.
+  // (전송계층 중립: Realtime 도입 시 poll() 만 구독 콜백으로 대체 — 병합·읽음처리 동일 재사용.)
   useEffect(() => {
     if (session.status !== "authenticated" || !conversationId) return;
     let cancelled = false;
 
-    const load = async (initial: boolean) => {
-      if (initial) setState({ kind: "loading" });
+    const loadInitial = async () => {
+      setState({ kind: "loading" });
       try {
         const thread = await getThread(conversationId);
-        if (!cancelled) setState({ kind: "ready", thread });
+        if (cancelled) return;
+        setState({ kind: "ready", thread });
+        cursorRef.current = thread.messages.at(-1)?.createdAt ?? null;
+        markConversationRead(conversationId).catch(() => {});
       } catch (err) {
-        if (!cancelled && initial)
+        if (!cancelled)
           setState({
             kind: "error",
             message: messageFromError(err, "대화를 불러오지 못했어요."),
@@ -48,8 +61,34 @@ export default function ThreadPage() {
       }
     };
 
-    load(true);
-    const timer = setInterval(() => load(false), 4000);
+    const poll = async () => {
+      try {
+        const delta = await getThread(conversationId, cursorRef.current ?? undefined);
+        if (cancelled) return;
+        setState((prev) =>
+          prev.kind === "ready"
+            ? {
+                kind: "ready",
+                thread: {
+                  conversation: delta.conversation,
+                  messages: mergeMessages(prev.thread.messages, delta.messages),
+                },
+              }
+            : prev,
+        );
+        if (delta.messages.length > 0) {
+          cursorRef.current = delta.messages.at(-1)?.createdAt ?? cursorRef.current;
+          // 상대가 보낸 신규가 있으면 읽음 처리
+          if (delta.messages.some((m) => !m.mine))
+            markConversationRead(conversationId).catch(() => {});
+        }
+      } catch {
+        // 폴링 실패는 조용히 무시 — 다음 틱에 재시도
+      }
+    };
+
+    loadInitial();
+    const timer = setInterval(poll, 4000);
     return () => {
       cancelled = true;
       clearInterval(timer);
@@ -73,9 +112,13 @@ export default function ThreadPage() {
     try {
       const message = await sendMessage(conversationId, body);
       setDraft("");
+      cursorRef.current = message.createdAt;
       setState((prev) =>
         prev.kind === "ready"
-          ? { kind: "ready", thread: { ...prev.thread, messages: [...prev.thread.messages, message] } }
+          ? {
+              kind: "ready",
+              thread: { ...prev.thread, messages: mergeMessages(prev.thread.messages, [message]) },
+            }
           : prev,
       );
     } catch (err) {
