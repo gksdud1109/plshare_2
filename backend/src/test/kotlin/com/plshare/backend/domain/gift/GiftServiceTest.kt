@@ -208,6 +208,7 @@ class FakeAssetRepository : AssetRepository {
     fun saveAsset(asset: Asset): Asset { store[asset.id] = asset; return asset }
 
     override fun findByShareToken(shareToken: String): Asset? = store.values.firstOrNull { it.shareToken == shareToken }
+    override fun findWithTracksById(id: UUID): Asset? = store[id]
 
     override fun <S : Asset> save(entity: S): S { store[entity.id] = entity; return entity }
     override fun findById(id: UUID): Optional<Asset> = Optional.ofNullable(store[id])

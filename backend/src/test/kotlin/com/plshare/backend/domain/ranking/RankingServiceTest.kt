@@ -198,6 +198,7 @@ class FakeRankingAssetRepo : AssetRepository {
     fun saveAsset(a: Asset): Asset { store[a.id] = a; return a }
 
     override fun findByShareToken(shareToken: String) = store.values.firstOrNull { it.shareToken == shareToken }
+    override fun findWithTracksById(id: UUID) = store[id]
     override fun <S : Asset> save(entity: S): S { store[entity.id] = entity; return entity }
     override fun findById(id: UUID): Optional<Asset> = Optional.ofNullable(store[id])
     override fun findAllById(ids: MutableIterable<UUID>): MutableList<Asset> = ids.mapNotNull { store[it] }.toMutableList()
