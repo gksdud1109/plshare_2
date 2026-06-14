@@ -5,9 +5,9 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL?.trim() || "http://localhost:3000",
   ),
-  title: "plshare — 취향을 자산으로",
+  title: "plshare — 취향을 선물로",
   description:
-    "플레이리스트에 감성 맥락을 더하고 공유하며 YouTube Music으로 옮기는 취향 자산 레이어.",
+    "좋아하는 곡에 감성 맥락을 담아 소중한 사람에게 선물하는 음악 선물 레이어. 받는 사람은 앱·계정 없이 바로 듣습니다.",
 };
 
 export default function RootLayout({
