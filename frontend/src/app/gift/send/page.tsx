@@ -68,7 +68,7 @@ export default function GiftSendPage() {
         <p className="text-text-hi font-semibold text-xl">로그인이 필요해요</p>
         <p className="text-text-low text-sm">선물을 보내려면 먼저 로그인해주세요.</p>
         <a
-          href="/api/auth/google/start?returnTo=%2Fgift%2Fsend"
+          href="/auth/continue?returnTo=%2Fgift%2Fsend"
           className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white"
           style={{ height: "48px", display: "inline-flex", alignItems: "center" }}
         >
