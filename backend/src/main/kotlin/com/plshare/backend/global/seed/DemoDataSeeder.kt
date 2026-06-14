@@ -37,18 +37,23 @@ class DemoDataSeeder(
         }
         val asset = Asset(
             ownerId = demoUser.id,
-            title = "Sample - Sunset Walks",
-            coverUrl = "https://picsum.photos/seed/sunset/600/600",
-            description = "A small playlist seeded for demo purposes",
-            diaryText = "오늘은 노을이 유난히 짙었다. 골목길을 따라 천천히 걸으며 들었던 곡들.",
+            title = "Late Night Drives",
+            coverUrl = "https://picsum.photos/seed/latenight/600/600",
+            description = "늦은 밤 드라이브에 어울리는 곡들",
+            diaryText = "창문을 조금 내리고, 가로등이 흐르는 길을 달렸다. 그날의 공기가 이 노래들에 담겨 있다.",
             sourcePlatform = "spotify",
-            emotionTags = mutableListOf("calm", "warm", "nostalgia")
+            emotionTags = mutableListOf("nocturne", "yearning", "calm")
         )
+        // 데모 인라인 재생을 위해 검증된 실 YouTube id 가 매핑된 트랙으로 시딩한다
+        // (MockYouTubeClient.realDemoVideoIds). 미매핑 곡은 synthetic id 로 떨어져 임베드가
+        // 깨지므로, 시드 선물은 반드시 매핑된 타이틀만 사용한다.
         val seedTracks = listOf(
-            Triple("Beach House", "Space Song", 320000),
-            Triple("Mac DeMarco", "Chamber of Reflection", 268000),
-            Triple("Cigarettes After Sex", "Apocalypse", 290000),
-            Triple("Beabadoobee", "Coffee", 117000)
+            Triple("The Weeknd", "Blinding Lights", 200000),
+            Triple("Daft Punk", "Something About Us", 232000),
+            Triple("M83", "Midnight City", 244000),
+            Triple("Tame Impala", "The Less I Know the Better", 216000),
+            Triple("Phoenix", "1901", 193000),
+            Triple("LCD Soundsystem", "All My Friends", 311000)
         )
         seedTracks.forEachIndexed { idx, (artist, title, duration) ->
             asset.tracks.add(
@@ -103,7 +108,7 @@ class DemoDataSeeder(
 
         val post1 = Post(
             authorId = demoUser.id,
-            text = "노을 질 때 듣기 좋은 플레이리스트 공유해요. 골목길 산책하면서 들으면 딱이에요 🌅",
+            text = "늦은 밤 드라이브할 때 듣기 좋은 플레이리스트 공유해요. 창문 내리고 달리면 딱이에요 🌙",
             assetId = assetId,
             moodTag = "calm",
         )
@@ -134,7 +139,7 @@ class DemoDataSeeder(
         val gift = Gift(
             senderId = demoUser.id,
             assetId = assetId,
-            message = "노을이 질 때 들으면 좋은 곡들을 골라봤어요. 오늘 하루도 수고했어요 🌅",
+            message = "늦은 밤, 창문 내리고 이 노래들 들으면서 달려봐. 네 생각하면서 골랐어. 오늘 하루도 수고했어 🌙",
             wrapSkin = "nocturne-violet",
             token = demoToken,
         )

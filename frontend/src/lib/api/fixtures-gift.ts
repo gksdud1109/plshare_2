@@ -10,7 +10,7 @@ export function buildDemoGiftView(token: string): GiftView {
     token,
     status: "CREATED",
     message:
-      "노을이 질 때 들으면 좋은 곡들을 골라봤어요. 오늘 하루도 수고했어요.",
+      "늦은 밤, 창문 내리고 이 노래들 들으면서 달려봐. 네 생각하면서 골랐어. 오늘 하루도 수고했어 🌙",
     wrapSkin: "nocturne-violet",
     sender: {
       handle: "demo",
@@ -19,13 +19,13 @@ export function buildDemoGiftView(token: string): GiftView {
     },
     asset: {
       id: "demo-asset",
-      title: "Sample - Sunset Walks",
-      coverUrl: "https://picsum.photos/seed/sunset/600/600",
+      title: "Late Night Drives",
+      coverUrl: "https://picsum.photos/seed/latenight/600/600",
       tracks: [
-        { id: "t1", name: "Space Song", artist: "Beach House", durationMs: 320000 },
-        { id: "t2", name: "Chamber of Reflection", artist: "Mac DeMarco", durationMs: 268000 },
-        { id: "t3", name: "Apocalypse", artist: "Cigarettes After Sex", durationMs: 290000 },
-        { id: "t4", name: "Coffee", artist: "Beabadoobee", durationMs: 117000 },
+        { id: "t1", name: "Blinding Lights", artist: "The Weeknd", durationMs: 200000 },
+        { id: "t2", name: "Something About Us", artist: "Daft Punk", durationMs: 232000 },
+        { id: "t3", name: "Midnight City", artist: "M83", durationMs: 244000 },
+        { id: "t4", name: "The Less I Know the Better", artist: "Tame Impala", durationMs: 216000 },
       ],
     },
   };

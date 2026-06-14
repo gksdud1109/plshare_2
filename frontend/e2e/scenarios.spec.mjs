@@ -99,8 +99,10 @@ async function authedContext(browser) {
     await sleep(3200);
     const iframe = p.locator('iframe[src*="youtube.com/embed"]').first();
     const embedded = await iframe.count();
-    const realId = embedded ? /[A-Za-z0-9_-]{11}/.test((await iframe.getAttribute('src')) || '') : false;
-    rec('계정 없이 트랙 재생(YouTube 임베드)', embedded > 0 && realId);
+    // synthetic mock id(11자라 길이 정규식엔 통과)를 배제 — 실제 재생 가능한 id만 인정
+    const vidMatch = embedded ? ((await iframe.getAttribute('src')) || '').match(/youtube\.com\/embed\/([A-Za-z0-9_-]{11})/) : null;
+    const realId = !!vidMatch && !vidMatch[1].startsWith('mock');
+    rec('계정 없이 트랙 재생(YouTube 임베드)', embedded > 0 && realId, vidMatch ? `videoId=${vidMatch[1]}` : 'none');
     rec('미인증 수신자 CTA(내 라이브러리 만들기)', /내 라이브러리 만들기/.test(await p.textContent('body')));
     await p.screenshot({ path: `${SHOT}/s2-play.png`, fullPage: true });
     await ctx.close();
