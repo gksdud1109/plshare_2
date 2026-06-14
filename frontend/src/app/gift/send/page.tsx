@@ -10,6 +10,11 @@ import { demoFixturesEnabled } from "@/lib/demo";
 import { WrapSkinPicker } from "@/components/gift/WrapSkinPicker";
 import { WRAP_SKINS } from "@/types/gift";
 import type { AssetSummary } from "@/types/asset";
+import { messageFromError } from "@/lib/errors";
+import { toAbsoluteUrl } from "@/lib/url";
+
+/** 선물 메시지 최대 길이(자). 편지처럼 충분히 길게. */
+const MESSAGE_MAX = 3000;
 
 type SendState =
   | { kind: "idle" }
@@ -73,7 +78,7 @@ export default function GiftSendPage() {
     );
   }
 
-  const remaining = 500 - message.length;
+  const remaining = MESSAGE_MAX - message.length;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -91,14 +96,14 @@ export default function GiftSendPage() {
     } catch (err) {
       setSendState({
         kind: "error",
-        message: err instanceof Error ? err.message : "선물 생성에 실패했어요",
+        message: messageFromError(err, "선물 생성에 실패했어요"),
       });
     }
   }
 
   async function handleCopy(url: string) {
     try {
-      const fullUrl = `${window.location.origin}${url}`;
+      const fullUrl = toAbsoluteUrl(url);
       await navigator.clipboard.writeText(fullUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
@@ -144,7 +149,7 @@ export default function GiftSendPage() {
               아래 링크를 공유하면 상대방이 언박싱할 수 있어요.
             </p>
             <div className="mb-6 rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm text-text-mid font-mono break-all">
-              {`${typeof window !== "undefined" ? window.location.origin : ""}${sendState.url}`}
+              {toAbsoluteUrl(sendState.url)}
             </div>
             <button
               type="button"
@@ -217,7 +222,7 @@ export default function GiftSendPage() {
               <textarea
                 id="gift-message"
                 value={message}
-                onChange={(e) => setMessage(e.target.value.slice(0, 500))}
+                onChange={(e) => setMessage(e.target.value.slice(0, MESSAGE_MAX))}
                 placeholder="이 곡들을 고른 이유, 이 계절의 기분, 그냥 하고 싶은 말…"
                 rows={4}
                 className="w-full resize-none rounded-xl border border-hairline bg-surface-1 px-4 py-3 text-sm text-text placeholder:text-text-low focus:outline-none focus:ring-2 transition"

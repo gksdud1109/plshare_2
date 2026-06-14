@@ -39,8 +39,8 @@ class Gift(
     @Column(name = "asset_id", nullable = false)
     val assetId: UUID,
 
-    /** 발신자가 작성한 감성 메시지 (최대 500자). */
-    @Column(name = "message", nullable = false, length = 500)
+    /** 발신자가 작성한 감성 메시지 (최대 3000자, 편지 길이). */
+    @Column(name = "message", nullable = false, length = 3000)
     val message: String,
 
     /**

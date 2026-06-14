@@ -200,8 +200,9 @@ export function PostCard({
 
 function AssetEmbedCard({ asset }: { asset: PostAssetEmbed }) {
   return (
-    <div
-      className="relative flex items-center gap-3 overflow-hidden rounded-[14px] border border-hairline bg-surface-2 p-3"
+    <Link
+      href={`/assets/${asset.id}`}
+      className="relative flex items-center gap-3 overflow-hidden rounded-[14px] border border-hairline bg-surface-2 p-3 transition-colors duration-200 hover:border-accent-soft hover:bg-surface-3 focus-ring"
     >
       {/* Ambient cover glow */}
       {asset.coverUrl && (
@@ -241,7 +242,7 @@ function AssetEmbedCard({ asset }: { asset: PostAssetEmbed }) {
           </div>
         )}
       </div>
-    </div>
+    </Link>
   );
 }
 
