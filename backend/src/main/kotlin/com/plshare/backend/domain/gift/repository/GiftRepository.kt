@@ -6,4 +6,10 @@ import java.util.UUID
 
 interface GiftRepository : JpaRepository<Gift, UUID> {
     fun findByToken(token: String): Gift?
+
+    /** 받은(저장한) 선물 — 최근 연 순. */
+    fun findBySavedByUserIdOrderByOpenedAtDesc(savedByUserId: UUID): List<Gift>
+
+    /** 보낸 선물 — 최근 생성 순. */
+    fun findBySenderIdOrderByCreatedAtDesc(senderId: UUID): List<Gift>
 }

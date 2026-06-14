@@ -138,4 +138,18 @@ class GiftService(
         }
         return GiftViewResponse.from(gift, sender, asset)
     }
+
+    /** 받은(저장한) 선물 목록 — savedByUserId 기준. */
+    fun received(userId: UUID): List<GiftSummaryResponse> =
+        giftRepository.findBySavedByUserIdOrderByOpenedAtDesc(userId).mapNotNull { toSummary(it) }
+
+    /** 보낸 선물 목록 — senderId 기준. */
+    fun sent(userId: UUID): List<GiftSummaryResponse> =
+        giftRepository.findBySenderIdOrderByCreatedAtDesc(userId).mapNotNull { toSummary(it) }
+
+    private fun toSummary(gift: Gift): GiftSummaryResponse? {
+        val sender = userRepository.findById(gift.senderId).orElse(null) ?: return null
+        val asset = assetRepository.findById(gift.assetId).orElse(null) ?: return null
+        return GiftSummaryResponse.from(gift, sender, asset)
+    }
 }

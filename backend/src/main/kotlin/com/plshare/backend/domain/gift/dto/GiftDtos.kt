@@ -5,6 +5,7 @@ import com.plshare.backend.domain.asset.model.Asset
 import com.plshare.backend.domain.gift.model.Gift
 import com.plshare.backend.domain.gift.model.GiftStatus
 import com.plshare.backend.domain.user.model.User
+import java.time.LocalDateTime
 import java.util.UUID
 
 /** POST /api/gifts 요청 바디. 발신자는 @CurrentUserId(세션 principal)로 해석한다. */
@@ -68,6 +69,33 @@ data class GiftAssetDto(
             title = asset.title,
             coverUrl = asset.coverUrl,
             tracks = asset.tracks.map { TrackDto.from(it) },
+        )
+    }
+}
+
+/** 선물함(받은/보낸) 목록용 요약 — 트랙 전체 대신 제목/커버/곡수만. */
+data class GiftSummaryResponse(
+    val token: String,
+    val status: GiftStatus,
+    val message: String,
+    val wrapSkin: String,
+    val sender: SenderDto,
+    val assetTitle: String,
+    val assetCoverUrl: String?,
+    val trackCount: Int,
+    val createdAt: LocalDateTime,
+) {
+    companion object {
+        fun from(gift: Gift, sender: User, asset: Asset) = GiftSummaryResponse(
+            token = gift.token,
+            status = gift.status,
+            message = gift.message,
+            wrapSkin = gift.wrapSkin,
+            sender = SenderDto.from(sender),
+            assetTitle = asset.title,
+            assetCoverUrl = asset.coverUrl,
+            trackCount = asset.tracks.size,
+            createdAt = gift.createdAt,
         )
     }
 }

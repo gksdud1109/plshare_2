@@ -44,6 +44,19 @@ export interface GiftView {
   asset: GiftAsset;
 }
 
+/** GET /api/gifts/received|sent 목록 항목(요약) */
+export interface GiftSummary {
+  token: string;
+  status: GiftStatus;
+  message: string;
+  wrapSkin: string;
+  sender: GiftSender;
+  assetTitle: string;
+  assetCoverUrl?: string;
+  trackCount: number;
+  createdAt: string;
+}
+
 /** Nocturne 포장 스킨 정의 */
 export interface WrapSkin {
   key: string;
