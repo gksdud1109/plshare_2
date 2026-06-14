@@ -111,8 +111,13 @@ class ExportService(
     }
 
     /**
-     * export 작업 실행. [ExportEventListener] 가 트랜잭션 커밋 이후 @Async 로 호출한다.
-     * (AFTER_COMMIT 이므로 job 은 항상 가시적 — 커밋 가시성 재시도 루프가 불필요해졌다.)
+     * export 작업 실행. [ExportEventListener] 가 트랜잭션 커밋 이후 @Async 로(별도 스레드) 호출한다.
+     *
+     * 의도적으로 @Transactional 을 두지 않는다 — 외부 호출(플레이리스트 생성/검색)을 단일 긴
+     * 트랜잭션으로 감싸면 커넥션을 오래 쥐고, 더 중요하게는 중첩 @Transactional(getValidYouTubeToken
+     * 등)이 throw하면 tx 가 rollback-only 로 오염돼 job.fail() 기록까지 롤백된다. 대신 asset.tracks 는
+     * [AssetRepository.findWithTracksById] 로 즉시 로딩하고, 각 상태 저장(start/fail/complete)은
+     * Spring Data 의 짧은 자체 트랜잭션으로 독립 커밋한다 → 실패도 항상 terminal 상태로 기록된다.
      */
     fun runExport(jobId: UUID) {
         val job = exportJobRepository.findById(jobId).orElse(null) ?: run {
@@ -138,7 +143,8 @@ class ExportService(
             job.start()
             exportJobRepository.save(job)
 
-            val asset = assetRepository.findById(job.assetId).orElseThrow()
+            val asset = assetRepository.findWithTracksById(job.assetId)
+                ?: throw IllegalStateException("Asset not found: ${job.assetId}")
             val inputs = asset.tracks.map {
                 AppleMusicTrackInput(isrc = it.isrc, title = it.name, artist = it.artist)
             }
@@ -187,7 +193,8 @@ class ExportService(
             job.start()
             exportJobRepository.save(job)
 
-            val asset = assetRepository.findById(job.assetId).orElseThrow()
+            val asset = assetRepository.findWithTracksById(job.assetId)
+                ?: throw IllegalStateException("Asset not found: ${job.assetId}")
 
             // 쿼터 예약: 실패 시 QUOTA_EXCEEDED ApiException → fail()
             val searchCount = asset.tracks.count { it.youtubeVideoId.isNullOrBlank() }
