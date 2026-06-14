@@ -169,6 +169,10 @@ class FakeGiftRepository : GiftRepository {
     val store = mutableMapOf<UUID, Gift>()
 
     override fun findByToken(token: String): Gift? = store.values.firstOrNull { it.token == token }
+    override fun findBySavedByUserIdOrderByOpenedAtDesc(savedByUserId: UUID): List<Gift> =
+        store.values.filter { it.savedByUserId == savedByUserId }.sortedByDescending { it.openedAt }
+    override fun findBySenderIdOrderByCreatedAtDesc(senderId: UUID): List<Gift> =
+        store.values.filter { it.senderId == senderId }.sortedByDescending { it.createdAt }
 
     override fun <S : Gift> save(entity: S): S { store[entity.id] = entity; return entity }
     override fun findById(id: UUID): Optional<Gift> = Optional.ofNullable(store[id])

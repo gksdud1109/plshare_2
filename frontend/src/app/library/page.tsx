@@ -36,8 +36,8 @@ export default function LibraryPage() {
   useEffect(() => {
     if (session.status !== "authenticated") return;
     let cancelled = false;
-    setState({ kind: "loading" });
     (async () => {
+      setState({ kind: "loading" });
       try {
         const gifts =
           tab === "received" ? await getReceivedGifts() : await getSentGifts();
