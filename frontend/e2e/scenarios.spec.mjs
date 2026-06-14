@@ -256,6 +256,49 @@ async function authedContext(browser) {
     await ctx.close();
   } catch (e) { rec(`S10 예외: ${e.message}`, false); }
 
+  // ── S11: DM — 대화 목록/스레드/전송 ──────────────────────────────────────
+  console.log('\n═══ S11: DM — 쪽지 ═══');
+  try {
+    // 시드된 대화 목록(인증) — 읽음 처리 전이라 안읽음 보존
+    const convs = (await j(`${BE}/api/conversations`, { headers: auth })).data;
+    rec('대화 목록 로드(시드 ≥3)', Array.isArray(convs) && convs.length >= 3, `n=${convs?.length}`);
+    const unreadConv = (convs || []).find((c) => (c.unreadCount ?? 0) > 0);
+    rec('안 읽은 대화 존재(소율→demo)', !!unreadConv, unreadConv ? `${unreadConv.partner?.displayName} unread=${unreadConv.unreadCount}` : 'none');
+    const unread = (await j(`${BE}/api/conversations/unread-count`, { headers: auth })).data;
+    rec('전체 안읽은 수 > 0', (unread?.total ?? 0) > 0, `total=${unread?.total}`);
+    // get-or-create 멱등(현우 — 시드된 방과 동일해야)
+    const c1 = (await postJson(`${BE}/api/conversations`, { recipientHandle: 'hyunwoo' }, auth)).data;
+    const c2 = (await postJson(`${BE}/api/conversations`, { recipientHandle: 'hyunwoo' }, auth)).data;
+    rec('대화 get-or-create 멱등(같은 id)', !!c1?.id && c1.id === c2.id, c1?.id?.slice(0, 8));
+    // 자기 자신 거부
+    const self = await fetch(`${BE}/api/conversations`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...auth }, body: JSON.stringify({ recipientHandle: 'demo' }) });
+    rec('자기 자신에게 쪽지 거부(4xx)', self.status >= 400 && self.status < 500);
+    // 메시지 전송 → 스레드 반영 + 읽음 처리
+    const body = `E2E 테스트 메시지 ${Date.now()}`;
+    const sent = (await postJson(`${BE}/api/conversations/${c1.id}/messages`, { body }, auth)).data;
+    rec('메시지 전송(mine=true)', sent?.mine === true && sent?.body === body);
+    const thread = (await j(`${BE}/api/conversations/${c1.id}/messages`, { headers: auth })).data;
+    rec('스레드에 전송 메시지 반영', (thread?.messages || []).some((m) => m.body === body));
+    rec('스레드 조회 시 읽음 처리(unread=0)', (thread?.conversation?.unreadCount ?? 1) === 0);
+    // 비참여자 차단 — 임의 UUID 스레드는 404(없음)
+    const ghost = await fetch(`${BE}/api/conversations/00000000-0000-0000-0000-000000000000/messages`, { headers: auth });
+    rec('존재하지 않는 대화 404', ghost.status === 404);
+    // UI 렌더
+    const ctx = await authedContext(browser);
+    const p = await ctx.newPage();
+    p.on('console', (m) => m.type() === 'error' && errors.push(`S11: ${m.text()}`));
+    await p.goto(`${FE}/messages`, { waitUntil: 'networkidle' });
+    await sleep(1800);
+    const listText = await p.textContent('body');
+    rec('메시지 목록 UI 렌더(상대 이름)', /소율|지민|현우/.test(listText) && !/불러오지 못/.test(listText));
+    await p.screenshot({ path: `${SHOT}/s11-messages.png`, fullPage: true });
+    await p.goto(`${FE}/messages/${c1.id}`, { waitUntil: 'networkidle' });
+    await sleep(1500);
+    rec('스레드 UI 렌더(입력바)', (await p.locator('textarea').count()) > 0);
+    await p.screenshot({ path: `${SHOT}/s11-thread.png`, fullPage: true });
+    await ctx.close();
+  } catch (e) { rec(`S11 예외: ${e.message}`, false); }
+
   // ── 요약 ──
   await browser.close();
   const pass = results.filter((r) => r.ok).length;

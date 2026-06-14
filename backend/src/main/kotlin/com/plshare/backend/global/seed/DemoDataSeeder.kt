@@ -8,6 +8,10 @@ import com.plshare.backend.domain.follow.repository.FollowRepository
 import com.plshare.backend.domain.gift.model.Gift
 import com.plshare.backend.domain.gift.model.GiftStatus
 import com.plshare.backend.domain.gift.repository.GiftRepository
+import com.plshare.backend.domain.message.model.Conversation
+import com.plshare.backend.domain.message.model.Message
+import com.plshare.backend.domain.message.repository.ConversationRepository
+import com.plshare.backend.domain.message.repository.MessageRepository
 import com.plshare.backend.domain.post.model.Post
 import com.plshare.backend.domain.post.repository.PostRepository
 import com.plshare.backend.domain.reaction.model.PostLike
@@ -41,6 +45,8 @@ class DemoDataSeeder(
     private val giftRepository: GiftRepository,
     private val followRepository: FollowRepository,
     private val postLikeRepository: PostLikeRepository,
+    private val conversationRepository: ConversationRepository,
+    private val messageRepository: MessageRepository,
 ) : CommandLineRunner {
     private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -139,7 +145,40 @@ class DemoDataSeeder(
             )
         )
 
-        log.info("Demo world seeded: 4 users, {} assets, posts/follows/likes/gifts", assetRepository.count())
+        // 쪽지(DM) — demo 가 바로 체험할 3가지 시나리오.
+        val now = LocalDateTime.now()
+        // (A) 소율 ↔ demo: 소율이 마지막, demo 미확인 → 목록에 "안 읽음" 배지.
+        seedConversation(
+            userX = soyul, xLastRead = now.minusMinutes(12),
+            userY = demo, yLastRead = now.minusMinutes(80),
+            messages = listOf(
+                Triple(soyul, "선물 봤어? 요즘 잠 잘 못 잔다며. 그 곡들 들으면서 천천히 쉬어 🌙", now.minusMinutes(90)),
+                Triple(demo, "방금 봤어 ㅠㅠ 진짜 고마워. 새벽 감성 딱이더라", now.minusMinutes(80)),
+                Triple(soyul, "다행이다 ㅎㅎ 너도 좋은 거 생기면 추천해줘!", now.minusMinutes(12)),
+            ),
+        )
+        // (B) demo ↔ 지민: 활발한 대화, 양쪽 모두 읽음.
+        val b = now.minusDays(3)
+        seedConversation(
+            userX = jimin, xLastRead = b.plusMinutes(12),
+            userY = demo, yLastRead = b.plusMinutes(12),
+            messages = listOf(
+                Triple(jimin, "심야 운전 플리 들어봤어? 너 취향일 것 같아서.", b),
+                Triple(demo, "오 방금 들었는데 미쳤다... 3번 트랙 뭐야?", b.plusMinutes(5)),
+                Triple(jimin, "ㅋㅋㅋ M83 - Midnight City. 드라이브엔 무조건이지.", b.plusMinutes(8)),
+                Triple(demo, "바로 저장함. 다음에 같이 드라이브 ㄱㄱ", b.plusMinutes(12)),
+            ),
+        )
+        // (C) demo → 현우: 보냈고 답장 대기(현우 미확인).
+        seedConversation(
+            userX = hyunwoo, xLastRead = null,
+            userY = demo, yLastRead = now.minusDays(1),
+            messages = listOf(
+                Triple(demo, "현우야 지난번 신스웨이브 플리 잘 들었어. 이것도 취향일 듯?", now.minusDays(1)),
+            ),
+        )
+
+        log.info("Demo world seeded: 4 users, {} assets, posts/follows/likes/gifts/messages", assetRepository.count())
     }
 
     // ── helpers ────────────────────────────────────────────────────────────────
@@ -189,6 +228,40 @@ class DemoDataSeeder(
     private fun like(post: Post, user: User) {
         if (!postLikeRepository.existsByPostIdAndUserId(post.id, user.id)) {
             postLikeRepository.save(PostLike(postId = post.id, userId = user.id))
+        }
+    }
+
+    /**
+     * 두 사용자 사이의 대화방 + 메시지를 시드한다.
+     * 참여자 쌍을 정규화(작은 UUID=A)해 저장하고, 각자의 마지막 읽음 시각을 그대로 반영한다.
+     * messages 는 (발신자, 본문, 작성시각) 순서대로 — 마지막 항목이 대화방 미리보기가 된다.
+     */
+    private fun seedConversation(
+        userX: User, xLastRead: LocalDateTime?,
+        userY: User, yLastRead: LocalDateTime?,
+        messages: List<Triple<User, String, LocalDateTime>>,
+    ) {
+        val xIsLo = userX.id < userY.id
+        val lo = if (xIsLo) userX else userY
+        val hi = if (xIsLo) userY else userX
+        val loRead = if (xIsLo) xLastRead else yLastRead
+        val hiRead = if (xIsLo) yLastRead else xLastRead
+        val last = messages.last()
+        val conversation = conversationRepository.save(
+            Conversation(
+                participantAId = lo.id,
+                participantBId = hi.id,
+                lastMessageAt = last.third,
+                lastMessagePreview = last.second.take(200),
+                lastMessageSenderId = last.first.id,
+                aLastReadAt = loRead,
+                bLastReadAt = hiRead,
+            )
+        )
+        messages.forEach { (sender, body, at) ->
+            messageRepository.save(
+                Message(conversationId = conversation.id, senderId = sender.id, body = body, createdAt = at)
+            )
         }
     }
 }
