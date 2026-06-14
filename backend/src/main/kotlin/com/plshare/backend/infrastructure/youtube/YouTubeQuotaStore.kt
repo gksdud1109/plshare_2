@@ -3,8 +3,13 @@ package com.plshare.backend.infrastructure.youtube
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
+import jakarta.persistence.LockModeType
 import jakarta.persistence.Table
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Lock
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Component
 import java.time.LocalDate
 
@@ -43,12 +48,18 @@ class YouTubeQuotaUsage(
     var usedUnits: Long = 0,
 )
 
-interface YouTubeQuotaJpaRepository : JpaRepository<YouTubeQuotaUsage, LocalDate>
+interface YouTubeQuotaJpaRepository : JpaRepository<YouTubeQuotaUsage, LocalDate> {
+    /** 행 단위 쓰기 락(SELECT … FOR UPDATE)으로 동시 누적을 직렬화한다. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select q from YouTubeQuotaUsage q where q.usageDate = :date")
+    fun findByDateForUpdate(@Param("date") date: LocalDate): YouTubeQuotaUsage?
+}
 
 /**
- * JPA 기반 쿼터 저장소. read-modify-write는 [YouTubeQuotaGuard.reserve]의 @Transactional
- * 안에서 원자적으로 수행된다(demo 단일 인스턴스 + @Async 단일 export 스레드 기준 충분).
- * 멀티 인스턴스 prod에서 정밀 동시성이 필요하면 PESSIMISTIC_WRITE 락으로 강화할 수 있다.
+ * JPA 기반 쿼터 저장소. read-modify-write를 PESSIMISTIC_WRITE 락으로 직렬화한다 —
+ * 단일 인스턴스에서도 export(@Async 스레드)와 트랙 resolve(요청 스레드)가 동시에 reserve하면
+ * lost-update로 예산이 초과 소모될 수 있으므로, 누적은 [YouTubeQuotaGuard.reserve]의
+ * @Transactional 안에서 행 락을 잡고 수행한다.
  */
 @Component
 class JpaQuotaUsageStore(
@@ -60,8 +71,19 @@ class JpaQuotaUsageStore(
 
     override fun addUnits(dateStr: String, delta: Long) {
         val date = LocalDate.parse(dateStr)
-        val row = repository.findById(date).orElseGet { YouTubeQuotaUsage(usageDate = date, usedUnits = 0) }
-        row.usedUnits += delta
-        repository.save(row)
+        val locked = repository.findByDateForUpdate(date)
+        if (locked != null) {
+            locked.usedUnits += delta
+            repository.save(locked)
+            return
+        }
+        // 그날의 첫 행 — 동시 생성 시 PK(usage_date) 충돌은 락 경로로 재시도해 직렬화.
+        try {
+            repository.saveAndFlush(YouTubeQuotaUsage(usageDate = date, usedUnits = delta))
+        } catch (e: DataIntegrityViolationException) {
+            val row = repository.findByDateForUpdate(date) ?: throw e
+            row.usedUnits += delta
+            repository.save(row)
+        }
     }
 }
