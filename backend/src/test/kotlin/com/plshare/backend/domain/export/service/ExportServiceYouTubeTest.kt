@@ -44,7 +44,8 @@ import java.util.function.Function
  *  (c) 쿼터 초과 → job FAILED + lastError에 "QUOTA_EXCEEDED" 포함
  *  (d) Apple 경로 → 기존 동작 불변 (COMPLETED/PARTIAL)
  *
- * ExportService.runExport가 @Async이므로 테스트에서 직접 동기 호출한다.
+ * 프로덕션에선 ExportEventListener가 커밋 후 @Async로 runExport를 호출한다.
+ * 단위테스트에선 runExport를 직접 동기 호출한다.
  */
 class ExportServiceYouTubeTest {
 

@@ -17,7 +17,7 @@ import com.plshare.backend.infrastructure.youtube.YouTubeWriteAdapter
 import com.plshare.backend.infrastructure.youtube.YouTubeClient
 import com.plshare.backend.domain.auth.service.GoogleAccessGrantService
 import org.slf4j.LoggerFactory
-import org.springframework.scheduling.annotation.Async
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -48,6 +48,9 @@ class ExportService(
     private val youtubeWriteAdapter: YouTubeWriteAdapter,
     private val youtubeQuotaGuard: YouTubeQuotaGuard,
     private val exportTrackMatchRepository: com.plshare.backend.domain.export.repository.ExportTrackMatchRepository,
+    // 프로덕션에선 Spring 이 실제 퍼블리셔를 주입한다. no-op 기본값은 수동-DI 단위테스트 편의용
+    // (기존 youtubeClient/googleAccessGrantService 기본값 패턴과 동일).
+    private val applicationEventPublisher: ApplicationEventPublisher = ApplicationEventPublisher { },
     private val youtubeClient: YouTubeClient? = null,
     private val googleAccessGrantService: GoogleAccessGrantService? = null,
 ) {
@@ -99,25 +102,21 @@ class ExportService(
         )
         exportJobRepository.save(job)
 
-        runExport(job.id)
+        // 실제 export 실행은 트랜잭션 커밋 이후로 미룬다. 같은 빈의 @Async 메서드를
+        // self-invoke 하면 프록시가 우회돼 export가 요청 트랜잭션 안에서 동기로 돌던
+        // 버그를 제거한다([ExportEventListener]가 AFTER_COMMIT + @Async 로 수신).
+        applicationEventPublisher.publishEvent(ExportRequestedEvent(job.id))
 
         return job.id
     }
 
-    @Async
+    /**
+     * export 작업 실행. [ExportEventListener] 가 트랜잭션 커밋 이후 @Async 로 호출한다.
+     * (AFTER_COMMIT 이므로 job 은 항상 가시적 — 커밋 가시성 재시도 루프가 불필요해졌다.)
+     */
     fun runExport(jobId: UUID) {
-        // outer @Transactional commit may not be visible yet — retry briefly.
-        var attempt = 0
-        var found: ExportJob? = null
-        while (attempt < 10 && found == null) {
-            found = exportJobRepository.findById(jobId).orElse(null)
-            if (found == null) {
-                Thread.sleep(100)
-                attempt++
-            }
-        }
-        val job = found ?: run {
-            log.error("Export job not found after retries: $jobId")
+        val job = exportJobRepository.findById(jobId).orElse(null) ?: run {
+            log.error("Export job not found: $jobId")
             return
         }
 
