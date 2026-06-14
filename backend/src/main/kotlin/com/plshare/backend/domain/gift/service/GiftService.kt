@@ -51,8 +51,8 @@ class GiftService(
         if (requireOwnedAsset && asset.ownerId != senderId) {
             throw ApiException(ErrorCode.FORBIDDEN, "본인 소유 자산만 선물할 수 있습니다")
         }
-        if (req.message.length > 500) {
-            throw ApiException(ErrorCode.VALIDATION_FAILED, "메시지는 500자를 초과할 수 없습니다")
+        if (req.message.length > 3000) {
+            throw ApiException(ErrorCode.VALIDATION_FAILED, "메시지는 3000자를 초과할 수 없습니다")
         }
 
         val token = UUID.randomUUID().toString().replace("-", "").take(16)

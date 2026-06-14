@@ -8,10 +8,11 @@ import { buildDemoAssetDetail } from "@/lib/api/fixtures";
 import type { AssetDetail } from "@/types/asset";
 import { PageShell } from "@/components/ui/PageShell";
 import { ProgressNarrative } from "@/components/ui/ProgressNarrative";
-import { TrackRow } from "@/components/ui/TrackRow";
+import { ShareTrackList } from "@/components/share/ShareTrackList";
 import { EmotionTagPicker } from "@/components/ui/EmotionTagPicker";
 import { Toast } from "@/components/ui/Toast";
 import { demoFixturesEnabled } from "@/lib/demo";
+import { toAbsoluteUrl } from "@/lib/url";
 
 type State =
   | { kind: "loading" }
@@ -83,10 +84,10 @@ export default function AssetDetailPage() {
       let url: string;
       if (state.kind === "ready" && !state.usingFixture) {
         const link = await createShareLink(id);
-        url = link.url;
+        url = toAbsoluteUrl(link.url);
       } else {
         // Fixture share — use a demo token.
-        url = `${window.location.origin}/share/${id}`;
+        url = toAbsoluteUrl(`/share/${id}`);
       }
       await navigator.clipboard.writeText(url);
       setToast({ open: true, msg: "공유 링크를 복사했어요." });
@@ -216,14 +217,7 @@ export default function AssetDetailPage() {
           <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-text-low">
             Tracks
           </p>
-          <div
-            className="mt-4 border border-hairline bg-surface-1"
-            style={{ borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)" }}
-          >
-            {a.tracks.map((t, i) => (
-              <TrackRow key={t.id} track={t} index={i} />
-            ))}
-          </div>
+          <ShareTrackList tracks={a.tracks} />
         </div>
 
         {/* Emotional Context glass card */}
