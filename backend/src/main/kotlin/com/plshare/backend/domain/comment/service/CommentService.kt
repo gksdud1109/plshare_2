@@ -36,16 +36,16 @@ class CommentService(
 ) {
 
     @Transactional
-    fun create(postId: UUID, req: CreateCommentRequest): CommentResponse {
+    fun create(postId: UUID, authorId: UUID, req: CreateCommentRequest): CommentResponse {
         if (req.text.length > 300) {
             throw ApiException(ErrorCode.VALIDATION_FAILED, "댓글은 300자를 초과할 수 없습니다")
         }
         requirePostExists(postId)
-        val author = users.findById(req.authorId).orElseThrow {
-            ApiException(ErrorCode.NOT_FOUND, "작성자를 찾을 수 없습니다: ${req.authorId}")
+        val author = users.findById(authorId).orElseThrow {
+            ApiException(ErrorCode.NOT_FOUND, "작성자를 찾을 수 없습니다: $authorId")
         }
         val saved = comments.save(
-            Comment(postId = postId, authorId = req.authorId, text = req.text)
+            Comment(postId = postId, authorId = authorId, text = req.text)
         )
         return CommentResponse.from(saved, author)
     }

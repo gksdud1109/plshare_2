@@ -5,13 +5,8 @@ import com.plshare.backend.domain.user.model.User
 import java.time.LocalDateTime
 import java.util.UUID
 
-/** 포스트 생성 요청 DTO. */
+/** 포스트 생성 요청 DTO. 작성자는 @CurrentUserId(세션 principal)로 해석한다. */
 data class CreatePostRequest(
-    /**
-     * NOTE (pre-session integration): 세션/JWT 통합 전 임시 파라미터. UserController의 userId 파라미터 패턴과 동일.
-     * Spring Security 도입 후 @AuthenticationPrincipal로 교체 예정.
-     */
-    val authorId: UUID,
     val text: String,
     val assetId: UUID? = null,
     val trackId: UUID? = null,

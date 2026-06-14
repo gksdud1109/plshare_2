@@ -40,14 +40,17 @@ async function authedContext(browser) {
   console.log('\n═══ SETUP ═══');
   // demo 유저
   const demoUser = (await j(`${BE}/api/users/demo`)).data;
-  // asset 확보 (import pl-late-night)
-  const ijob = (await postJson(`${BE}/api/imports`, { playlistId: 'pl-late-night' }, { 'X-Idempotency-Key': `scn-${Date.now()}` })).data;
+  // 데모 세션 토큰 — 직접 BE 호출도 prod 와 동일하게 Bearer 로 신원을 전달한다(@CurrentUserId).
+  const demoToken = (await postJson(`${BE}/api/auth/demo-session`, {})).data.sessionToken;
+  const auth = { Authorization: `Bearer ${demoToken}` };
+  // asset 확보 (import pl-late-night) — 데모 유저 소유로 import(ownerId=principal)
+  const ijob = (await postJson(`${BE}/api/imports`, { playlistId: 'pl-late-night' }, { 'X-Idempotency-Key': `scn-${Date.now()}`, ...auth })).data;
   await sleep(3500);
   const assetId = (await j(`${BE}/api/imports/${ijob.jobId}`)).data.assetId;
-  // 선물 생성
-  const gift = (await postJson(`${BE}/api/gifts`, { senderId: demoUser.id, assetId, message: '늦은 밤 운전할 때 들어. 우리 그때 그 도로 생각나서.', wrapSkin: 'nocturne-violet' })).data;
+  // 선물 생성 — 발신자는 토큰에서 해석(본인 소유 자산만 선물 가능)
+  const gift = (await postJson(`${BE}/api/gifts`, { assetId, message: '늦은 밤 운전할 때 들어. 우리 그때 그 도로 생각나서.', wrapSkin: 'nocturne-violet' }, auth)).data;
   // 공유 토큰
-  const share = (await postJson(`${BE}/api/assets/${assetId}/share`, {})).data;
+  const share = (await postJson(`${BE}/api/assets/${assetId}/share`, {}, auth)).data;
   // 피드 첫 포스트
   const feed = (await j(`${BE}/api/posts?page=0&size=10`)).data;
   const posts = feed.items ?? feed.content ?? [];
@@ -153,11 +156,11 @@ async function authedContext(browser) {
     await p.screenshot({ path: `${SHOT}/s5-feed.png`, fullPage: true });
     // 좋아요: API 멱등 검증 (UI 셀렉터 불안정 회피)
     if (firstPost) {
-      await postJson(`${BE}/api/posts/${firstPost.id}/like?userId=${demoUser.id}`, {});
-      const c1 = (await postJson(`${BE}/api/posts/${firstPost.id}/like?userId=${demoUser.id}`, {})).data;
+      await postJson(`${BE}/api/posts/${firstPost.id}/like`, {}, auth);
+      const c1 = (await postJson(`${BE}/api/posts/${firstPost.id}/like`, {}, auth)).data;
       rec('좋아요 멱등(중복 호출 → count 유지)', typeof c1 === 'number');
-      // 댓글
-      const cm = (await postJson(`${BE}/api/posts/${firstPost.id}/comments`, { authorId: demoUser.id, text: 'E2E 댓글' })).data;
+      // 댓글 — 작성자는 토큰에서 해석
+      const cm = (await postJson(`${BE}/api/posts/${firstPost.id}/comments`, { text: 'E2E 댓글' }, auth)).data;
       rec('댓글 작성', !!cm?.id || !!cm?.text);
     } else { rec('피드 포스트 없음(시드 확인 필요)', false); }
     await ctx.close();
@@ -172,17 +175,17 @@ async function authedContext(browser) {
         // psql 삽입은 셸에서 별도 처리됨(setup). 여기선 존재 가정.
       }
     }).catch(() => {});
-    const before = (await j(`${BE}/api/users/alice/follow-stats?viewerId=${demoUser.id}`));
+    const before = (await j(`${BE}/api/users/alice/follow-stats`, { headers: auth }));
     if (before.status === 200) {
-      await postJson(`${BE}/api/users/alice/follow?followerId=${demoUser.id}`, {});
-      const after = (await j(`${BE}/api/users/alice/follow-stats?viewerId=${demoUser.id}`)).data;
+      await postJson(`${BE}/api/users/alice/follow`, {}, auth);
+      const after = (await j(`${BE}/api/users/alice/follow-stats`, { headers: auth })).data;
       rec('팔로우 → 팔로워 수 증가/isFollowing', after?.isFollowing === true || (after?.followerCount ?? 0) >= 1);
-      // 자기 팔로우 거부
-      const self = await fetch(`${BE}/api/users/demo/follow?followerId=${demoUser.id}`, { method: 'POST' });
+      // 자기 팔로우 거부 — followerId 는 토큰에서 해석(demo→demo)
+      const self = await fetch(`${BE}/api/users/demo/follow`, { method: 'POST', headers: auth });
       rec('자기 자신 팔로우 거부(4xx)', self.status >= 400 && self.status < 500);
       // 언팔로우
-      await fetch(`${BE}/api/users/alice/follow?followerId=${demoUser.id}`, { method: 'DELETE' });
-      const un = (await j(`${BE}/api/users/alice/follow-stats?viewerId=${demoUser.id}`)).data;
+      await fetch(`${BE}/api/users/alice/follow`, { method: 'DELETE', headers: auth });
+      const un = (await j(`${BE}/api/users/alice/follow-stats`, { headers: auth })).data;
       rec('언팔로우 → 팔로워 0', (un?.followerCount ?? 0) === 0);
     } else {
       rec('alice 프로필 없음(팔로우 시나리오 스킵)', false);

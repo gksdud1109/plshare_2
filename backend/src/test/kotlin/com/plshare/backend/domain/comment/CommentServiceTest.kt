@@ -58,15 +58,15 @@ class CommentServiceTest {
 
     @Test
     fun `댓글 text 300자 이하 - 생성 성공`() {
-        val req = CreateCommentRequest(authorId = alice.id, text = "a".repeat(300))
-        val resp = service.create(post.id, req)
+        val req = CreateCommentRequest(text ="a".repeat(300))
+        val resp = service.create(post.id, alice.id, req)
         assertEquals(300, resp.text.length)
     }
 
     @Test
     fun `댓글 text 301자 - VALIDATION_FAILED`() {
-        val req = CreateCommentRequest(authorId = alice.id, text = "a".repeat(301))
-        val ex = assertThrows(ApiException::class.java) { service.create(post.id, req) }
+        val req = CreateCommentRequest(text ="a".repeat(301))
+        val ex = assertThrows(ApiException::class.java) { service.create(post.id, alice.id, req) }
         assertEquals(ErrorCode.VALIDATION_FAILED, ex.code)
     }
 
@@ -76,8 +76,8 @@ class CommentServiceTest {
 
     @Test
     fun `작성자 본인이 댓글 삭제 - soft-delete 성공`() {
-        val req = CreateCommentRequest(authorId = alice.id, text = "hello")
-        val resp = service.create(post.id, req)
+        val req = CreateCommentRequest(text ="hello")
+        val resp = service.create(post.id, alice.id, req)
 
         service.delete(resp.id, alice.id)
 
@@ -87,8 +87,8 @@ class CommentServiceTest {
 
     @Test
     fun `타인이 댓글 삭제 시도 - FORBIDDEN`() {
-        val req = CreateCommentRequest(authorId = alice.id, text = "hello")
-        val resp = service.create(post.id, req)
+        val req = CreateCommentRequest(text ="hello")
+        val resp = service.create(post.id, alice.id, req)
 
         val ex = assertThrows(ApiException::class.java) { service.delete(resp.id, bob.id) }
         assertEquals(ErrorCode.FORBIDDEN, ex.code)
@@ -97,15 +97,15 @@ class CommentServiceTest {
     @Test
     fun `삭제된 포스트에 댓글 작성 - NOT_FOUND`() {
         val deletedPost = postRepo.savePost(Post(authorId = alice.id, text = "gone", deleted = true))
-        val req = CreateCommentRequest(authorId = alice.id, text = "hi")
-        val ex = assertThrows(ApiException::class.java) { service.create(deletedPost.id, req) }
+        val req = CreateCommentRequest(text ="hi")
+        val ex = assertThrows(ApiException::class.java) { service.create(deletedPost.id, alice.id, req) }
         assertEquals(ErrorCode.NOT_FOUND, ex.code)
     }
 
     @Test
     fun `이미 삭제된 댓글 재삭제 - NOT_FOUND`() {
-        val req = CreateCommentRequest(authorId = alice.id, text = "hello")
-        val resp = service.create(post.id, req)
+        val req = CreateCommentRequest(text ="hello")
+        val resp = service.create(post.id, alice.id, req)
         service.delete(resp.id, alice.id)
 
         val ex = assertThrows(ApiException::class.java) { service.delete(resp.id, alice.id) }

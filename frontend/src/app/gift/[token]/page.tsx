@@ -77,7 +77,7 @@ export default function GiftUnboxPage({
     if (pageState.kind !== "opened") return;
     setSaving(true);
     try {
-      const updated = await saveGift(token, session.user.userId);
+      const updated = await saveGift(token);
       setPageState({ kind: "opened", gift: updated });
       setSaved(true);
     } catch {

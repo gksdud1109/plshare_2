@@ -44,25 +44,26 @@ class PostService(
     @Transactional
     fun create(
         req: CreatePostRequest,
+        authorId: UUID,
         requireOwnedAsset: Boolean = false,
     ): PostResponse {
         if (req.text.length > 500) {
             throw ApiException(ErrorCode.VALIDATION_FAILED, "포스트 본문은 500자를 초과할 수 없습니다")
         }
-        val author = users.findById(req.authorId).orElseThrow {
-            ApiException(ErrorCode.NOT_FOUND, "작성자를 찾을 수 없습니다: ${req.authorId}")
+        val author = users.findById(authorId).orElseThrow {
+            ApiException(ErrorCode.NOT_FOUND, "작성자를 찾을 수 없습니다: $authorId")
         }
         if (req.assetId != null) {
             val asset = assets.findById(req.assetId).orElseThrow {
                 ApiException(ErrorCode.NOT_FOUND, "첨부 자산을 찾을 수 없습니다: ${req.assetId}")
             }
-            if (requireOwnedAsset && asset.ownerId != req.authorId) {
+            if (requireOwnedAsset && asset.ownerId != authorId) {
                 throw ApiException(ErrorCode.FORBIDDEN, "본인 소유 자산만 포스트에 첨부할 수 있습니다")
             }
         }
         val post = posts.save(
             Post(
-                authorId = req.authorId,
+                authorId = authorId,
                 text = req.text,
                 assetId = req.assetId,
                 trackId = req.trackId,

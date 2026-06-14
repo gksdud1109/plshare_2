@@ -3,7 +3,6 @@ package com.plshare.backend.domain.gift
 import com.plshare.backend.domain.asset.model.Asset
 import com.plshare.backend.domain.asset.repository.AssetRepository
 import com.plshare.backend.domain.gift.dto.CreateGiftRequest
-import com.plshare.backend.domain.gift.dto.SaveGiftRequest
 import com.plshare.backend.domain.gift.model.Gift
 import com.plshare.backend.domain.gift.model.GiftStatus
 import com.plshare.backend.domain.gift.repository.GiftRepository
@@ -31,6 +30,7 @@ import java.util.function.Function
  * (b) open 멱등 — 두 번 호출해도 openedAt 최초값 유지
  * (c) 없는 자산 → NOT_FOUND
  * (d) save → status SAVED + savedByUserId 전이
+ * (e) save 멱등 — first-writer-wins(제3자가 최초 수령자 기록을 덮어쓰지 못함)
  */
 class GiftServiceTest {
 
@@ -60,12 +60,11 @@ class GiftServiceTest {
     @Test
     fun `선물 생성 - token과 url이 발급된다`() {
         val req = CreateGiftRequest(
-            senderId = sender.id,
             assetId = asset.id,
             message = "보내요",
             wrapSkin = "nocturne-violet",
         )
-        val resp = service.create(req)
+        val resp = service.create(req, sender.id)
 
         assertNotNull(resp.token)
         assertTrue(resp.token.isNotBlank())
@@ -83,12 +82,11 @@ class GiftServiceTest {
     @Test
     fun `open 멱등 - 두 번 호출해도 openedAt이 최초값을 유지한다`() {
         val req = CreateGiftRequest(
-            senderId = sender.id,
             assetId = asset.id,
             message = "첫 번째 열기",
             wrapSkin = "nocturne-rose",
         )
-        val token = service.create(req).token
+        val token = service.create(req, sender.id).token
 
         service.open(token)
         val firstOpenedAt = giftRepo.findByToken(token)!!.openedAt
@@ -107,13 +105,12 @@ class GiftServiceTest {
     @Test
     fun `없는 assetId로 선물 생성 시 NOT_FOUND`() {
         val req = CreateGiftRequest(
-            senderId = sender.id,
             assetId = UUID.randomUUID(), // 존재하지 않음
             message = "없는 자산",
             wrapSkin = "nocturne-teal",
         )
         val ex = assertThrows(ApiException::class.java) {
-            service.create(req)
+            service.create(req, sender.id)
         }
         assertEquals(ErrorCode.NOT_FOUND, ex.code)
     }
@@ -125,19 +122,42 @@ class GiftServiceTest {
     @Test
     fun `save 호출 시 status가 SAVED로 전이되고 savedByUserId가 기록된다`() {
         val req = CreateGiftRequest(
-            senderId = sender.id,
             assetId = asset.id,
             message = "저장해요",
             wrapSkin = "nocturne-gold",
         )
-        val token = service.create(req).token
+        val token = service.create(req, sender.id).token
 
         val receiver = userRepo.saveUser(User(displayName = "Bob", handle = "bob"))
-        service.save(token, SaveGiftRequest(userId = receiver.id))
+        service.save(token, receiver.id)
 
         val saved = giftRepo.findByToken(token)!!
         assertEquals(GiftStatus.SAVED, saved.status)
         assertEquals(receiver.id, saved.savedByUserId)
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // (e) save 멱등 — 최초 저장자만 기록, 제3자가 덮어쓰지 못한다(first-writer-wins)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun `save 멱등 - 두 번째 저장자는 최초 savedByUserId를 덮어쓰지 못한다`() {
+        val req = CreateGiftRequest(
+            assetId = asset.id,
+            message = "선착순 저장",
+            wrapSkin = "nocturne-gold",
+        )
+        val token = service.create(req, sender.id).token
+
+        val firstReceiver = userRepo.saveUser(User(displayName = "Bob", handle = "bob"))
+        val secondReceiver = userRepo.saveUser(User(displayName = "Carol", handle = "carol"))
+
+        service.save(token, firstReceiver.id)
+        service.save(token, secondReceiver.id) // 두 번째 호출 — 무시되어야 함
+
+        val saved = giftRepo.findByToken(token)!!
+        assertEquals(GiftStatus.SAVED, saved.status)
+        assertEquals(firstReceiver.id, saved.savedByUserId) // 최초 저장자 유지
     }
 }
 

@@ -73,7 +73,6 @@ export default function GiftSendPage() {
     );
   }
 
-  const userId = session.user.userId;
   const remaining = 500 - message.length;
 
   async function handleSubmit(e: React.FormEvent) {
@@ -84,7 +83,6 @@ export default function GiftSendPage() {
       const result = usingFixture && demoFixturesEnabled()
         ? buildDemoGiftCreated()
         : await createGift({
-            senderId: userId,
             assetId: selectedAssetId,
             message: message.trim(),
             wrapSkin,

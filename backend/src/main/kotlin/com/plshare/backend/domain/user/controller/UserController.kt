@@ -9,8 +9,7 @@ import com.plshare.backend.global.response.ApiResponse
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
 import java.util.UUID
-import com.plshare.backend.global.security.ApplicationPrincipal
-import org.springframework.security.core.annotation.AuthenticationPrincipal
+import com.plshare.backend.global.security.CurrentUserId
 
 @RestController
 @RequestMapping("/api/users")
@@ -19,25 +18,16 @@ class UserController(
 ) {
 
     /**
-     * Returns the private profile for the given user.
-     *
-     * NOTE (pre-session integration): This endpoint currently accepts [userId] as a query
-     * parameter rather than resolving identity from a session/JWT. This is intentional —
-     * full session wiring (Spring Security + JWT) is deferred to a later task. Once that
-     * lands, this parameter will be replaced by `@AuthenticationPrincipal`.
-     *
-     * Until then callers supply the userId obtained from the Google OAuth callback redirect
-     * (`?session=<userId>`).
+     * Returns the private profile for the current session user.
+     * 신원은 [CurrentUserId](세션 principal)로만 해석한다 — 미인증이면 401.
      */
     @GetMapping("/me")
     @Transactional(readOnly = true)
     fun me(
-        @RequestParam("userId", required = false) userId: UUID?,
-        @AuthenticationPrincipal principal: ApplicationPrincipal?,
+        @CurrentUserId userId: UUID,
     ): ApiResponse<UserMeDto> {
-        val resolvedUserId = principal?.userId ?: requireNotNull(userId) { "userId required" }
-        val user = userRepository.findById(resolvedUserId).orElseThrow {
-            ApiException(ErrorCode.NOT_FOUND, "User not found: $resolvedUserId")
+        val user = userRepository.findById(userId).orElseThrow {
+            ApiException(ErrorCode.NOT_FOUND, "User not found: $userId")
         }
         return ApiResponse.ok(UserMeDto.from(user))
     }

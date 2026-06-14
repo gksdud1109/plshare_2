@@ -3,17 +3,17 @@ package com.plshare.backend.domain.gift.controller
 import com.plshare.backend.domain.gift.dto.*
 import com.plshare.backend.domain.gift.service.GiftService
 import com.plshare.backend.global.response.ApiResponse
+import com.plshare.backend.global.security.CurrentUserId
 import org.springframework.web.bind.annotation.*
-import com.plshare.backend.global.security.ApplicationPrincipal
-import org.springframework.security.core.annotation.AuthenticationPrincipal
+import java.util.UUID
 
 /**
- * 감성 선물 API.
+ * 감성 선물 API. 발신자/수신자 신원은 [CurrentUserId](세션 principal)로만 해석한다.
  *
- * - POST /api/gifts          : 선물 생성 → {token, url}
- * - GET  /api/gifts/{token}  : 공개 선물 뷰 (인증 불필요)
- * - POST /api/gifts/{token}/open : 언박싱 진입 (status OPENED + openedAt, 멱등)
- * - POST /api/gifts/{token}/save : 라이브러리 저장 (status SAVED + savedByUserId)
+ * - POST /api/gifts              : 선물 생성 → {token, url}  (인증 필수)
+ * - GET  /api/gifts/{token}      : 공개 선물 뷰 (인증 불필요)
+ * - POST /api/gifts/{token}/open : 언박싱 진입 (status OPENED + openedAt, 멱등, 익명 허용)
+ * - POST /api/gifts/{token}/save : 라이브러리 저장 (status SAVED + savedByUserId, 인증 필수, 멱등)
  */
 @RestController
 @RequestMapping("/api/gifts")
@@ -24,14 +24,9 @@ class GiftController(
     @PostMapping
     fun create(
         @RequestBody req: CreateGiftRequest,
-        @AuthenticationPrincipal principal: ApplicationPrincipal?,
+        @CurrentUserId senderId: UUID,
     ): ApiResponse<GiftCreatedResponse> =
-        ApiResponse.ok(
-            giftService.create(
-                req.copy(senderId = principal?.userId ?: req.senderId),
-                requireOwnedAsset = principal != null,
-            )
-        )
+        ApiResponse.ok(giftService.create(req, senderId, requireOwnedAsset = true))
 
     @GetMapping("/{token}")
     fun view(@PathVariable token: String): ApiResponse<GiftViewResponse> =
@@ -44,8 +39,7 @@ class GiftController(
     @PostMapping("/{token}/save")
     fun save(
         @PathVariable token: String,
-        @RequestBody req: SaveGiftRequest,
-        @AuthenticationPrincipal principal: ApplicationPrincipal?,
+        @CurrentUserId userId: UUID,
     ): ApiResponse<GiftViewResponse> =
-        ApiResponse.ok(giftService.save(token, req.copy(userId = principal?.userId ?: req.userId)))
+        ApiResponse.ok(giftService.save(token, userId))
 }

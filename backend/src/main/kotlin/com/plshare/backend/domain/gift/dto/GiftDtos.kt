@@ -7,9 +7,8 @@ import com.plshare.backend.domain.gift.model.GiftStatus
 import com.plshare.backend.domain.user.model.User
 import java.util.UUID
 
-/** POST /api/gifts 요청 바디. */
+/** POST /api/gifts 요청 바디. 발신자는 @CurrentUserId(세션 principal)로 해석한다. */
 data class CreateGiftRequest(
-    val senderId: UUID,
     val assetId: UUID,
     val message: String,
     val wrapSkin: String,
@@ -72,8 +71,3 @@ data class GiftAssetDto(
         )
     }
 }
-
-/** POST /api/gifts/{token}/save 요청 바디. */
-data class SaveGiftRequest(
-    val userId: UUID,
-)

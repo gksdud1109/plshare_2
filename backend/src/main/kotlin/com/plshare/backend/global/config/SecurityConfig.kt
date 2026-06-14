@@ -28,6 +28,12 @@ class SecurityConfig(
             .authorizeHttpRequests { auth ->
                 auth.requestMatchers(AntPathRequestMatcher("/**")).permitAll()
             }
+            // 비차단 필터: 토큰이 있으면 principal 을 세우고, 없으면 익명 통과(permitAll).
+            // prod 와 동일하게 @CurrentUserId 가 demo 에서도 토큰 기반 신원을 해석하게 한다.
+            .addFilterBefore(
+                applicationSessionFilter,
+                org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter::class.java,
+            )
             .httpBasic { it.disable() }
             .formLogin { it.disable() }
         return http.build()

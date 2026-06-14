@@ -127,6 +127,39 @@ export async function POST(request: Request) {
     );
   }
 
+  /**
+   * 데모도 prod 와 동일하게 실제 서명된 세션 토큰으로 신원을 전달한다.
+   * BE 의 @Profile("demo") POST /api/auth/demo-session 이 시드된 데모 유저의 토큰을 발급한다.
+   * → BFF 가 Authorization: Bearer 로 첨부 → 컨트롤러는 @CurrentUserId 로 신원 해석(요청 param 폴백 없음).
+   * BE 데모 엔드포인트가 없을 때는 기존처럼 토큰 없는 데모 세션으로 폴백(읽기 위주 데모 유지).
+   */
+  try {
+    const demoTokenRes = await fetch(`${API_BASE_URL}/api/auth/demo-session`, {
+      method: "POST",
+      cache: "no-store",
+    });
+    if (demoTokenRes.ok) {
+      const payload = (await demoTokenRes.json()) as unknown;
+      const data = (
+        payload !== null && typeof payload === "object" && "data" in payload
+          ? (payload as { data: { sessionToken?: string; userId?: string } }).data
+          : payload
+      ) as { sessionToken?: string; userId?: string };
+      if (data?.sessionToken) {
+        const session: Session = {
+          sessionToken: data.sessionToken,
+          userId: data.userId,
+          grantId: "demo-grant",
+          demo: true,
+        };
+        await setSessionCookie(session);
+        return NextResponse.json({ authenticated: true, session });
+      }
+    }
+  } catch {
+    // BE 미가용 → 토큰 없는 데모 세션으로 폴백
+  }
+
   const session: Session = { grantId: "demo-grant", demo: true };
   await setSessionCookie(session);
 

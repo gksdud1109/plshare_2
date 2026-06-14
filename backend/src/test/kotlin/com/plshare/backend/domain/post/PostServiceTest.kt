@@ -67,15 +67,15 @@ class PostServiceTest {
 
     @Test
     fun `text 500자 이하 - 포스트 생성 성공`() {
-        val req = CreatePostRequest(authorId = alice.id, text = "a".repeat(500))
-        val resp = service.create(req)
+        val req = CreatePostRequest(text = "a".repeat(500))
+        val resp = service.create(req, alice.id)
         assertEquals(500, resp.text.length)
     }
 
     @Test
     fun `text 501자 - VALIDATION_FAILED`() {
-        val req = CreatePostRequest(authorId = alice.id, text = "a".repeat(501))
-        val ex = assertThrows(ApiException::class.java) { service.create(req) }
+        val req = CreatePostRequest(text = "a".repeat(501))
+        val ex = assertThrows(ApiException::class.java) { service.create(req, alice.id) }
         assertEquals(ErrorCode.VALIDATION_FAILED, ex.code)
     }
 
@@ -135,8 +135,8 @@ class PostServiceTest {
 
     @Test
     fun `존재하지 않는 author로 포스트 생성 - NOT_FOUND`() {
-        val req = CreatePostRequest(authorId = UUID.randomUUID(), text = "hello")
-        val ex = assertThrows(ApiException::class.java) { service.create(req) }
+        val req = CreatePostRequest(text = "hello")
+        val ex = assertThrows(ApiException::class.java) { service.create(req, UUID.randomUUID()) }
         assertEquals(ErrorCode.NOT_FOUND, ex.code)
     }
 }

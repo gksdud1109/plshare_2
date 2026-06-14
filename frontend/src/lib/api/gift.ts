@@ -2,7 +2,6 @@ import type { GiftCreated, GiftView } from "@/types/gift";
 import { apiFetch } from "./client";
 
 export interface CreateGiftInput {
-  senderId: string;
   assetId: string;
   message: string;
   wrapSkin: string;
@@ -26,12 +25,9 @@ export async function openGift(token: string): Promise<GiftView> {
   return apiFetch<GiftView>(`/api/gifts/${token}/open`, { method: "POST" });
 }
 
-/** POST /api/gifts/{token}/save — 라이브러리 저장 */
-export async function saveGift(token: string, userId: string): Promise<GiftView> {
-  return apiFetch<GiftView>(`/api/gifts/${token}/save`, {
-    method: "POST",
-    body: { userId },
-  });
+/** POST /api/gifts/{token}/save — 라이브러리 저장 (인증 필수, 수신자는 세션 principal로 해석) */
+export async function saveGift(token: string): Promise<GiftView> {
+  return apiFetch<GiftView>(`/api/gifts/${token}/save`, { method: "POST" });
 }
 
 /**

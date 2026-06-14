@@ -39,15 +39,16 @@ class GiftService(
     @Transactional
     fun create(
         req: CreateGiftRequest,
+        senderId: UUID,
         requireOwnedAsset: Boolean = false,
     ): GiftCreatedResponse {
-        userRepository.findById(req.senderId).orElseThrow {
-            ApiException(ErrorCode.NOT_FOUND, "발신자를 찾을 수 없습니다: ${req.senderId}")
+        userRepository.findById(senderId).orElseThrow {
+            ApiException(ErrorCode.NOT_FOUND, "발신자를 찾을 수 없습니다: $senderId")
         }
         val asset = assetRepository.findById(req.assetId).orElseThrow {
             ApiException(ErrorCode.NOT_FOUND, "자산을 찾을 수 없습니다: ${req.assetId}")
         }
-        if (requireOwnedAsset && asset.ownerId != req.senderId) {
+        if (requireOwnedAsset && asset.ownerId != senderId) {
             throw ApiException(ErrorCode.FORBIDDEN, "본인 소유 자산만 선물할 수 있습니다")
         }
         if (req.message.length > 500) {
@@ -56,7 +57,7 @@ class GiftService(
 
         val token = UUID.randomUUID().toString().replace("-", "").take(16)
         val gift = Gift(
-            senderId = req.senderId,
+            senderId = senderId,
             assetId = req.assetId,
             message = req.message,
             wrapSkin = req.wrapSkin,
@@ -108,23 +109,26 @@ class GiftService(
     }
 
     /**
-     * 수신자 라이브러리 저장.
+     * 수신자 라이브러리 저장 — 멱등(first-writer-wins).
      *
-     * v1: 자산 복제 없이 수령 기록(savedByUserId)만 남긴다.
-     * 향후 자산 소유권 모델(ownerId) 도입 시 수령자 라이브러리로 Asset을 복제하는
-     * 로직을 여기에 추가한다.
+     * 최초 저장자만 savedByUserId 로 기록한다. 이미 저장된 선물은 상태를 그대로 두고
+     * 현재 뷰를 반환한다 — 공유 링크를 받은 제3자가 최초 수령자의 기록을 덮어쓰는 것을 막는다.
+     * v1: 자산 복제 없이 수령 기록만 남긴다. 향후 ownerId 모델 도입 시 Asset 복제 추가.
      */
     @Transactional
-    fun save(token: String, req: SaveGiftRequest): GiftViewResponse {
+    fun save(token: String, savedByUserId: UUID): GiftViewResponse {
         val gift = giftRepository.findByToken(token)
             ?: throw ApiException(ErrorCode.NOT_FOUND, "선물을 찾을 수 없습니다: $token")
 
-        userRepository.findById(req.userId).orElseThrow {
-            ApiException(ErrorCode.NOT_FOUND, "수신자를 찾을 수 없습니다: ${req.userId}")
+        if (gift.savedByUserId == null) {
+            userRepository.findById(savedByUserId).orElseThrow {
+                ApiException(ErrorCode.NOT_FOUND, "수신자를 찾을 수 없습니다: $savedByUserId")
+            }
+            gift.status = GiftStatus.SAVED
+            gift.savedByUserId = savedByUserId
+            giftRepository.save(gift)
         }
-        gift.status = GiftStatus.SAVED
-        gift.savedByUserId = req.userId
-        giftRepository.save(gift)
+        // 이미 저장됨 → 멱등, 상태 그대로 반환
 
         val sender = userRepository.findById(gift.senderId).orElseThrow {
             ApiException(ErrorCode.NOT_FOUND, "발신자를 찾을 수 없습니다: ${gift.senderId}")
