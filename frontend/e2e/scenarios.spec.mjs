@@ -279,7 +279,18 @@ async function authedContext(browser) {
     rec('메시지 전송(mine=true)', sent?.mine === true && sent?.body === body);
     const thread = (await j(`${BE}/api/conversations/${c1.id}/messages`, { headers: auth })).data;
     rec('스레드에 전송 메시지 반영', (thread?.messages || []).some((m) => m.body === body));
-    rec('스레드 조회 시 읽음 처리(unread=0)', (thread?.conversation?.unreadCount ?? 1) === 0);
+    // 증분 폴링: after=마지막 createdAt 이면 신규 0건(전송중립 위생)
+    const lastTs = thread.messages[thread.messages.length - 1].createdAt;
+    const inc = (await j(`${BE}/api/conversations/${c1.id}/messages?after=${encodeURIComponent(lastTs)}`, { headers: auth })).data;
+    rec('증분 조회(after=마지막) 신규 0건', Array.isArray(inc?.messages) && inc.messages.length === 0);
+    // 읽음 분리: GET 은 읽음 처리 안 함 → 소율 대화는 POST /read 로만 0이 된다
+    if (unreadConv) {
+      const beforeRead = (await j(`${BE}/api/conversations/${unreadConv.id}/messages`, { headers: auth })).data;
+      rec('GET 조회는 읽음 처리 안 함(소율 unread 유지)', (beforeRead?.conversation?.unreadCount ?? 0) >= 1);
+      await fetch(`${BE}/api/conversations/${unreadConv.id}/read`, { method: 'POST', headers: auth });
+      const afterRead = (await j(`${BE}/api/conversations/${unreadConv.id}/messages`, { headers: auth })).data;
+      rec('POST /read 후 읽음 처리(unread=0)', (afterRead?.conversation?.unreadCount ?? 1) === 0);
+    }
     // 비참여자 차단 — 임의 UUID 스레드는 404(없음)
     const ghost = await fetch(`${BE}/api/conversations/00000000-0000-0000-0000-000000000000/messages`, { headers: auth });
     rec('존재하지 않는 대화 404', ghost.status === 404);

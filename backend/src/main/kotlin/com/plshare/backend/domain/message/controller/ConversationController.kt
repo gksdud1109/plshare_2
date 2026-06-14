@@ -4,7 +4,9 @@ import com.plshare.backend.domain.message.dto.*
 import com.plshare.backend.domain.message.service.ConversationService
 import com.plshare.backend.global.response.ApiResponse
 import com.plshare.backend.global.security.CurrentUserId
+import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.web.bind.annotation.*
+import java.time.LocalDateTime
 import java.util.UUID
 
 /**
@@ -38,12 +40,16 @@ class ConversationController(
     fun unreadCount(@CurrentUserId meId: UUID): ApiResponse<UnreadCountResponse> =
         ApiResponse.ok(UnreadCountResponse(conversationService.unreadTotal(meId)))
 
+    /** 스레드 조회. after(ISO-8601) 가 있으면 그 시각 이후 신규 메시지만(증분 폴링). 읽음 처리 안 함. */
     @GetMapping("/{id}/messages")
     fun thread(
         @PathVariable id: UUID,
+        @RequestParam(required = false)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+        after: LocalDateTime?,
         @CurrentUserId meId: UUID,
     ): ApiResponse<ThreadResponse> =
-        ApiResponse.ok(conversationService.getThread(id, meId))
+        ApiResponse.ok(conversationService.getThread(id, meId, after))
 
     @PostMapping("/{id}/messages")
     fun send(
@@ -52,4 +58,14 @@ class ConversationController(
         @CurrentUserId meId: UUID,
     ): ApiResponse<MessageDto> =
         ApiResponse.ok(conversationService.sendMessage(id, meId, req.body))
+
+    /** 읽음 처리(멱등) — GET 조회와 분리된 명시적 사이드이펙트 엔드포인트. */
+    @PostMapping("/{id}/read")
+    fun read(
+        @PathVariable id: UUID,
+        @CurrentUserId meId: UUID,
+    ): ApiResponse<Unit> {
+        conversationService.markRead(id, meId)
+        return ApiResponse.ok(Unit)
+    }
 }

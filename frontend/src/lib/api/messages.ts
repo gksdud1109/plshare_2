@@ -16,9 +16,23 @@ export async function startConversation(
   });
 }
 
-/** GET /api/conversations/{id}/messages — 스레드 조회(+읽음 처리). 인증 필요. */
-export async function getThread(conversationId: string): Promise<Thread> {
-  return apiFetch<Thread>(`/api/conversations/${conversationId}/messages`);
+/**
+ * GET /api/conversations/{id}/messages — 스레드 조회. 인증 필요.
+ * after(ISO-8601)를 주면 그 시각 이후 신규 메시지만(증분 폴링). 읽음 처리는 하지 않음.
+ */
+export async function getThread(
+  conversationId: string,
+  after?: string,
+): Promise<Thread> {
+  const qs = after ? `?after=${encodeURIComponent(after)}` : "";
+  return apiFetch<Thread>(`/api/conversations/${conversationId}/messages${qs}`);
+}
+
+/** POST /api/conversations/{id}/read — 읽음 처리(멱등). GET 조회와 분리. 인증 필요. */
+export async function markConversationRead(conversationId: string): Promise<void> {
+  await apiFetch<unknown>(`/api/conversations/${conversationId}/read`, {
+    method: "POST",
+  });
 }
 
 /** POST /api/conversations/{id}/messages — 메시지 전송. 인증 필요. */

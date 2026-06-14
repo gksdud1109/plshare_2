@@ -73,21 +73,31 @@ class ConversationService(
             .sumOf { unreadCountFor(it, meId) }
 
     /**
-     * 스레드 조회 — 참여자 검증 후 메시지 전체 반환. 조회 시 호출자 읽음 처리.
+     * 스레드 조회 — 참여자 검증. `after` 가 있으면 그 시각 이후 메시지만(증분 폴링).
+     *
+     * 순수 읽기(사이드이펙트 없음). 읽음 처리는 [markRead] 로 분리했다 —
+     * GET 의 부수효과로 읽음을 갱신하면 (a) 프리페치/중복요청에 취약하고
+     * (b) 폴링→SSE→Realtime 전환 시 전송계층마다 읽음 시맨틱이 새는 것을 막는다.
      */
-    @Transactional
-    fun getThread(conversationId: UUID, meId: UUID): ThreadResponse {
+    fun getThread(conversationId: UUID, meId: UUID, after: LocalDateTime? = null): ThreadResponse {
         val conversation = requireParticipant(conversationId, meId)
-        val messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId)
-
-        // 스레드를 열었으므로 읽음 처리.
-        conversation.markReadFor(meId, LocalDateTime.now())
-        conversationRepository.save(conversation)
-
+        val messages = if (after != null) {
+            messageRepository.findByConversationIdAndCreatedAtAfterOrderByCreatedAtAsc(conversationId, after)
+        } else {
+            messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId)
+        }
         return ThreadResponse(
             conversation = toSummary(conversation, meId),
             messages = messages.map { MessageDto.from(it, meId) },
         )
+    }
+
+    /** 읽음 처리 — 멱등. 호출자의 lastReadAt 을 현재로 갱신(전송계층 무관 단일 진실). */
+    @Transactional
+    fun markRead(conversationId: UUID, meId: UUID) {
+        val conversation = requireParticipant(conversationId, meId)
+        conversation.markReadFor(meId, LocalDateTime.now())
+        conversationRepository.save(conversation)
     }
 
     /** 메시지 전송 — 참여자 검증 후 저장 + 대화방 비정규화 필드 갱신. */
