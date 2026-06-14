@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SessionBadge } from "@/components/ui/SessionBadge";
+import { MessagesNavLink } from "@/components/ui/MessagesNavLink";
 import { conversionEnabled } from "@/lib/flags";
 import { cn } from "@/lib/utils/cn";
 
@@ -50,6 +51,7 @@ export function PageShell({
                 >
                   선물함
                 </Link>
+                <MessagesNavLink />
                 {conversionEnabled() ? (
                   <Link
                     href="/convert"

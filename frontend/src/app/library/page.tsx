@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useSessionUser } from "@/lib/auth/useSessionUser";
 import { getReceivedGifts, getSentGifts } from "@/lib/api/gift";
+import { startConversation } from "@/lib/api/messages";
 import { messageFromError } from "@/lib/errors";
+import { useToast } from "@/components/ui/ToastProvider";
 import { PageShell } from "@/components/ui/PageShell";
 import { ProgressNarrative } from "@/components/ui/ProgressNarrative";
 import { WRAP_SKINS, type GiftSummary } from "@/types/gift";
@@ -30,8 +33,22 @@ const STATUS_LABEL: Record<GiftSummary["status"], string> = {
 
 export default function LibraryPage() {
   const session = useSessionUser();
+  const router = useRouter();
+  const toast = useToast();
   const [tab, setTab] = useState<Tab>("received");
   const [state, setState] = useState<State>({ kind: "loading" });
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+
+  async function handleReply(handle: string) {
+    setReplyingTo(handle);
+    try {
+      const conv = await startConversation(handle);
+      router.push(`/messages/${conv.id}`);
+    } catch (err) {
+      toast.error(messageFromError(err, "답장을 시작하지 못했어요."));
+      setReplyingTo(null);
+    }
+  }
 
   useEffect(() => {
     if (session.status !== "authenticated") return;
@@ -133,7 +150,13 @@ export default function LibraryPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 pb-16 sm:grid-cols-2">
           {state.gifts.map((g) => (
-            <GiftCard key={g.token} gift={g} tab={tab} />
+            <GiftCard
+              key={g.token}
+              gift={g}
+              tab={tab}
+              onReply={tab === "received" ? handleReply : undefined}
+              replying={replyingTo === g.sender.handle}
+            />
           ))}
         </div>
       )}
@@ -141,47 +164,73 @@ export default function LibraryPage() {
   );
 }
 
-function GiftCard({ gift, tab }: { gift: GiftSummary; tab: Tab }) {
+function GiftCard({
+  gift,
+  tab,
+  onReply,
+  replying,
+}: {
+  gift: GiftSummary;
+  tab: Tab;
+  onReply?: (handle: string) => void;
+  replying?: boolean;
+}) {
   const accent = wrapAccent(gift.wrapSkin);
   return (
-    <Link
-      href={`/gift/${gift.token}`}
-      className="group relative flex gap-4 overflow-hidden rounded-[16px] border bg-surface-1 p-4 transition-all duration-200 hover:-translate-y-0.5 focus-ring"
+    <div
+      className="group relative flex flex-col overflow-hidden rounded-[16px] border bg-surface-1 transition-all duration-200 hover:-translate-y-0.5"
       style={{ borderColor: "var(--color-hairline)", boxShadow: "var(--shadow-card)" }}
     >
       {/* Wrap accent edge */}
       <span
-        className="absolute inset-y-0 left-0 w-1"
+        className="absolute inset-y-0 left-0 z-10 w-1"
         style={{ background: accent }}
         aria-hidden
       />
-      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[12px] bg-surface-2">
-        {gift.assetCoverUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={gift.assetCoverUrl} alt={gift.assetTitle} className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-2xl text-text-low">♪</div>
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span
-            className="rounded-full px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide"
-            style={{ background: "var(--color-surface-3)", color: accent }}
-          >
-            {STATUS_LABEL[gift.status]}
-          </span>
+      <Link href={`/gift/${gift.token}`} className="flex gap-4 p-4 focus-ring">
+        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[12px] bg-surface-2">
+          {gift.assetCoverUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={gift.assetCoverUrl} alt={gift.assetTitle} className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-2xl text-text-low">♪</div>
+          )}
         </div>
-        <p className="mt-1.5 truncate text-[0.9375rem] font-semibold text-text-hi">
-          {gift.assetTitle}
-        </p>
-        <p className="mt-0.5 text-xs text-text-mid">
-          {tab === "received"
-            ? `${gift.sender.displayName}님이 보냈어요`
-            : `${gift.trackCount}곡 · 내가 보낸 선물`}
-        </p>
-        <p className="mt-2 line-clamp-2 text-xs text-text-low">{gift.message}</p>
-      </div>
-    </Link>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span
+              className="rounded-full px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide"
+              style={{ background: "var(--color-surface-3)", color: accent }}
+            >
+              {STATUS_LABEL[gift.status]}
+            </span>
+          </div>
+          <p className="mt-1.5 truncate text-[0.9375rem] font-semibold text-text-hi">
+            {gift.assetTitle}
+          </p>
+          <p className="mt-0.5 text-xs text-text-mid">
+            {tab === "received"
+              ? `${gift.sender.displayName}님이 보냈어요`
+              : `${gift.trackCount}곡 · 내가 보낸 선물`}
+          </p>
+          <p className="mt-2 line-clamp-2 text-xs text-text-low">{gift.message}</p>
+        </div>
+      </Link>
+      {onReply && (
+        <div className="border-t border-hairline px-4 py-2.5">
+          <button
+            type="button"
+            onClick={() => onReply(gift.sender.handle)}
+            disabled={replying}
+            className="flex items-center gap-1.5 text-xs font-semibold text-accent transition-colors hover:text-accent-hi disabled:opacity-50 focus-ring"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <path d="M8 13s-5-3-5-6.5A2.5 2.5 0 018 4a2.5 2.5 0 015 2.5C13 10 8 13 8 13z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            {replying ? "여는 중…" : `${gift.sender.displayName}님에게 답장`}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
