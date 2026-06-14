@@ -24,7 +24,7 @@ export function TrackEmbed({
       >
         <iframe
           title={`${title} — YouTube`}
-          src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+          src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&playsinline=1`}
           allow="autoplay; encrypted-media; picture-in-picture"
           allowFullScreen
           className="h-full w-full"
