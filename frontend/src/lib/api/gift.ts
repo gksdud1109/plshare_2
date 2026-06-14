@@ -1,5 +1,15 @@
-import type { GiftCreated, GiftView } from "@/types/gift";
+import type { GiftCreated, GiftView, GiftSummary } from "@/types/gift";
 import { apiFetch } from "./client";
+
+/** GET /api/gifts/received — 받은(저장한) 선물 목록 (인증 필요) */
+export async function getReceivedGifts(): Promise<GiftSummary[]> {
+  return apiFetch<GiftSummary[]>("/api/gifts/received");
+}
+
+/** GET /api/gifts/sent — 보낸 선물 목록 (인증 필요) */
+export async function getSentGifts(): Promise<GiftSummary[]> {
+  return apiFetch<GiftSummary[]>("/api/gifts/sent");
+}
 
 export interface CreateGiftInput {
   assetId: string;

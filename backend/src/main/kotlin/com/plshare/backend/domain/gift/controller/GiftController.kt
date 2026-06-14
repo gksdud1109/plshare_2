@@ -28,6 +28,16 @@ class GiftController(
     ): ApiResponse<GiftCreatedResponse> =
         ApiResponse.ok(giftService.create(req, senderId, requireOwnedAsset = true))
 
+    /** 받은(저장한) 선물 목록 — 인증 필수. (literal 경로라 /{token} 보다 우선 매칭) */
+    @GetMapping("/received")
+    fun received(@CurrentUserId userId: UUID): ApiResponse<List<GiftSummaryResponse>> =
+        ApiResponse.ok(giftService.received(userId))
+
+    /** 보낸 선물 목록 — 인증 필수. */
+    @GetMapping("/sent")
+    fun sent(@CurrentUserId userId: UUID): ApiResponse<List<GiftSummaryResponse>> =
+        ApiResponse.ok(giftService.sent(userId))
+
     @GetMapping("/{token}")
     fun view(@PathVariable token: String): ApiResponse<GiftViewResponse> =
         ApiResponse.ok(giftService.view(token))
