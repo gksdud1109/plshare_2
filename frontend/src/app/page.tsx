@@ -74,7 +74,7 @@ export default function LandingPage() {
             {/* Gift-first 입구 — 데모-aware 로그인 게이트(/auth/continue)로. 데모는 외부 화면 없이
                 원클릭, 실인증은 returnTo 보존 Google OAuth. plain <a> 로 Next prefetch 방지. */}
             <a
-              href="/auth/continue?returnTo=%2Fgift%2Fsend"
+              href="/auth/continue?returnTo=%2Fcreate"
               className="inline-flex h-12 items-center gap-3 rounded-full bg-accent px-6 text-sm font-semibold text-white transition-all duration-300 hover:bg-accent-hi hover:shadow-[0_0_24px_-4px_rgba(124,92,255,0.7)] active:bg-accent-press focus-ring"
               style={{ letterSpacing: "0.01em" }}
             >

@@ -33,8 +33,14 @@ export function PageShell({
             {showHomeLink ? (
               <>
                 <Link
-                  href="/gift/send"
+                  href="/create"
                   className="text-xs font-semibold uppercase tracking-[0.18em] text-accent transition-colors duration-200 hover:text-accent-hi"
+                >
+                  만들기
+                </Link>
+                <Link
+                  href="/gift/send"
+                  className="text-xs font-semibold uppercase tracking-[0.18em] text-text-mid transition-colors duration-200 hover:text-text-hi"
                 >
                   선물
                 </Link>
