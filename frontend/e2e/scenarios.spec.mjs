@@ -171,26 +171,26 @@ async function authedContext(browser) {
   // ── S6: 소셜 — 프로필/팔로우 ───────────────────────────────────────────
   console.log('\n═══ S6: 소셜 — 프로필/팔로우 ═══');
   try {
-    // 2번째 유저(alice) 보장 — Postgres 직접 삽입(없으면)
-    await fetch(`${BE}/api/users/alice/follow-stats`).then(async (r) => {
+    // 2번째 유저(hyunwoo) 보장 — Postgres 직접 삽입(없으면)
+    await fetch(`${BE}/api/users/hyunwoo/follow-stats`).then(async (r) => {
       if (r.status === 404 || r.status >= 400) {
         // psql 삽입은 셸에서 별도 처리됨(setup). 여기선 존재 가정.
       }
     }).catch(() => {});
-    const before = (await j(`${BE}/api/users/alice/follow-stats`, { headers: auth }));
+    const before = (await j(`${BE}/api/users/hyunwoo/follow-stats`, { headers: auth }));
     if (before.status === 200) {
-      await postJson(`${BE}/api/users/alice/follow`, {}, auth);
-      const after = (await j(`${BE}/api/users/alice/follow-stats`, { headers: auth })).data;
+      await postJson(`${BE}/api/users/hyunwoo/follow`, {}, auth);
+      const after = (await j(`${BE}/api/users/hyunwoo/follow-stats`, { headers: auth })).data;
       rec('팔로우 → 팔로워 수 증가/isFollowing', after?.isFollowing === true || (after?.followerCount ?? 0) >= 1);
       // 자기 팔로우 거부 — followerId 는 토큰에서 해석(demo→demo)
       const self = await fetch(`${BE}/api/users/demo/follow`, { method: 'POST', headers: auth });
       rec('자기 자신 팔로우 거부(4xx)', self.status >= 400 && self.status < 500);
       // 언팔로우
-      await fetch(`${BE}/api/users/alice/follow`, { method: 'DELETE', headers: auth });
-      const un = (await j(`${BE}/api/users/alice/follow-stats`, { headers: auth })).data;
+      await fetch(`${BE}/api/users/hyunwoo/follow`, { method: 'DELETE', headers: auth });
+      const un = (await j(`${BE}/api/users/hyunwoo/follow-stats`, { headers: auth })).data;
       rec('언팔로우 → 팔로워 0', (un?.followerCount ?? 0) === 0);
     } else {
-      rec('alice 프로필 없음(팔로우 시나리오 스킵)', false);
+      rec('hyunwoo 프로필 없음(팔로우 시나리오 스킵)', false);
     }
     // 프로필 페이지 UI 렌더
     const ctx = await authedContext(browser);
