@@ -10,7 +10,7 @@ import { PageShell } from "@/components/ui/PageShell";
 import { ProgressNarrative } from "@/components/ui/ProgressNarrative";
 import { ShareTrackList } from "@/components/share/ShareTrackList";
 import { EmotionTagPicker } from "@/components/ui/EmotionTagPicker";
-import { Toast } from "@/components/ui/Toast";
+import { useToast } from "@/components/ui/ToastProvider";
 import { demoFixturesEnabled } from "@/lib/demo";
 import { toAbsoluteUrl } from "@/lib/url";
 
@@ -28,10 +28,7 @@ export default function AssetDetailPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
-  const [toast, setToast] = useState<{ open: boolean; msg: string }>({
-    open: false,
-    msg: "",
-  });
+  const toast = useToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -73,7 +70,7 @@ export default function AssetDetailPage() {
       }
       setSavedAt(Date.now());
     } catch {
-      setToast({ open: true, msg: "저장에 실패했어요." });
+      toast.error("저장에 실패했어요.");
     } finally {
       setSaving(false);
     }
@@ -90,9 +87,9 @@ export default function AssetDetailPage() {
         url = toAbsoluteUrl(`/share/${id}`);
       }
       await navigator.clipboard.writeText(url);
-      setToast({ open: true, msg: "공유 링크를 복사했어요." });
+      toast.success("공유 링크를 복사했어요.");
     } catch {
-      setToast({ open: true, msg: "공유 링크를 만들지 못했어요." });
+      toast.error("공유 링크를 만들지 못했어요.");
     }
   };
 
@@ -118,12 +115,6 @@ export default function AssetDetailPage() {
 
   return (
     <PageShell>
-      <Toast
-        open={toast.open}
-        message={toast.msg}
-        onClose={() => setToast({ open: false, msg: "" })}
-      />
-
       {state.usingFixture ? (
         <p className="mb-6 inline-flex rounded-full border border-hairline bg-surface-1 px-3 py-1 text-[0.6875rem] uppercase tracking-[0.18em] text-text-low">
           Demo data · 백엔드 연결 전
