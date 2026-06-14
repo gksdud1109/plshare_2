@@ -140,19 +140,39 @@ export APPLE_PRIVATE_KEY_PEM="$(awk 'NF{printf "%s\\n", $0}' AuthKey_ABCD123456.
 
 ---
 
-## §3 Google (예정)
+## §3 Google 로그인 (소셜로그인) — 연동 준비 완료
 
-> **이 섹션은 `be-user-identity-001` PR 머지 후 키 이름이 확정되면 채운다.**
-> 현재 `application-prod.yml`에 google 관련 설정 없음.
+> 코드/설정은 이미 배선돼 있다. **실 자격증명만 발급해 env 에 넣으면 동작한다.**
+> 데모(localhost)는 자격증명 없이 `/auth/continue` 게이트가 원클릭 데모 세션으로 진입하므로
+> 이 섹션은 **실 Google 로그인을 켤 때만** 필요하다.
 
-골격 절차 (확정 전 참고용):
+### 발급 절차
 
-1. [console.cloud.google.com](https://console.cloud.google.com) → APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID
+1. [console.cloud.google.com](https://console.cloud.google.com) → 프로젝트 선택 → **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**
 2. Application type: **Web application**
-3. Authorized redirect URIs: (be-user-identity-001 머지 후 확정)
-4. Client ID / Client Secret → env 주입 (키 이름 미확정)
+3. **Authorized redirect URIs** (서버사이드 콜백 — BE 가 받는다):
+   - 로컬: `http://localhost:8080/api/auth/google/callback`
+   - 배포: `https://<api-도메인>/api/auth/google/callback`
+   - (Authorized JavaScript origins 는 서버사이드 흐름이라 불필요)
+4. **OAuth consent screen**: 외부(External) + 테스트 사용자 등록(미검증 앱은 ≤100 테스트 유저). 로그인 전용 스코프는 기본(`openid`, `email`, `profile`). YouTube 내보내기(점진 동의)는 `scope=youtube` 파라미터가 붙을 때만 추가 요청된다.
+5. 발급된 **Client ID / Client Secret** 를 env 로 주입:
 
-**`be-user-identity-001` 머지 후**: `application-prod.yml`의 google 섹션 키를 확인하여 이 섹션과 `.env.example`을 업데이트할 것.
+```bash
+GOOGLE_CLIENT_ID=<client-id>.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=<client-secret>
+# 콘솔의 redirect URI 와 정확히 일치해야 함(기본값과 다를 때만 지정):
+GOOGLE_REDIRECT_URI=http://localhost:8080/api/auth/google/callback
+```
+
+키 이름은 `application-prod.yml`의 `google.client-id / client-secret / redirect-uri`(=`${GOOGLE_CLIENT_ID}` 등)와 `.env.example`(§ Google OAuth)에 이미 정의돼 있다.
+
+### 흐름 (코드 기준)
+
+- 진입: 어디서든 로그인 → `/auth/continue?returnTo=<경로>` 게이트.
+  - **localhost & `?live` 없음** → 외부 화면 없이 `POST /api/auth/session`(데모 세션 쿠키) → `returnTo` 복귀.
+  - **비-localhost 또는 `?live`** → BFF `/api/auth/google/start` → BE 가 Google 동의화면으로 302 → 콜백 `/api/auth/google/callback` → BE 가 user upsert(googleSubject 기준) + 서명 세션 토큰 발급 → `returnTo` 복귀.
+- **로컬에서 실 흐름 테스트**: `http://localhost:3000/auth/continue?returnTo=/feed&live=1` (env 에 실 키가 있어야 함).
+- demo 프로파일에선 `google.client-id=""`(application-demo.yml)이라 BFF start 가 502 를 반환한다 — 그래서 데모는 게이트의 원클릭 경로만 쓴다.
 
 ---
 
