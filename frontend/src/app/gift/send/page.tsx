@@ -12,6 +12,7 @@ import { WRAP_SKINS } from "@/types/gift";
 import type { AssetSummary } from "@/types/asset";
 import { messageFromError } from "@/lib/errors";
 import { toAbsoluteUrl } from "@/lib/url";
+import { useToast } from "@/components/ui/ToastProvider";
 
 /** 선물 메시지 최대 길이(자). 편지처럼 충분히 길게. */
 const MESSAGE_MAX = 3000;
@@ -19,11 +20,11 @@ const MESSAGE_MAX = 3000;
 type SendState =
   | { kind: "idle" }
   | { kind: "submitting" }
-  | { kind: "done"; token: string; url: string }
-  | { kind: "error"; message: string };
+  | { kind: "done"; token: string; url: string };
 
 export default function GiftSendPage() {
   const session = useSessionUser();
+  const toast = useToast();
   const [assets, setAssets] = useState<AssetSummary[]>([]);
   const [usingFixture, setUsingFixture] = useState(false);
   const [selectedAssetId, setSelectedAssetId] = useState("");
@@ -94,10 +95,8 @@ export default function GiftSendPage() {
           });
       setSendState({ kind: "done", token: result.token, url: result.url });
     } catch (err) {
-      setSendState({
-        kind: "error",
-        message: messageFromError(err, "선물 생성에 실패했어요"),
-      });
+      toast.error(messageFromError(err, "선물 생성에 실패했어요"));
+      setSendState({ kind: "idle" });
     }
   }
 
@@ -106,9 +105,10 @@ export default function GiftSendPage() {
       const fullUrl = toAbsoluteUrl(url);
       await navigator.clipboard.writeText(fullUrl);
       setCopied(true);
+      toast.success("링크를 복사했어요");
       setTimeout(() => setCopied(false), 2500);
     } catch {
-      // ignore clipboard errors
+      toast.error("링크 복사에 실패했어요");
     }
   }
 
@@ -243,10 +243,6 @@ export default function GiftSendPage() {
               </p>
               <WrapSkinPicker value={wrapSkin} onChange={setWrapSkin} />
             </section>
-
-            {sendState.kind === "error" && (
-              <p className="text-sm text-red-400">{sendState.message}</p>
-            )}
 
             <button
               type="submit"

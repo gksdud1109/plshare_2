@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ToastProvider } from "@/components/ui/ToastProvider";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -18,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="ko" className="h-full">
       <body className="bg-bg text-text flex min-h-full flex-col antialiased">
-        {children}
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );
