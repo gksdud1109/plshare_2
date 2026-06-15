@@ -15,6 +15,10 @@ export interface CreateGiftInput {
   assetId: string;
   message: string;
   wrapSkin: string;
+  /** 헌정 — 받는 사람 이름(선택, ≤40). */
+  dedicationTo?: string;
+  /** 계기(선택). */
+  occasion?: string;
 }
 
 /** POST /api/gifts */

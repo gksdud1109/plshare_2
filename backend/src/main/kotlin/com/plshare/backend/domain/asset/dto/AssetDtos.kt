@@ -1,6 +1,7 @@
 package com.plshare.backend.domain.asset.dto
 
 import com.plshare.backend.domain.asset.model.Asset
+import com.plshare.backend.domain.asset.model.AssetKind
 import com.plshare.backend.domain.asset.model.Track
 import java.time.LocalDateTime
 import java.util.UUID
@@ -37,6 +38,7 @@ data class AssetSummaryDto(
     val emotionTags: List<String>,
     val trackCount: Int,
     val sourcePlatform: String,
+    val assetKind: AssetKind,
     val createdAt: LocalDateTime
 ) {
     companion object {
@@ -48,6 +50,7 @@ data class AssetSummaryDto(
             emotionTags = a.emotionTags.toList(),
             trackCount = a.tracks.size,
             sourcePlatform = a.sourcePlatform,
+            assetKind = a.assetKind,
             createdAt = a.createdAt
         )
     }
@@ -64,6 +67,10 @@ data class AssetDetailDto(
     val sourcePlatform: String,
     val shareToken: String?,
     val tracks: List<TrackDto>,
+    val assetKind: AssetKind,
+    val moodVideoId: String?,
+    val moodChannelName: String?,
+    val moodTrackListText: String?,
     val createdAt: LocalDateTime
 ) {
     companion object {
@@ -78,6 +85,10 @@ data class AssetDetailDto(
             sourcePlatform = a.sourcePlatform,
             shareToken = a.shareToken,
             tracks = a.tracks.map { TrackDto.from(it) },
+            assetKind = a.assetKind,
+            moodVideoId = a.moodVideoId,
+            moodChannelName = a.moodChannelName,
+            moodTrackListText = a.moodTrackListText,
             createdAt = a.createdAt
         )
     }

@@ -35,6 +35,19 @@ data class ComposeAssetRequest(
     val trackIds: List<UUID>,
 )
 
+/**
+ * POST /api/assets/mood-video 요청 — 단일 유튜브 무드영상을 한 단위 자산(MOOD_VIDEO)으로.
+ * videoUrlOrId 는 전체 URL 또는 11자 videoId 둘 다 허용(서버에서 추출).
+ */
+data class CreateMoodVideoRequest(
+    val title: String,
+    val videoUrlOrId: String,
+    val channelName: String? = null,
+    val trackListText: String? = null,
+    val coverUrl: String? = null,
+    val emotionTags: List<String> = emptyList(),
+)
+
 /** 조립 결과 — 생성된 자산으로 이동하기 위한 최소 정보. */
 data class ComposedAssetResponse(
     val id: UUID,
