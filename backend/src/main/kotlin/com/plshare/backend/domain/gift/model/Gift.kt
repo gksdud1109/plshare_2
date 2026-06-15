@@ -58,6 +58,18 @@ class Gift(
     @Column(name = "token", nullable = false, unique = true, length = 32)
     val token: String,
 
+    /**
+     * 헌정 — 받는 사람 이름/애칭(최대 40자). message 본문과 분리해 봉투 겉면·언박싱 첫 화면·OG 카드에
+     * 단독 렌더한다. 익명 토큰 수신자를 '이 선물의 주인공'으로 못박는 키프세이크의 출발점.
+     */
+    @Column(name = "dedication_to", length = 40)
+    var dedicationTo: String? = null,
+
+    /** 계기 — '왜 주는가'. 포장 추천·OG 카피·회상 정렬에 재사용. 미선택(null) 허용. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "occasion", length = 20)
+    var occasion: Occasion? = null,
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 16)
     var status: GiftStatus = GiftStatus.CREATED,
@@ -81,4 +93,13 @@ enum class GiftStatus {
     CREATED,
     OPENED,
     SAVED,
+}
+
+/** 선물 계기 — 5값으로 압축(포장 추천·카피 분기 비용을 줄임). */
+enum class Occasion {
+    BIRTHDAY,
+    ANNIVERSARY,
+    COMFORT,
+    CELEBRATION,
+    JUST_BECAUSE,
 }

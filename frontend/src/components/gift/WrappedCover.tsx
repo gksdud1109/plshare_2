@@ -120,6 +120,14 @@ export function WrappedCover({
           </div>
         </div>
 
+        {gift.dedicationTo && (
+          <p
+            className="mb-2 font-display text-text-hi"
+            style={{ fontSize: "clamp(1.1rem, 2.5vw, 1.4rem)", fontWeight: 700 }}
+          >
+            {gift.dedicationTo}
+          </p>
+        )}
         <p className="mb-1 text-[0.6875rem] uppercase tracking-[0.2em] text-text-low">
           도착한 선물
         </p>

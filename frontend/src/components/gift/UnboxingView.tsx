@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { GiftTrack, GiftView, WrapSkin } from "@/types/gift";
-import { WRAP_SKINS } from "@/types/gift";
+import { WRAP_SKINS, OCCASION_LABELS } from "@/types/gift";
 import { useTrackPlayer } from "@/components/gift/useTrackPlayer";
 import { PlayableTrackRow } from "@/components/gift/PlayableTrackRow";
 
@@ -108,6 +108,31 @@ export function UnboxingView({
             님이 보낸 선물
           </p>
 
+          {/* 헌정(받는 사람) + 계기 — 키프세이크 헤더 */}
+          {(gift.dedicationTo || gift.occasion) && (
+            <div className="mt-5 flex flex-col items-center gap-2 animate-fade-up">
+              {gift.dedicationTo && (
+                <p
+                  className="font-display text-text-hi"
+                  style={{ fontSize: "clamp(1.25rem, 3vw, 1.6rem)", fontWeight: 700, letterSpacing: "-0.01em" }}
+                >
+                  {gift.dedicationTo}
+                </p>
+              )}
+              {gift.occasion && (
+                <span
+                  className="rounded-full px-3 py-1 text-xs font-semibold"
+                  style={{
+                    background: `color-mix(in srgb, ${skin.accentColor} 16%, transparent)`,
+                    color: skin.accentColor,
+                  }}
+                >
+                  {OCCASION_LABELS[gift.occasion]}
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Cover art */}
           {gift.asset.coverUrl && (
             <div className="relative mt-8 mb-6 w-48 h-48">
@@ -153,39 +178,80 @@ export function UnboxingView({
           </blockquote>
         </section>
 
-        {/* Track list — sequential fade-in */}
-        <section className="mt-12">
-          <p
-            className="mb-4 text-[0.6875rem] font-semibold uppercase tracking-[0.18em]"
-            style={{ color: skin.accentColor }}
-          >
-            Tracks
-          </p>
-          <div
-            className="overflow-hidden border border-hairline bg-surface-1"
-            style={{ borderRadius: "var(--radius-card)" }}
-          >
-            {gift.asset.tracks.map((track: GiftTrack, i: number) => (
-              <div
-                key={track.id}
-                className="border-b border-hairline last:border-b-0 transition-all duration-500"
-                style={{
-                  opacity: i < visibleCount ? 1 : 0,
-                  transform: i < visibleCount ? "translateY(0)" : "translateY(10px)",
-                  transitionDelay: `${i * 80}ms`,
-                }}
-                aria-hidden={i >= visibleCount}
-              >
-                <PlayableTrackRow
-                  track={track}
-                  index={i}
-                  player={player}
-                  accentColor={skin.accentColor}
+        {/* 재생 — 포맷 분기. MOOD_VIDEO: 단일 임베드 + 수록곡 텍스트. TRACKLIST: 트랙별 순차 공개. */}
+        {gift.asset.assetKind === "MOOD_VIDEO" && gift.asset.moodVideoId ? (
+          <section className="mt-12">
+            <p
+              className="mb-4 text-[0.6875rem] font-semibold uppercase tracking-[0.18em]"
+              style={{ color: skin.accentColor }}
+            >
+              무드영상
+            </p>
+            <div
+              className="overflow-hidden border border-hairline bg-surface-1"
+              style={{ borderRadius: "var(--radius-card)" }}
+            >
+              <div style={{ aspectRatio: "16 / 9" }}>
+                <iframe
+                  title={gift.asset.title}
+                  src={`https://www.youtube.com/embed/${gift.asset.moodVideoId}?rel=0&playsinline=1`}
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  allowFullScreen
+                  className="h-full w-full"
+                  style={{ border: 0 }}
                 />
               </div>
-            ))}
-          </div>
-        </section>
+              {gift.asset.moodChannelName && (
+                <p className="px-4 pt-3 text-xs text-text-low">
+                  채널 · {gift.asset.moodChannelName}
+                </p>
+              )}
+              {gift.asset.moodTrackListText && (
+                <div className="px-4 py-3">
+                  <p className="mb-1.5 text-[0.625rem] font-semibold uppercase tracking-[0.14em] text-text-low">
+                    수록곡
+                  </p>
+                  <p className="whitespace-pre-line text-sm leading-relaxed text-text-mid">
+                    {gift.asset.moodTrackListText}
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+        ) : (
+          <section className="mt-12">
+            <p
+              className="mb-4 text-[0.6875rem] font-semibold uppercase tracking-[0.18em]"
+              style={{ color: skin.accentColor }}
+            >
+              Tracks
+            </p>
+            <div
+              className="overflow-hidden border border-hairline bg-surface-1"
+              style={{ borderRadius: "var(--radius-card)" }}
+            >
+              {gift.asset.tracks.map((track: GiftTrack, i: number) => (
+                <div
+                  key={track.id}
+                  className="border-b border-hairline last:border-b-0 transition-all duration-500"
+                  style={{
+                    opacity: i < visibleCount ? 1 : 0,
+                    transform: i < visibleCount ? "translateY(0)" : "translateY(10px)",
+                    transitionDelay: `${i * 80}ms`,
+                  }}
+                  aria-hidden={i >= visibleCount}
+                >
+                  <PlayableTrackRow
+                    track={track}
+                    index={i}
+                    player={player}
+                    accentColor={skin.accentColor}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* CTA */}
         <section className="mt-12 flex flex-col items-center gap-4 text-center">

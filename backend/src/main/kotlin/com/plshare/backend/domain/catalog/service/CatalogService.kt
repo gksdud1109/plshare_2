@@ -1,10 +1,12 @@
 package com.plshare.backend.domain.catalog.service
 
 import com.plshare.backend.domain.asset.model.Asset
+import com.plshare.backend.domain.asset.model.AssetKind
 import com.plshare.backend.domain.asset.model.Track
 import com.plshare.backend.domain.asset.repository.AssetRepository
 import com.plshare.backend.domain.catalog.dto.ComposeAssetRequest
 import com.plshare.backend.domain.catalog.dto.ComposedAssetResponse
+import com.plshare.backend.domain.catalog.dto.CreateMoodVideoRequest
 import com.plshare.backend.domain.catalog.dto.CuratedTrackDto
 import com.plshare.backend.domain.catalog.repository.CuratedTrackRepository
 import com.plshare.backend.global.exception.ApiException
@@ -75,6 +77,51 @@ class CatalogService(
         }
         assetRepository.save(asset)
         return ComposedAssetResponse(id = asset.id, title = asset.title, trackCount = asset.tracks.size)
+    }
+
+    /**
+     * 단일 유튜브 무드영상을 MOOD_VIDEO 자산으로. tracks[] 없이 영상 1개라 prod 재생 자동 보장.
+     * 수록곡은 자유 텍스트(trackListText)로 보존 — Track 으로 쪼개지 않는다.
+     */
+    @Transactional
+    fun composeMoodVideo(req: CreateMoodVideoRequest, ownerId: UUID): ComposedAssetResponse {
+        val title = req.title.trim()
+        if (title.isEmpty() || title.length > 100) {
+            throw ApiException(ErrorCode.VALIDATION_FAILED, "제목은 1~100자여야 합니다")
+        }
+        val videoId = extractVideoId(req.videoUrlOrId)
+            ?: throw ApiException(ErrorCode.VALIDATION_FAILED, "유효한 YouTube 영상 URL 또는 ID가 아니에요")
+
+        val cover = req.coverUrl?.takeIf { it.isNotBlank() }
+            ?: "https://i.ytimg.com/vi/$videoId/maxresdefault.jpg"
+
+        val asset = Asset(
+            ownerId = ownerId,
+            title = title,
+            coverUrl = cover,
+            sourcePlatform = "youtube",
+            emotionTags = req.emotionTags.filter { it.isNotBlank() }.distinct().take(8).toMutableList(),
+            assetKind = AssetKind.MOOD_VIDEO,
+            moodVideoId = videoId,
+            moodChannelName = req.channelName?.takeIf { it.isNotBlank() },
+            moodTrackListText = req.trackListText?.takeIf { it.isNotBlank() },
+        )
+        assetRepository.save(asset)
+        return ComposedAssetResponse(id = asset.id, title = asset.title, trackCount = 0)
+    }
+
+    /** YouTube 전체 URL(watch/youtu.be/embed/shorts) 또는 11자 raw id 에서 videoId 추출. */
+    private fun extractVideoId(input: String): String? {
+        val s = input.trim()
+        val patterns = listOf(
+            Regex("""[?&]v=([A-Za-z0-9_-]{11})"""),
+            Regex("""youtu\.be/([A-Za-z0-9_-]{11})"""),
+            Regex("""/embed/([A-Za-z0-9_-]{11})"""),
+            Regex("""/shorts/([A-Za-z0-9_-]{11})"""),
+        )
+        for (p in patterns) p.find(s)?.let { return it.groupValues[1] }
+        if (Regex("""^[A-Za-z0-9_-]{11}$""").matches(s)) return s
+        return null
     }
 
     companion object {

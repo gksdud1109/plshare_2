@@ -12,6 +12,8 @@ export function buildDemoGiftView(token: string): GiftView {
     message:
       "늦은 밤, 창문 내리고 이 노래들 들으면서 달려봐. 네 생각하면서 골랐어. 오늘 하루도 수고했어 🌙",
     wrapSkin: "nocturne-violet",
+    dedicationTo: "너에게",
+    occasion: "JUST_BECAUSE",
     sender: {
       handle: "demo",
       displayName: "Demo User",
@@ -21,6 +23,7 @@ export function buildDemoGiftView(token: string): GiftView {
       id: "demo-asset",
       title: "Late Night Drives",
       coverUrl: "https://picsum.photos/seed/latenight/600/600",
+      assetKind: "TRACKLIST",
       tracks: [
         { id: "t1", name: "Blinding Lights", artist: "The Weeknd", durationMs: 200000 },
         { id: "t2", name: "Something About Us", artist: "Daft Punk", durationMs: 232000 },

@@ -41,9 +41,38 @@ class Asset(
     @OneToMany(mappedBy = "asset", cascade = [CascadeType.ALL], orphanRemoval = true)
     var tracks: MutableList<Track> = mutableListOf(),
 
+    /**
+     * 듀얼 포맷 분기. TRACKLIST(기존 — 개별 트랙 묶음) | MOOD_VIDEO(단일 유튜브 무드영상 한 단위).
+     * 기본 TRACKLIST 라 기존 자산은 전부 유효. 단일 영상을 '트랙 1개짜리'로 욱여넣지 않는다.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "asset_kind", nullable = false, length = 16)
+    var assetKind: AssetKind = AssetKind.TRACKLIST,
+
+    /** MOOD_VIDEO 일 때만: 끊김없는 믹스 영상의 youtubeVideoId. 임베드 1개라 prod 재생 자동 보장. */
+    @Column(name = "mood_video_id", length = 32)
+    var moodVideoId: String? = null,
+
+    /** MOOD_VIDEO 크레딧용 채널명(예: 후알유). */
+    @Column(name = "mood_channel_name", length = 120)
+    var moodChannelName: String? = null,
+
+    /** MOOD_VIDEO 수록곡 자유 텍스트(타임스탬프 허용). Track 으로 쪼개지 않는다. */
+    @Column(name = "mood_track_list_text", columnDefinition = "TEXT")
+    var moodTrackListText: String? = null,
+
     @Column(nullable = false, updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now()
 )
+
+/** 자산 포맷 — 듀얼 포맷 디스크리미네이터. */
+enum class AssetKind {
+    /** 개별 트랙 묶음(기존). 트랙별 YouTube 임베드. */
+    TRACKLIST,
+
+    /** 단일 유튜브 무드영상 한 단위. 임베드 1개 + 수록곡 텍스트. */
+    MOOD_VIDEO,
+}
 
 @Entity
 @Table(

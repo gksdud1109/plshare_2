@@ -8,7 +8,7 @@ import { demoAssets } from "@/lib/api/fixtures";
 import { buildDemoGiftCreated } from "@/lib/api/fixtures-gift";
 import { demoFixturesEnabled } from "@/lib/demo";
 import { WrapSkinPicker } from "@/components/gift/WrapSkinPicker";
-import { WRAP_SKINS } from "@/types/gift";
+import { WRAP_SKINS, OCCASION_LABELS, type Occasion } from "@/types/gift";
 import type { AssetSummary } from "@/types/asset";
 import { messageFromError } from "@/lib/errors";
 import { toAbsoluteUrl } from "@/lib/url";
@@ -28,6 +28,8 @@ export default function GiftSendPage() {
   const [assets, setAssets] = useState<AssetSummary[]>([]);
   const [usingFixture, setUsingFixture] = useState(false);
   const [selectedAssetId, setSelectedAssetId] = useState("");
+  const [dedicationTo, setDedicationTo] = useState("");
+  const [occasion, setOccasion] = useState<Occasion | "">("");
   const [message, setMessage] = useState("");
   const [wrapSkin, setWrapSkin] = useState(WRAP_SKINS[0].key);
   const [sendState, setSendState] = useState<SendState>({ kind: "idle" });
@@ -99,6 +101,8 @@ export default function GiftSendPage() {
             assetId: selectedAssetId,
             message: message.trim(),
             wrapSkin,
+            dedicationTo: dedicationTo.trim() || undefined,
+            occasion: occasion || undefined,
           });
       setSendState({ kind: "done", token: result.token, url: result.url });
     } catch (err) {
@@ -216,6 +220,44 @@ export default function GiftSendPage() {
                   ))}
                 </div>
               )}
+            </section>
+
+            {/* 받는 사람 + 계기 (키프세이크) */}
+            <section>
+              <label
+                htmlFor="gift-dedication"
+                className="mb-3 block text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-text-low"
+              >
+                받는 사람 (선택)
+              </label>
+              <input
+                id="gift-dedication"
+                type="text"
+                value={dedicationTo}
+                onChange={(e) => setDedicationTo(e.target.value.slice(0, 40))}
+                placeholder="To. 지영에게"
+                className="w-full rounded-xl border border-hairline bg-surface-1 px-4 py-3 text-sm text-text placeholder:text-text-low focus:border-accent focus:outline-none transition"
+              />
+              <div className="mt-3 flex flex-wrap gap-2">
+                {(Object.keys(OCCASION_LABELS) as Occasion[]).map((o) => {
+                  const active = occasion === o;
+                  return (
+                    <button
+                      key={o}
+                      type="button"
+                      onClick={() => setOccasion(active ? "" : o)}
+                      className="rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors"
+                      style={{
+                        borderColor: active ? "var(--color-accent)" : "var(--color-hairline)",
+                        background: active ? "var(--color-accent)" : "transparent",
+                        color: active ? "#fff" : "var(--color-text-mid)",
+                      }}
+                    >
+                      {OCCASION_LABELS[o]}
+                    </button>
+                  );
+                })}
+              </div>
             </section>
 
             {/* 메시지 */}

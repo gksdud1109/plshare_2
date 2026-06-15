@@ -4,6 +4,26 @@
 
 export type GiftStatus = "CREATED" | "OPENED" | "SAVED";
 
+/** 자산 포맷 — 듀얼 포맷 분기. */
+export type AssetKind = "TRACKLIST" | "MOOD_VIDEO";
+
+/** 선물 계기(5값). */
+export type Occasion =
+  | "BIRTHDAY"
+  | "ANNIVERSARY"
+  | "COMFORT"
+  | "CELEBRATION"
+  | "JUST_BECAUSE";
+
+/** 계기 → 한국어 라벨/이모지 (UI). */
+export const OCCASION_LABELS: Record<Occasion, string> = {
+  BIRTHDAY: "🎂 생일",
+  ANNIVERSARY: "💞 기념일",
+  COMFORT: "🌙 위로",
+  CELEBRATION: "🎉 축하",
+  JUST_BECAUSE: "💌 그냥",
+};
+
 export interface GiftSender {
   handle: string;
   displayName: string;
@@ -15,6 +35,11 @@ export interface GiftAsset {
   title: string;
   coverUrl?: string;
   tracks: GiftTrack[];
+  /** 듀얼 포맷 — 뷰가 재생 컴포넌트를 이걸로 분기. */
+  assetKind: AssetKind;
+  moodVideoId?: string | null;
+  moodChannelName?: string | null;
+  moodTrackListText?: string | null;
 }
 
 export interface GiftTrack {
@@ -40,6 +65,9 @@ export interface GiftView {
   status: GiftStatus;
   message: string;
   wrapSkin: string;
+  /** 헌정 — "지영에게". message 와 분리돼 봉투/언박싱/OG 에 단독 노출. */
+  dedicationTo?: string | null;
+  occasion?: Occasion | null;
   sender: GiftSender;
   asset: GiftAsset;
 }
@@ -50,10 +78,13 @@ export interface GiftSummary {
   status: GiftStatus;
   message: string;
   wrapSkin: string;
+  dedicationTo?: string | null;
+  occasion?: Occasion | null;
   sender: GiftSender;
   assetTitle: string;
   assetCoverUrl?: string;
   trackCount: number;
+  assetKind: AssetKind;
   createdAt: string;
 }
 

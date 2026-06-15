@@ -2,6 +2,7 @@ package com.plshare.backend.domain.catalog.controller
 
 import com.plshare.backend.domain.catalog.dto.ComposeAssetRequest
 import com.plshare.backend.domain.catalog.dto.ComposedAssetResponse
+import com.plshare.backend.domain.catalog.dto.CreateMoodVideoRequest
 import com.plshare.backend.domain.catalog.dto.CuratedTrackDto
 import com.plshare.backend.domain.catalog.service.CatalogService
 import com.plshare.backend.global.response.ApiResponse
@@ -35,4 +36,12 @@ class CatalogController(
         @CurrentUserId ownerId: UUID,
     ): ApiResponse<ComposedAssetResponse> =
         ApiResponse.ok(catalogService.compose(req, ownerId))
+
+    /** 단일 유튜브 무드영상을 한 단위 자산(MOOD_VIDEO)으로 — 인증 필수. */
+    @PostMapping("/assets/mood-video")
+    fun composeMoodVideo(
+        @RequestBody req: CreateMoodVideoRequest,
+        @CurrentUserId ownerId: UUID,
+    ): ApiResponse<ComposedAssetResponse> =
+        ApiResponse.ok(catalogService.composeMoodVideo(req, ownerId))
 }

@@ -22,3 +22,22 @@ export async function composeAsset(input: ComposeInput): Promise<ComposedAsset> 
     body: input,
   });
 }
+
+export interface MoodVideoInput {
+  title: string;
+  videoUrlOrId: string;
+  channelName?: string;
+  trackListText?: string;
+  coverUrl?: string;
+  emotionTags?: string[];
+}
+
+/** POST /api/assets/mood-video — 단일 유튜브 무드영상을 한 단위 자산으로(인증 필요). */
+export async function composeMoodVideo(
+  input: MoodVideoInput,
+): Promise<ComposedAsset> {
+  return apiFetch<ComposedAsset>("/api/assets/mood-video", {
+    method: "POST",
+    body: input,
+  });
+}

@@ -54,6 +54,10 @@ class GiftService(
         if (req.message.length > 3000) {
             throw ApiException(ErrorCode.VALIDATION_FAILED, "메시지는 3000자를 초과할 수 없습니다")
         }
+        val dedicationTo = req.dedicationTo?.trim()?.takeIf { it.isNotEmpty() }
+        if (dedicationTo != null && dedicationTo.length > 40) {
+            throw ApiException(ErrorCode.VALIDATION_FAILED, "헌정 이름은 40자를 넘을 수 없어요")
+        }
 
         val token = UUID.randomUUID().toString().replace("-", "").take(16)
         val gift = Gift(
@@ -62,6 +66,8 @@ class GiftService(
             message = req.message,
             wrapSkin = req.wrapSkin,
             token = token,
+            dedicationTo = dedicationTo,
+            occasion = req.occasion,
         )
         giftRepository.save(gift)
         return GiftCreatedResponse(token = token, url = "/gift/$token")
