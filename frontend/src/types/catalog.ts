@@ -10,6 +10,15 @@ export interface CatalogTrack {
   coverUrl?: string | null;
 }
 
+/** GET /api/catalog/youtube/search 항목 — selectionId는 compose 시 그대로 전송한다. */
+export interface YouTubeCatalogSearchResult {
+  selectionId: string;
+  videoId: string;
+  title: string;
+  channelTitle?: string | null;
+  thumbnailUrl?: string | null;
+}
+
 /** POST /api/assets/compose 응답 */
 export interface ComposedAsset {
   id: string;

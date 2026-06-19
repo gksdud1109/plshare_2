@@ -48,7 +48,7 @@ export default function ExportPage() {
         if (!cancelled) setAsset(a);
       } catch {
         if (!cancelled && demoFixturesEnabled()) setAsset(buildDemoAssetDetail(assetId));
-        else if (!cancelled) setError("자산 정보를 불러오지 못했어요.");
+        else if (!cancelled) setError("플레이리스트 정보를 불러오지 못했어요.");
       }
     })();
     return () => {

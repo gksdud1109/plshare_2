@@ -166,13 +166,15 @@ export function PostComposer({
                   {selectedAsset.title}
                 </p>
                 <p className="text-xs text-text-mid">
-                  {selectedAsset.trackCount}개 트랙
+                  {selectedAsset.assetKind === "MOOD_VIDEO"
+                    ? "무드영상"
+                    : `${selectedAsset.trackCount}개 트랙`}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedAsset(null)}
-                aria-label="자산 첨부 제거"
+                aria-label="플레이리스트 첨부 제거"
                 className="rounded-full p-1 text-text-low hover:text-text-hi transition-colors duration-150"
               >
                 <CloseIcon className="h-4 w-4" />
@@ -198,12 +200,12 @@ export function PostComposer({
           {showPicker && (
             <div className="rounded-[12px] border border-hairline bg-surface-2 p-3">
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-text-low">
-                자산 첨부
+                플레이리스트 첨부
               </p>
               {loadingAssets ? (
                 <p className="text-xs text-text-low">불러오는 중…</p>
               ) : myAssets.length === 0 ? (
-                <p className="text-xs text-text-low">자산이 없어요.</p>
+                <p className="text-xs text-text-low">플레이리스트가 없어요.</p>
               ) : (
                 <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
                   {myAssets.map((asset) => (
@@ -239,7 +241,9 @@ export function PostComposer({
                           {asset.title}
                         </p>
                         <p className="text-xs text-text-mid">
-                          {asset.trackCount}개 트랙
+                          {asset.assetKind === "MOOD_VIDEO"
+                            ? "무드영상"
+                            : `${asset.trackCount}개 트랙`}
                         </p>
                       </div>
                     </button>
@@ -264,7 +268,7 @@ export function PostComposer({
                   setShowPicker((v) => !v);
                   void loadAssets();
                 }}
-                aria-label="자산 첨부"
+                aria-label="플레이리스트 첨부"
                 className={cn(
                   "rounded-full p-2 text-text-mid transition-colors duration-150 hover:text-accent hover:bg-accent-soft",
                   showPicker && "text-accent",

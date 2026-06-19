@@ -170,7 +170,7 @@ export default function ExportResultPage() {
             className="glass rounded-full border-hairline-strong px-6 text-sm font-semibold text-text-hi transition-all duration-200 hover:bg-surface-3 hover:-translate-y-0.5 focus-ring"
             style={{ height: "48px", display: "inline-flex", alignItems: "center" }}
           >
-            다른 자산 보기
+            다른 플레이리스트 보기
           </Link>
           <Link
             href={`/assets/${params.id}`}

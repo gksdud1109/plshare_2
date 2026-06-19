@@ -3,17 +3,22 @@
  */
 
 export type AssetSource = "spotify" | "youtube" | "apple_music";
+export type AssetKind = "TRACKLIST" | "MOOD_VIDEO";
+export type ImportSourcePlatform = "spotify" | "youtube";
 
 /**
- * Spotify-side playlist (pre-import). Returned by GET /api/playlists.
+ * Source playlist shown before import.
  */
-export interface SpotifyPlaylist {
+export interface PlaylistSummary {
   id: string;
   name: string;
   description?: string;
   imageUrl?: string;
   trackCount: number;
 }
+
+// Legacy name kept for dormant Spotify and existing shared playlist UI.
+export type SpotifyPlaylist = PlaylistSummary;
 
 /**
  * Track inside an asset detail (GET /api/assets/{id}).
@@ -34,33 +39,53 @@ export interface AssetSummary {
   id: string;
   title: string;
   coverUrl?: string;
+  description?: string;
+  emotionTags: string[];
   trackCount: number;
+  previewTracks?: string[];
+  sourcePlatform: string;
+  assetKind: AssetKind;
+  moodVideoId?: string | null;
+  moodChannelName?: string | null;
+  moodTrackListText?: string | null;
   createdAt: string;
-  hasEmotionalContext: boolean;
 }
 
 /**
  * Asset detail (GET /api/assets/{id}).
  */
-export interface AssetDetail {
+export interface PublicAssetDetail {
   id: string;
   title: string;
   description?: string;
-  diaryText?: string;
   emotionTags: string[];
   coverUrl?: string;
+  sourcePlatform: string;
   tracks: AssetTrack[];
+  assetKind: AssetKind;
+  moodVideoId?: string | null;
+  moodChannelName?: string | null;
+  moodTrackListText?: string | null;
+  createdAt: string;
+}
+
+export interface AssetDetail extends PublicAssetDetail {
+  diaryText?: string;
+  photoUrls: string[];
+  shareToken?: string | null;
 }
 
 export interface ImportJob {
   jobId: string;
-  status: "queued" | "matching" | "completed" | "failed";
+  status: "queued" | "running" | "matching" | "completed" | "failed";
 }
 
 export interface ImportJobStatus {
-  status: "queued" | "matching" | "completed" | "failed";
+  status: "queued" | "running" | "matching" | "completed" | "failed";
   progress: number;
   assetId?: string;
+  errorCode?: string | null;
+  errorMessage?: string | null;
 }
 
 export interface ExportJob {
@@ -126,14 +151,10 @@ export interface ShareLink {
  * Public share payload (GET /api/share/{token}).
  * Mirrors AssetDetail-ish shape, exposed to anonymous viewers.
  */
-export interface SharedAsset {
-  id: string;
-  title: string;
-  description?: string;
+export interface SharedAsset extends PublicAssetDetail {
   diaryText?: string;
-  emotionTags: string[];
-  coverUrl?: string;
-  tracks: AssetTrack[];
+  photoUrls?: string[];
+  shareToken?: string | null;
 }
 
 // Legacy type kept for the existing AssetCard component until we migrate it.

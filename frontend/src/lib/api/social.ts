@@ -207,13 +207,15 @@ export async function getPostAssetEmbed(
       coverUrl?: string | null;
       emotionTags?: string[];
       tracks?: unknown[];
-    }>(`/api/assets/${assetId}`);
+      assetKind?: "TRACKLIST" | "MOOD_VIDEO";
+    }>(`/api/public/assets/${assetId}`);
     return {
       id: detail.id,
       title: detail.title,
       coverUrl: detail.coverUrl ?? null,
       trackCount: Array.isArray(detail.tracks) ? detail.tracks.length : 0,
       emotionTags: Array.isArray(detail.emotionTags) ? detail.emotionTags : [],
+      assetKind: detail.assetKind ?? "TRACKLIST",
     };
   } catch {
     return null;

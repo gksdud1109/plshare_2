@@ -53,7 +53,7 @@ export default function AssetsPage() {
             className="mt-3 font-display text-text-hi"
             style={{ fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 700, letterSpacing: "-0.02em" }}
           >
-            나의 자산
+            나의 플레이리스트
           </h1>
         </div>
         <Link
@@ -77,15 +77,15 @@ export default function AssetsPage() {
       ) : state.data.length === 0 ? (
         <div className="flex flex-col items-start gap-6 py-20">
           <p className="text-2xl font-semibold text-text-mid">
-            아직 자산이 없어요.
+            아직 플레이리스트가 없어요.
           </p>
-          <p className="text-text-low text-sm">Spotify에서 플레이리스트를 가져와 첫 자산을 만들어보세요.</p>
+          <p className="text-text-low text-sm">Spotify에서 첫 플레이리스트를 가져와보세요.</p>
           <Link
             href="/import"
             className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-accent-hi hover:-translate-y-0.5 focus-ring"
             style={{ height: "48px", display: "inline-flex", alignItems: "center" }}
           >
-            첫 자산 만들기
+            첫 플레이리스트 만들기
           </Link>
         </div>
       ) : (

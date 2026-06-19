@@ -49,7 +49,14 @@ export function AssetCard({
       </div>
 
       <div className="flex flex-col gap-2 p-4">
-        {asset.hasEmotionalContext ? (
+        {asset.assetKind === "MOOD_VIDEO" ? (
+          <span
+            className="inline-flex w-fit items-center rounded-full border border-accent px-2.5 py-0.5 text-[0.6875rem] font-semibold tracking-wide text-accent"
+            style={{ background: "var(--accent-soft)" }}
+          >
+            영상
+          </span>
+        ) : asset.description || asset.emotionTags.length > 0 ? (
           <span
             className="inline-flex w-fit items-center rounded-full border border-accent px-2.5 py-0.5 text-[0.6875rem] font-semibold tracking-wide text-accent"
             style={{ background: "var(--accent-soft)" }}
@@ -58,14 +65,14 @@ export function AssetCard({
           </span>
         ) : (
           <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-text-low">
-            Asset
+            Playlist
           </p>
         )}
         <h2 className="truncate text-[1.0625rem] font-bold leading-snug text-text-hi">
           {asset.title}
         </h2>
         <div className="flex items-center justify-between text-xs tabular-nums text-text-mid">
-          <span>{asset.trackCount} tracks</span>
+          <span>{asset.assetKind === "MOOD_VIDEO" ? "무드영상" : `${asset.trackCount}곡`}</span>
           <time dateTime={asset.createdAt}>
             {new Date(asset.createdAt).toLocaleDateString("ko-KR", {
               year: "numeric",

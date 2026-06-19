@@ -5,6 +5,7 @@ import type { GiftTrack, GiftView, WrapSkin } from "@/types/gift";
 import { WRAP_SKINS, OCCASION_LABELS } from "@/types/gift";
 import { useTrackPlayer } from "@/components/gift/useTrackPlayer";
 import { PlayableTrackRow } from "@/components/gift/PlayableTrackRow";
+import { MoodVideoPlayer } from "@/components/media/MoodVideoPlayer";
 
 /**
  * 언박싱 연출 컴포넌트.
@@ -187,36 +188,12 @@ export function UnboxingView({
             >
               무드영상
             </p>
-            <div
-              className="overflow-hidden border border-hairline bg-surface-1"
-              style={{ borderRadius: "var(--radius-card)" }}
-            >
-              <div style={{ aspectRatio: "16 / 9" }}>
-                <iframe
-                  title={gift.asset.title}
-                  src={`https://www.youtube.com/embed/${gift.asset.moodVideoId}?rel=0&playsinline=1`}
-                  allow="autoplay; encrypted-media; picture-in-picture"
-                  allowFullScreen
-                  className="h-full w-full"
-                  style={{ border: 0 }}
-                />
-              </div>
-              {gift.asset.moodChannelName && (
-                <p className="px-4 pt-3 text-xs text-text-low">
-                  채널 · {gift.asset.moodChannelName}
-                </p>
-              )}
-              {gift.asset.moodTrackListText && (
-                <div className="px-4 py-3">
-                  <p className="mb-1.5 text-[0.625rem] font-semibold uppercase tracking-[0.14em] text-text-low">
-                    수록곡
-                  </p>
-                  <p className="whitespace-pre-line text-sm leading-relaxed text-text-mid">
-                    {gift.asset.moodTrackListText}
-                  </p>
-                </div>
-              )}
-            </div>
+            <MoodVideoPlayer
+              title={gift.asset.title}
+              videoId={gift.asset.moodVideoId}
+              channelName={gift.asset.moodChannelName}
+              trackListText={gift.asset.moodTrackListText}
+            />
           </section>
         ) : (
           <section className="mt-12">

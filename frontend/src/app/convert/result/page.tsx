@@ -320,7 +320,7 @@ function ConvertResultPageInner() {
           style={{ animationDelay: "140ms", boxShadow: "var(--shadow-card)" }}
         >
           <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-text-low mb-4">
-            이 자산에 이야기 남기기
+            이 플레이리스트에 이야기 남기기
           </p>
 
           {/* ── Option B: "이 자산에 이야기 남기기" 초대 CTA (→ /assets/[assetId]) ── */}
@@ -390,7 +390,7 @@ function ConvertResultPageInner() {
                 )}
                 style={!saving ? { boxShadow: "var(--shadow-glow)" } : undefined}
               >
-                {saving ? "저장 중…" : "자산으로 저장"}
+                {saving ? "저장 중…" : "플레이리스트로 저장"}
               </button>
               <button
                 type="button"

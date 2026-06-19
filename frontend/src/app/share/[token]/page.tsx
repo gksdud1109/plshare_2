@@ -5,6 +5,7 @@ import { buildDemoSharedAsset } from "@/lib/api/fixtures";
 import type { SharedAsset } from "@/types/asset";
 import { ShareTrackList } from "@/components/share/ShareTrackList";
 import { ShareCallToAction } from "@/components/share/ShareCallToAction";
+import { MoodVideoPlayer } from "@/components/media/MoodVideoPlayer";
 import { notFound } from "next/navigation";
 import { demoFixturesEnabled } from "@/lib/demo";
 
@@ -239,12 +240,22 @@ function ShareView({
         </div>
       </section>
 
-      {/* Track list */}
+      {/* Playback */}
       <section className="mt-12">
         <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-text-low">
-          Tracks
+          {data.assetKind === "MOOD_VIDEO" ? "Mood video" : "Tracks"}
         </p>
-        <ShareTrackList tracks={data.tracks} />
+        {data.assetKind === "MOOD_VIDEO" && data.moodVideoId ? (
+          <MoodVideoPlayer
+            title={data.title}
+            videoId={data.moodVideoId}
+            channelName={data.moodChannelName}
+            trackListText={data.moodTrackListText}
+            className="mt-4"
+          />
+        ) : (
+          <ShareTrackList tracks={data.tracks} />
+        )}
       </section>
 
       {/* CTA */}

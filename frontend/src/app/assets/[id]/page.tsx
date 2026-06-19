@@ -2,10 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { createShareLink, getAsset, updateAsset } from "@/lib/api/assets";
+import { useParams, useRouter } from "next/navigation";
+import {
+  createShareLink,
+  deleteAsset,
+  getAsset,
+  getPublicAsset,
+  updateAsset,
+} from "@/lib/api/assets";
+import { ApiError } from "@/lib/api/client";
 import { buildDemoAssetDetail } from "@/lib/api/fixtures";
-import type { AssetDetail } from "@/types/asset";
+import type { AssetDetail, PublicAssetDetail } from "@/types/asset";
 import { PageShell } from "@/components/ui/PageShell";
 import { ProgressNarrative } from "@/components/ui/ProgressNarrative";
 import { ShareTrackList } from "@/components/share/ShareTrackList";
@@ -13,20 +20,28 @@ import { EmotionTagPicker } from "@/components/ui/EmotionTagPicker";
 import { useToast } from "@/components/ui/ToastProvider";
 import { demoFixturesEnabled } from "@/lib/demo";
 import { toAbsoluteUrl } from "@/lib/url";
+import { MoodVideoPlayer } from "@/components/media/MoodVideoPlayer";
 
 type State =
   | { kind: "loading" }
-  | { kind: "ready"; data: AssetDetail; usingFixture: boolean }
+  | {
+      kind: "ready";
+      data: AssetDetail | PublicAssetDetail;
+      usingFixture: boolean;
+      readOnly: boolean;
+    }
   | { kind: "error"; message: string };
 
 export default function AssetDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const router = useRouter();
   const [state, setState] = useState<State>({ kind: "loading" });
   const [diary, setDiary] = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const toast = useToast();
 
@@ -36,20 +51,32 @@ export default function AssetDetailPage() {
       try {
         const data = await getAsset(id);
         if (cancelled) return;
-        setState({ kind: "ready", data, usingFixture: false });
+        setState({ kind: "ready", data, usingFixture: false, readOnly: false });
         setDiary(data.diaryText ?? "");
         setDescription(data.description ?? "");
         setTags(data.emotionTags ?? []);
-      } catch {
+      } catch (error) {
         if (cancelled) return;
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+          try {
+            const data = await getPublicAsset(id);
+            if (cancelled) return;
+            setState({ kind: "ready", data, usingFixture: false, readOnly: true });
+            setDescription(data.description ?? "");
+            setTags(data.emotionTags ?? []);
+            return;
+          } catch {
+            // Fall through to the normal unavailable state.
+          }
+        }
         if (demoFixturesEnabled()) {
           const fallback = buildDemoAssetDetail(id);
-          setState({ kind: "ready", data: fallback, usingFixture: true });
+          setState({ kind: "ready", data: fallback, usingFixture: true, readOnly: false });
           setDiary(fallback.diaryText ?? "");
           setDescription(fallback.description ?? "");
           setTags(fallback.emotionTags ?? []);
         } else {
-          setState({ kind: "error", message: "자산을 불러오지 못했어요." });
+          setState({ kind: "error", message: "플레이리스트를 불러오지 못했어요." });
         }
       }
     })();
@@ -61,12 +88,12 @@ export default function AssetDetailPage() {
   const persist = async (
     patch: Parameters<typeof updateAsset>[1],
   ) => {
-    if (state.kind !== "ready") return;
+    if (state.kind !== "ready" || state.readOnly) return;
     setSaving(true);
     try {
       if (!state.usingFixture) {
         const updated = await updateAsset(id, patch);
-        setState({ kind: "ready", data: updated, usingFixture: false });
+        setState({ kind: "ready", data: updated, usingFixture: false, readOnly: false });
       }
       setSavedAt(Date.now());
     } catch {
@@ -93,11 +120,25 @@ export default function AssetDetailPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (state.kind !== "ready" || state.readOnly) return;
+    if (!window.confirm("이 플레이리스트를 삭제할까요? 이 작업은 되돌릴 수 없어요.")) return;
+    setDeleting(true);
+    try {
+      if (!state.usingFixture) await deleteAsset(id);
+      toast.success("플레이리스트를 삭제했어요.");
+      router.push("/assets");
+    } catch {
+      toast.error("선물에 사용 중이거나 삭제할 수 없는 플레이리스트예요.");
+      setDeleting(false);
+    }
+  };
+
   if (state.kind === "loading") {
     return (
       <PageShell>
         <div className="py-32">
-          <ProgressNarrative messages={["자산을 불러오는 중이에요…"]} />
+          <ProgressNarrative messages={["플레이리스트를 불러오는 중이에요…"]} />
         </div>
       </PageShell>
     );
@@ -164,7 +205,7 @@ export default function AssetDetailPage() {
         {/* Meta + actions */}
         <div className="flex flex-col justify-center">
           <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-text-low">
-            Asset
+            {a.assetKind === "MOOD_VIDEO" ? "Mood video" : "Playlist"}
           </p>
           <h1
             className="mt-3 font-display text-text-hi"
@@ -173,46 +214,91 @@ export default function AssetDetailPage() {
             {a.title}
           </h1>
           <p className="mt-3 text-sm text-text-mid">
-            {a.tracks.length}곡 · {a.tracks.length > 0 ? `${a.tracks.length} tracks` : ""}
+            {a.assetKind === "MOOD_VIDEO"
+              ? "YouTube 무드영상"
+              : `${a.tracks.length}곡`}
           </p>
           {a.description && (
             <p className="mt-4 text-base text-text-mid leading-relaxed">
               {a.description}
             </p>
           )}
+          {state.readOnly && a.emotionTags.length > 0 && (
+            <div className="mt-5 flex flex-wrap gap-2">
+              {a.emotionTags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full border border-accent px-3 py-1 text-xs font-medium text-accent"
+                  style={{ background: "var(--accent-soft)" }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
 
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              href={`/assets/${a.id}/export`}
-              className="rounded-full bg-accent px-6 text-sm font-semibold text-white transition-all duration-200 hover:bg-accent-hi hover:-translate-y-0.5 focus-ring"
-              style={{ height: "48px", display: "inline-flex", alignItems: "center" }}
-            >
-              Apple Music으로 내보내기
-            </Link>
-            <button
-              type="button"
-              onClick={handleShare}
-              className="glass rounded-full border-hairline-strong px-6 text-sm font-semibold text-text-hi transition-all duration-200 hover:bg-surface-3 hover:-translate-y-0.5 focus-ring"
-              style={{ height: "48px", display: "inline-flex", alignItems: "center" }}
-            >
-              공유 링크 만들기
-            </button>
-          </div>
+          {!state.readOnly && (
+            <div className="mt-8 flex flex-wrap gap-3">
+              {a.assetKind === "TRACKLIST" ? (
+                <Link
+                  href={`/assets/${a.id}/export`}
+                  className="rounded-full bg-accent px-6 text-sm font-semibold text-white transition-all duration-200 hover:bg-accent-hi hover:-translate-y-0.5 focus-ring"
+                  style={{ height: "48px", display: "inline-flex", alignItems: "center" }}
+                >
+                  음악 플랫폼으로 내보내기
+                </Link>
+              ) : (
+                <p className="flex h-12 items-center rounded-full border border-hairline px-5 text-sm text-text-low">
+                  무드영상은 음악 플랫폼으로 내보낼 수 없어요.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={handleShare}
+                className="glass rounded-full border-hairline-strong px-6 text-sm font-semibold text-text-hi transition-all duration-200 hover:bg-surface-3 hover:-translate-y-0.5 focus-ring"
+                style={{ height: "48px", display: "inline-flex", alignItems: "center" }}
+              >
+                공유 링크 만들기
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="rounded-full px-4 text-sm font-semibold text-danger disabled:opacity-50"
+              >
+                {deleting ? "삭제 중…" : "삭제"}
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
       {/* Body: track list + emotional context */}
-      <section className="mt-12 grid grid-cols-1 gap-10 md:grid-cols-[minmax(0,1fr)_360px] md:gap-10">
+      <section
+        className={`mt-12 grid grid-cols-1 gap-10 ${
+          state.readOnly ? "" : "md:grid-cols-[minmax(0,1fr)_360px] md:gap-10"
+        }`}
+      >
         {/* Track list */}
         <div>
           <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-text-low">
-            Tracks
+            {a.assetKind === "MOOD_VIDEO" ? "Mood video" : "Tracks"}
           </p>
-          <ShareTrackList tracks={a.tracks} />
+          {a.assetKind === "MOOD_VIDEO" && a.moodVideoId ? (
+            <MoodVideoPlayer
+              title={a.title}
+              videoId={a.moodVideoId}
+              channelName={a.moodChannelName}
+              trackListText={a.moodTrackListText}
+              className="mt-4"
+            />
+          ) : (
+            <ShareTrackList tracks={a.tracks} />
+          )}
         </div>
 
         {/* Emotional Context glass card */}
-        <aside>
+        {!state.readOnly && <aside>
           <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-text-low">
             Emotional Context
           </p>
@@ -233,7 +319,7 @@ export default function AssetDetailPage() {
             />
 
             <label className="mt-6 block text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-text-low">
-              이 자산의 이야기
+              이 플레이리스트의 이야기
             </label>
             <textarea
               value={diary}
@@ -264,7 +350,7 @@ export default function AssetDetailPage() {
                   : "변경 사항은 자동으로 저장돼요."}
             </p>
           </div>
-        </aside>
+        </aside>}
       </section>
     </PageShell>
   );

@@ -20,7 +20,7 @@ import { demoFixturesEnabled } from "@/lib/demo";
 const IMPORT_NARRATIVES = [
   "트랙 정보를 모으는 중이에요",
   "ISRC 기준으로 정규화하는 중이에요",
-  "플레이리스트를 자산으로 변환하는 중이에요",
+  "플레이리스트를 내 라이브러리로 옮기는 중이에요",
 ];
 
 const EXPORT_NARRATIVES = demoConvertExportNarratives;
@@ -28,6 +28,7 @@ const EXPORT_NARRATIVES = demoConvertExportNarratives;
 // ── Types ──────────────────────────────────────────────────────────────────
 
 type Stage = "import" | "export";
+const MAX_IMPORT_POLL_ATTEMPTS = 120;
 
 // ── Component ──────────────────────────────────────────────────────────────
 
@@ -46,6 +47,7 @@ function ConvertProgressPageInner() {
   const [stage, setStage] = useState<Stage>("import");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [timedOut, setTimedOut] = useState(false);
 
   const startedRef = useRef(false);
 
@@ -58,6 +60,7 @@ function ConvertProgressPageInner() {
     startedRef.current = true;
 
     let cancelled = false;
+    let importPollAttempts = 0;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     const navigateToResult = (assetId: string, jobId: string) => {
@@ -107,6 +110,12 @@ function ConvertProgressPageInner() {
         );
         const poll = async () => {
           if (cancelled) return;
+          if (importPollAttempts >= MAX_IMPORT_POLL_ATTEMPTS) {
+            setTimedOut(true);
+            setError("가져오기가 예상보다 오래 걸리고 있어요.");
+            return;
+          }
+          importPollAttempts += 1;
           try {
             const s = await getExportStatus(job.jobId);
             const pct =
@@ -205,8 +214,11 @@ function ConvertProgressPageInner() {
       <PageShell>
         <section className="flex min-h-[70vh] flex-col items-center justify-center gap-5 px-6 text-center">
           <p className="text-xl font-semibold text-text-hi">{error}</p>
-          <a className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white" href="/convert">
-            다시 시도하기
+          <a
+            className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white"
+            href={timedOut ? "/assets" : "/convert"}
+          >
+            {timedOut ? "라이브러리에서 계속 확인" : "다시 시도하기"}
           </a>
         </section>
       </PageShell>

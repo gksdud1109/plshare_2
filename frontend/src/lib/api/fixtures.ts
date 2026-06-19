@@ -55,27 +55,38 @@ export const demoAssets: AssetSummary[] = [
     title: "새벽 다섯시의 산책",
     coverUrl:
       "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&q=80",
+    description: "혼자 걷던 새벽들을 모아둔 기록",
+    emotionTags: ["새벽", "그리움", "산책"],
     trackCount: 18,
+    previewTracks: ["Holocene · Bon Iver", "Re: Stacks · Bon Iver"],
+    sourcePlatform: "spotify",
+    assetKind: "TRACKLIST",
     createdAt: "2026-04-21T05:13:00Z",
-    hasEmotionalContext: true,
   },
   {
     id: "a_drive",
     title: "해안도로 드라이브",
     coverUrl:
       "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=600&q=80",
+    emotionTags: [],
     trackCount: 24,
+    previewTracks: ["Midnight City · M83", "Drive · The Cars"],
+    sourcePlatform: "spotify",
+    assetKind: "TRACKLIST",
     createdAt: "2026-04-15T18:02:00Z",
-    hasEmotionalContext: false,
   },
   {
     id: "a_cafe",
     title: "오후의 카페",
     coverUrl:
       "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&q=80",
+    description: "햇살이 길게 드는 오후를 위한 플레이리스트",
+    emotionTags: ["카페", "햇빛"],
     trackCount: 12,
+    previewTracks: ["Avril 14th · Aphex Twin"],
+    sourcePlatform: "spotify",
+    assetKind: "TRACKLIST",
     createdAt: "2026-03-30T15:40:00Z",
-    hasEmotionalContext: true,
   },
 ];
 
@@ -98,6 +109,10 @@ export function buildDemoAssetDetail(id: string): AssetDetail {
     emotionTags: ["새벽", "그리움", "산책"],
     coverUrl:
       "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&q=80",
+    sourcePlatform: "spotify",
+    assetKind: "TRACKLIST",
+    photoUrls: [],
+    createdAt: "2026-04-21T05:13:00Z",
     tracks: demoTrackList,
   };
 }

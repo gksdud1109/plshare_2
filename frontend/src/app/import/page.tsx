@@ -2,17 +2,26 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { listPlaylists } from "@/lib/api/playlists";
-import { demoPlaylists } from "@/lib/api/fixtures";
-import type { SpotifyPlaylist } from "@/types/asset";
+import {
+  indicatesMissingYoutubeScope,
+  listYoutubePlaylists,
+} from "@/lib/api/playlists";
+import { demoYoutubePlaylists } from "@/lib/api/fixtures";
+import type { ImportSourcePlatform, PlaylistSummary } from "@/types/asset";
 import { PlaylistCard } from "@/components/ui/PlaylistCard";
 import { PageShell } from "@/components/ui/PageShell";
 import { ProgressNarrative } from "@/components/ui/ProgressNarrative";
 import { demoFixturesEnabled } from "@/lib/demo";
+import { messageFromError } from "@/lib/errors";
+
+const PRIMARY_SOURCE: ImportSourcePlatform = "youtube";
+const YOUTUBE_CONSENT_HREF =
+  "/api/auth/google/start?scope=youtube&returnTo=%2Fimport";
 
 type State =
   | { kind: "loading" }
-  | { kind: "ready"; data: SpotifyPlaylist[]; usingFixture: boolean }
+  | { kind: "ready"; data: PlaylistSummary[]; usingFixture: boolean }
+  | { kind: "consent" }
   | { kind: "error"; message: string };
 
 export default function ImportPage() {
@@ -24,15 +33,27 @@ export default function ImportPage() {
     let cancelled = false;
     (async () => {
       try {
-        const data = await listPlaylists();
+        const data = await listYoutubePlaylists();
         if (!cancelled)
           setState({ kind: "ready", data, usingFixture: false });
-      } catch {
+      } catch (error) {
         if (cancelled) return;
         if (demoFixturesEnabled()) {
-          setState({ kind: "ready", data: demoPlaylists, usingFixture: true });
+          setState({
+            kind: "ready",
+            data: demoYoutubePlaylists,
+            usingFixture: true,
+          });
+        } else if (indicatesMissingYoutubeScope(error)) {
+          setState({ kind: "consent" });
         } else {
-          setState({ kind: "error", message: "플레이리스트를 불러오지 못했어요." });
+          setState({
+            kind: "error",
+            message: messageFromError(
+              error,
+              "YouTube 플레이리스트를 불러오지 못했어요.",
+            ),
+          });
         }
       }
     })();
@@ -47,7 +68,8 @@ export default function ImportPage() {
   };
 
   const handleSelect = (id: string) => {
-    router.push(`/import/${id}/progress`);
+    const query = new URLSearchParams({ sourcePlatform: PRIMARY_SOURCE });
+    router.push(`/import/${encodeURIComponent(id)}/progress?${query}`);
   };
 
   return (
@@ -79,7 +101,7 @@ export default function ImportPage() {
           <span className="text-accent">가져올까요?</span>
         </h1>
         <p className="mt-5 max-w-xl text-base leading-relaxed text-text-mid">
-          하나를 골라 자산으로 옮겨봅니다. 트랙 정보와 ISRC를 함께 보존합니다.
+          YouTube와 YouTube Music에서 만든 목록을 골라 내 플레이리스트로 가져옵니다.
         </p>
       </header>
 
@@ -91,7 +113,7 @@ export default function ImportPage() {
         >
           <ProgressNarrative
             messages={[
-              "Spotify에서 플레이리스트를 가져오는 중이에요…",
+              "YouTube 플레이리스트를 불러오는 중이에요…",
               "곧 보여드릴게요.",
             ]}
           />
@@ -113,17 +135,53 @@ export default function ImportPage() {
         </div>
       ) : null}
 
+      {/* YouTube incremental consent state */}
+      {state.kind === "consent" ? (
+        <div className="flex flex-col items-start gap-5 py-16 animate-fade-up">
+          <div
+            className="max-w-xl rounded-[18px] border px-5 py-5"
+            style={{
+              background: "var(--color-surface-1)",
+              borderColor: "rgba(255,255,255,0.08)",
+            }}
+            role="status"
+          >
+            <h2 className="text-base font-semibold text-text-hi">
+              YouTube 플레이리스트 권한이 필요해요
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-text-mid">
+              Google 계정에 YouTube 권한을 추가하면 YouTube와 YouTube Music
+              플레이리스트를 불러올 수 있어요.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <a
+              href={YOUTUBE_CONSENT_HREF}
+              className="inline-flex h-12 items-center rounded-full bg-accent px-6 text-sm font-semibold text-white transition-all duration-300 hover:bg-accent-hi active:bg-accent-press focus-ring"
+            >
+              YouTube 권한 연결
+            </a>
+            <button
+              type="button"
+              onClick={retry}
+              className="glass inline-flex h-12 items-center rounded-full px-6 text-sm font-medium text-text-hi transition-colors duration-300 hover:border-hairline-strong focus-ring"
+            >
+              다시 확인
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {/* Error state */}
       {state.kind === "error" ? (
-        <div
-          className="flex flex-col items-start gap-5 py-16 animate-fade-up"
-        >
+        <div className="flex flex-col items-start gap-5 py-16 animate-fade-up">
           <p
             className="rounded-[18px] border px-5 py-4 text-sm text-danger"
             style={{
               background: "rgba(251,113,133,0.08)",
               borderColor: "rgba(251,113,133,0.2)",
             }}
+            role="alert"
           >
             {state.message}
           </p>
@@ -187,7 +245,7 @@ export default function ImportPage() {
                 />
               </svg>
               <p className="text-sm text-text-mid">
-                표시할 플레이리스트가 없습니다.
+                YouTube 또는 YouTube Music에 표시할 플레이리스트가 없습니다.
               </p>
             </div>
           ) : (

@@ -3,9 +3,7 @@
 /**
  * /u/[handle] — 사용자 프로필 페이지
  *
- * 포스트 탭: GET /api/users/{handle}/posts (fe-feed-001 BLOCKER 해소로 BE에 추가됨).
- * 자산 탭: Asset에 소유자(ownerId) 스키마가 아직 없어 "준비 중" 유지 —
- * 자산 소유권 모델(V7)과 함께 ranking/gift 웨이브에서 해소 예정.
+ * 공개 플레이리스트 정책이 확정되기 전까지 포스트만 노출한다.
  */
 
 import { useEffect, useState } from "react";
@@ -14,7 +12,6 @@ import Link from "next/link";
 import { PageShell } from "@/components/ui/PageShell";
 import { FollowButton } from "@/components/social/FollowButton";
 import { PostCard } from "@/components/social/PostCard";
-import { cn } from "@/lib/utils/cn";
 import type {
   UserProfile,
   FollowStatsResponse,
@@ -39,8 +36,6 @@ type ProfileState =
       stats: FollowStatsResponse;
     };
 
-type ProfileTab = "posts" | "assets";
-
 const AVATAR_FALLBACK = (handle: string) =>
   `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(handle)}&backgroundColor=7c5cff&textColor=ffffff`;
 
@@ -53,7 +48,6 @@ export default function ProfilePage() {
       : null;
 
   const [state, setState] = useState<ProfileState>({ kind: "loading" });
-  const [tab, setTab] = useState<ProfileTab>("posts");
   const [usingFixture, setUsingFixture] = useState(false);
 
   const isOwnProfile =
@@ -246,47 +240,11 @@ export default function ProfilePage() {
               </div>
             </header>
 
-            {/* Tabs */}
-            <div
-              className="flex gap-0 rounded-[12px] border border-hairline bg-surface-2 p-1"
-              role="tablist"
-              aria-label="프로필 탭"
-            >
-              {(["posts", "assets"] as ProfileTab[]).map((t) => {
-                const label = t === "posts" ? "포스트" : "자산";
-                const active = tab === t;
-                return (
-                  <button
-                    key={t}
-                    role="tab"
-                    aria-selected={active}
-                    type="button"
-                    onClick={() => setTab(t)}
-                    className={cn(
-                      "flex-1 rounded-[9px] py-2 text-sm font-semibold",
-                      "transition-all duration-200 ease-[var(--ease-spring)]",
-                      active
-                        ? "bg-surface-3 text-text-hi shadow-[var(--shadow-card)]"
-                        : "text-text-mid hover:text-text-hi",
-                    )}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Tab content */}
-            {tab === "posts" && (
-              <ProfilePosts
-                handle={handle}
-                viewerId={viewerId}
-                isOwn={isOwnProfile}
-              />
-            )}
-            {tab === "assets" && (
-              <AssetsComingSoon isOwn={isOwnProfile} />
-            )}
+            <ProfilePosts
+              handle={handle}
+              viewerId={viewerId}
+              isOwn={isOwnProfile}
+            />
           </div>
         )}
       </div>
@@ -424,34 +382,6 @@ function ProfilePosts({
         >
           {loadingMore ? "불러오는 중…" : "더 보기"}
         </button>
-      )}
-    </div>
-  );
-}
-
-/**
- * Assets tab placeholder.
- * BLOCKER: GET /api/assets has no userId/handle filter parameter (confirmed).
- * Cannot fetch user-specific assets without client-side filtering.
- */
-function AssetsComingSoon({ isOwn }: { isOwn: boolean }) {
-  return (
-    <div className="flex flex-col items-center gap-3 rounded-[18px] border border-hairline bg-surface-1 py-16 text-center">
-      <p className="text-sm font-semibold text-text-mid">
-        {isOwn ? "아직 자산이 없어요" : "자산 목록 준비 중"}
-      </p>
-      <p className="max-w-xs text-xs text-text-low">
-        {isOwn
-          ? "Spotify에서 플레이리스트를 가져와 첫 자산을 만들어보세요."
-          : "사용자별 자산 조회 API가 추가되면 여기에 표시돼요."}
-      </p>
-      {isOwn && (
-        <Link
-          href="/import"
-          className="mt-2 rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white hover:bg-accent-hi transition-colors duration-200"
-        >
-          Spotify에서 가져오기
-        </Link>
       )}
     </div>
   );

@@ -62,6 +62,7 @@ export const demoPostAssets: Record<string, PostAssetEmbed> = {
       "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&q=80",
     trackCount: 18,
     emotionTags: ["새벽", "그리움"],
+    assetKind: "TRACKLIST",
   },
   "asset-002": {
     id: "asset-002",
@@ -70,6 +71,7 @@ export const demoPostAssets: Record<string, PostAssetEmbed> = {
       "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=600&q=80",
     trackCount: 24,
     emotionTags: ["드라이브"],
+    assetKind: "TRACKLIST",
   },
   "asset-003": {
     id: "asset-003",
@@ -78,6 +80,7 @@ export const demoPostAssets: Record<string, PostAssetEmbed> = {
       "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&q=80",
     trackCount: 12,
     emotionTags: ["카페", "집중"],
+    assetKind: "TRACKLIST",
   },
 };
 

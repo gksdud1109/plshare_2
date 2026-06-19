@@ -233,7 +233,9 @@ function AssetEmbedCard({ asset }: { asset: PostAssetEmbed }) {
         <p className="truncate text-[0.9375rem] font-semibold text-text-hi leading-tight">
           {asset.title}
         </p>
-        <p className="text-xs text-text-mid">트랙 {asset.trackCount}개</p>
+        <p className="text-xs text-text-mid">
+          {asset.assetKind === "MOOD_VIDEO" ? "무드영상" : `트랙 ${asset.trackCount}개`}
+        </p>
         {asset.emotionTags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-0.5">
             {asset.emotionTags.slice(0, 3).map((tag) => (

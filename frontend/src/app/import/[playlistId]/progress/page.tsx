@@ -1,30 +1,38 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { getImportStatus, startImport } from "@/lib/api/imports";
 import { makeIdempotencyKey } from "@/lib/api/client";
 import { demoImportProgression } from "@/lib/api/fixtures";
 import { demoFixturesEnabled } from "@/lib/demo";
-import type { ImportJobStatus } from "@/types/asset";
+import type { ImportJobStatus, ImportSourcePlatform } from "@/types/asset";
+import { indicatesMissingYoutubeScope } from "@/lib/api/playlists";
+import { messageFromError } from "@/lib/errors";
 import { PageShell } from "@/components/ui/PageShell";
 import { ProgressNarrative } from "@/components/ui/ProgressNarrative";
 
 const NARRATIVE = [
   "플레이리스트를 읽고 있어요…",
   "트랙을 정규화하고 있어요…",
-  "자산으로 정리하고 있어요…",
+  "플레이리스트로 정리하고 있어요…",
 ];
+const MAX_POLL_ATTEMPTS = 120;
 
 // Deterministic cover image based on playlistId seed
 const COVER_SEEDS = ["pl1", "pl2", "pl3", "pl4", "pl5"];
 
-export default function ImportProgressPage() {
+function ImportProgressPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const params = useParams<{ playlistId: string }>();
   const playlistId = params.playlistId;
+  const sourcePlatform: ImportSourcePlatform =
+    searchParams.get("sourcePlatform") === "spotify" ? "spotify" : "youtube";
 
   const [error, setError] = useState<string | null>(null);
+  const [needsConsent, setNeedsConsent] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusLabel, setStatusLabel] = useState<ImportJobStatus["status"]>("queued");
   const startedRef = useRef(false);
@@ -35,6 +43,7 @@ export default function ImportProgressPage() {
 
     let cancelled = false;
     let demoStep = 0;
+    let pollAttempts = 0;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     const finish = (assetId: string) => {
@@ -62,10 +71,17 @@ export default function ImportProgressPage() {
       try {
         const job = await startImport(
           playlistId,
-          makeIdempotencyKey(`import-${playlistId}`),
+          makeIdempotencyKey(`import-${sourcePlatform}-${playlistId}`),
+          sourcePlatform,
         );
         const poll = async () => {
           if (cancelled) return;
+          if (pollAttempts >= MAX_POLL_ATTEMPTS) {
+            setTimedOut(true);
+            setError("가져오기가 예상보다 오래 걸리고 있어요.");
+            return;
+          }
+          pollAttempts += 1;
           try {
             const s = await getImportStatus(job.jobId);
             setProgress(s.progress);
@@ -75,19 +91,53 @@ export default function ImportProgressPage() {
               return;
             }
             if (s.status === "failed") {
-              setError("매칭에 실패했어요. 잠시 후 다시 시도해 주세요.");
+              if (
+                sourcePlatform === "youtube" &&
+                indicatesMissingYoutubeScope(s)
+              ) {
+                setNeedsConsent(true);
+                setError("YouTube 플레이리스트 권한이 필요해요.");
+              } else {
+                setError(
+                  s.errorMessage ??
+                    "매칭에 실패했어요. 잠시 후 다시 시도해 주세요.",
+                );
+              }
               return;
             }
             timer = setTimeout(poll, 1000);
-          } catch {
+          } catch (error) {
             if (demoFixturesEnabled()) runDemo();
-            else setError("가져오기 상태를 확인하지 못했어요.");
+            else if (
+              sourcePlatform === "youtube" &&
+              indicatesMissingYoutubeScope(error)
+            ) {
+              setNeedsConsent(true);
+              setError("YouTube 플레이리스트 권한이 필요해요.");
+            } else {
+              setError(
+                messageFromError(
+                  error,
+                  "가져오기 상태를 확인하지 못했어요.",
+                ),
+              );
+            }
           }
         };
         poll();
-      } catch {
+      } catch (error) {
         if (demoFixturesEnabled()) runDemo();
-        else setError("가져오기를 시작하지 못했어요.");
+        else if (
+          sourcePlatform === "youtube" &&
+          indicatesMissingYoutubeScope(error)
+        ) {
+          setNeedsConsent(true);
+          setError("YouTube 플레이리스트 권한이 필요해요.");
+        } else {
+          setError(
+            messageFromError(error, "가져오기를 시작하지 못했어요."),
+          );
+        }
       }
     };
 
@@ -97,7 +147,7 @@ export default function ImportProgressPage() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [playlistId, router]);
+  }, [playlistId, router, sourcePlatform]);
 
   // Pick a stable cover seed from the playlistId
   const coverSeed =
@@ -113,11 +163,18 @@ export default function ImportProgressPage() {
   const statusText =
     statusLabel === "queued"
       ? "대기 중"
-      : statusLabel === "matching"
+      : statusLabel === "matching" || statusLabel === "running"
         ? "정규화 중"
         : statusLabel === "completed"
           ? "완료"
           : "실패";
+  const progressPath = `/import/${encodeURIComponent(playlistId)}/progress?${new URLSearchParams({
+    sourcePlatform,
+  })}`;
+  const consentHref = `/api/auth/google/start?${new URLSearchParams({
+    scope: "youtube",
+    returnTo: progressPath,
+  })}`;
 
   return (
     <PageShell>
@@ -133,29 +190,53 @@ export default function ImportProgressPage() {
                 background: "rgba(251,113,133,0.08)",
                 borderColor: "rgba(251,113,133,0.2)",
               }}
+              role="alert"
             >
               {error}
             </div>
             <p className="text-sm text-text-mid">
-              일부 트랙은 ISRC 정보가 없어 매칭이 어려울 수 있어요.
+              {needsConsent
+                ? "Google 계정에 YouTube 권한을 추가한 뒤 가져오기를 다시 시작할 수 있어요."
+                : timedOut
+                ? "작업은 백그라운드에서 계속될 수 있어요. 라이브러리에서 결과를 확인해주세요."
+                : "일부 트랙은 ISRC 정보가 없어 매칭이 어려울 수 있어요."}
             </p>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setError(null);
-                  startedRef.current = false;
-                  setProgress(0);
-                  setStatusLabel("queued");
-                  setTimeout(() => {
+            <div className="flex flex-wrap justify-center gap-3">
+              {needsConsent ? (
+                <a
+                  href={consentHref}
+                  className="inline-flex h-12 items-center rounded-full bg-accent px-6 text-sm font-semibold text-white transition-all duration-300 hover:bg-accent-hi active:bg-accent-press focus-ring"
+                >
+                  YouTube 권한 연결
+                </a>
+              ) : timedOut ? (
+                <button
+                  type="button"
+                  onClick={() => router.push("/assets")}
+                  className="inline-flex h-12 items-center rounded-full bg-accent px-6 text-sm font-semibold text-white transition-all duration-300 hover:bg-accent-hi active:bg-accent-press focus-ring"
+                >
+                  라이브러리에서 계속 확인
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError(null);
+                    setNeedsConsent(false);
+                    setTimedOut(false);
                     startedRef.current = false;
-                    location.reload();
-                  }, 50);
-                }}
-                className="inline-flex h-12 items-center rounded-full bg-accent px-6 text-sm font-semibold text-white transition-all duration-300 hover:bg-accent-hi active:bg-accent-press focus-ring"
-              >
-                다시 시도
-              </button>
+                    setProgress(0);
+                    setStatusLabel("queued");
+                    setTimeout(() => {
+                      startedRef.current = false;
+                      location.reload();
+                    }, 50);
+                  }}
+                  className="inline-flex h-12 items-center rounded-full bg-accent px-6 text-sm font-semibold text-white transition-all duration-300 hover:bg-accent-hi active:bg-accent-press focus-ring"
+                >
+                  다시 시도
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => router.push("/import")}
@@ -259,5 +340,13 @@ export default function ImportProgressPage() {
         )}
       </section>
     </PageShell>
+  );
+}
+
+export default function ImportProgressPage() {
+  return (
+    <Suspense fallback={null}>
+      <ImportProgressPageInner />
+    </Suspense>
   );
 }

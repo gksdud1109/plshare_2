@@ -35,9 +35,12 @@ export default async function OpenGraphImage({ params }: RouteProps) {
         title: "공유할 수 없는 플레이리스트",
         emotionTags: [],
         tracks: [],
+        sourcePlatform: "unknown",
+        assetKind: "TRACKLIST",
+        createdAt: new Date(0).toISOString(),
       };
     } else {
-    data = buildDemoSharedAsset(token);
+      data = buildDemoSharedAsset(token);
     }
   }
 

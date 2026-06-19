@@ -26,6 +26,7 @@ export default function GiftSendPage() {
   const session = useSessionUser();
   const toast = useToast();
   const [assets, setAssets] = useState<AssetSummary[]>([]);
+  const [assetsLoading, setAssetsLoading] = useState(true);
   const [usingFixture, setUsingFixture] = useState(false);
   const [selectedAssetId, setSelectedAssetId] = useState("");
   const [dedicationTo, setDedicationTo] = useState("");
@@ -57,6 +58,8 @@ export default function GiftSendPage() {
           setUsingFixture(true);
           if (demoAssets.length > 0) setSelectedAssetId(demoAssets[0].id);
         }
+      } finally {
+        if (!cancelled) setAssetsLoading(false);
       }
     })();
     return () => {
@@ -143,7 +146,7 @@ export default function GiftSendPage() {
             선물 보내기
           </h1>
           <p className="mt-2 text-sm text-text-low">
-            나의 음악 자산에 감성 메시지를 담아 보내세요.
+            나의 플레이리스트에 감성 메시지를 담아 보내세요.
           </p>
           {usingFixture && (
             <p className="mt-4 inline-flex rounded-full border border-hairline bg-surface-1 px-3 py-1 text-[0.6875rem] uppercase tracking-[0.18em] text-text-low">
@@ -174,13 +177,20 @@ export default function GiftSendPage() {
         ) : (
           /* ── 폼 ── */
           <form onSubmit={handleSubmit} className="flex flex-col gap-8">
-            {/* 자산 선택 */}
+            {/* 플레이리스트 선택 */}
             <section>
               <label className="mb-3 block text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-text-low">
-                자산 선택
+                플레이리스트 선택
               </label>
-              {assets.length === 0 ? (
-                <p className="text-sm text-text-low">자산을 불러오는 중이에요…</p>
+              {assetsLoading ? (
+                <p className="text-sm text-text-low">플레이리스트를 불러오는 중이에요…</p>
+              ) : assets.length === 0 ? (
+                <div className="rounded-xl border border-hairline bg-surface-1 p-4">
+                  <p className="text-sm text-text-low">선물할 플레이리스트가 아직 없어요.</p>
+                  <a href="/create" className="mt-3 inline-flex text-sm font-semibold text-accent">
+                    플레이리스트 만들기
+                  </a>
+                </div>
               ) : (
                 <div className="flex flex-col gap-2">
                   {assets.map((a) => (
@@ -212,9 +222,18 @@ export default function GiftSendPage() {
                           <span className="text-xl opacity-30">♪</span>
                         </div>
                       )}
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-text-hi">{a.title}</p>
-                        <p className="text-xs text-text-low">{a.trackCount}곡</p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-sm font-medium text-text-hi">{a.title}</p>
+                          <span className="shrink-0 rounded-full border border-hairline px-2 py-0.5 text-[0.625rem] font-semibold text-text-low">
+                            {a.assetKind === "MOOD_VIDEO" ? "영상" : `${a.trackCount}곡`}
+                          </span>
+                        </div>
+                        <p className="mt-1 truncate text-xs text-text-low">
+                          {a.assetKind === "MOOD_VIDEO"
+                            ? a.moodChannelName || a.moodTrackListText?.split("\n")[0] || "YouTube 무드영상"
+                            : a.previewTracks?.join(" · ") || "수록곡 미리보기 없음"}
+                        </p>
                       </div>
                     </button>
                   ))}

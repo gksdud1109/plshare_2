@@ -87,6 +87,7 @@ export interface PostAssetEmbed {
   coverUrl: string | null;
   trackCount: number;
   emotionTags: string[];
+  assetKind: "TRACKLIST" | "MOOD_VIDEO";
 }
 
 /** 4-state async helper */
