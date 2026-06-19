@@ -310,6 +310,58 @@ async function authedContext(browser) {
     await ctx.close();
   } catch (e) { rec(`S11 예외: ${e.message}`, false); }
 
+  // ── S12: 피드백 배치 — 공개읽기·멱등·헤더400·export가드·삭제·검색·무드영상상세 ──
+  console.log('\n═══ S12: 피드백 배치 (신규 기능) ═══');
+  try {
+    const ikey = () => ({ 'X-Idempotency-Key': `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` });
+    const cat = (await j(`${BE}/api/catalog/tracks`)).data;
+
+    // item1 공개 읽기: 타인 자산 — 소유자403 / 공개200 / 사적필드 미유출
+    const rk = (await j(`${BE}/api/ranking/playlists?period=all-time&page=0&size=4`)).data;
+    const ritems = rk.content ?? rk.items ?? [];
+    const otherAsset = ritems.map((i) => i.assetId).find(Boolean);
+    if (otherAsset) {
+      const ownerSt = (await fetch(`${BE}/api/assets/${otherAsset}`, { headers: auth })).status;
+      const pub = await j(`${BE}/api/public/assets/${otherAsset}`, { headers: auth });
+      const leaked = pub.data && ('diaryText' in pub.data || 'photoUrls' in pub.data || 'shareToken' in pub.data);
+      rec('공개읽기: 소유자403·공개200·사적필드 미유출', ownerSt === 403 && pub.status === 200 && !leaked, `owner=${ownerSt} pub=${pub.status} leak=${leaked}`);
+    } else { rec('랭킹 타인 자산 확보(시드)', false); }
+
+    // item9 멱등성 + 헤더 400
+    const k = ikey();
+    const i1 = (await postJson(`${BE}/api/assets/compose`, { title: 'E2E멱등', trackIds: [cat[0].id] }, { ...auth, ...k })).data;
+    const i2 = (await postJson(`${BE}/api/assets/compose`, { title: 'E2E멱등', trackIds: [cat[0].id] }, { ...auth, ...k })).data;
+    rec('compose 멱등(같은 키→같은 id)', !!i1?.id && i1.id === i2.id);
+    const noHdr = await fetch(`${BE}/api/assets/compose`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...auth }, body: JSON.stringify({ title: 'x', trackIds: [cat[0].id] }) });
+    rec('X-Idempotency-Key 누락 → 400(500아님)', noHdr.status === 400, `status=${noHdr.status}`);
+
+    // item7 mood-video + export 가드(400)
+    const mv = (await postJson(`${BE}/api/assets/mood-video`, { title: 'E2E무드', videoUrlOrId: '_7ljE0tmfyk', channelName: '후알유' }, { ...auth, ...ikey() })).data;
+    const exSt = (await fetch(`${BE}/api/exports`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...auth, ...ikey() }, body: JSON.stringify({ assetId: mv.id, targetPlatform: 'apple' }) })).status;
+    rec('MOOD_VIDEO export 거부(400)', exSt === 400, `status=${exSt}`);
+
+    // item6 삭제: 선물참조409 / 미참조200
+    await postJson(`${BE}/api/gifts`, { assetId: mv.id, message: 'hi', wrapSkin: 'nocturne-rose' }, auth);
+    const delRef = (await fetch(`${BE}/api/assets/${mv.id}`, { method: 'DELETE', headers: auth })).status;
+    const free = (await postJson(`${BE}/api/assets/compose`, { title: 'E2E삭제', trackIds: [cat[0].id] }, { ...auth, ...ikey() })).data;
+    const delFree = (await fetch(`${BE}/api/assets/${free.id}`, { method: 'DELETE', headers: auth })).status;
+    rec('자산 삭제: 선물참조409·미참조200', delRef === 409 && delFree === 200, `ref=${delRef} free=${delFree}`);
+
+    // item5a 검색 엔드포인트 연결(200, 키 없으면 빈 결과)
+    const srch = await j(`${BE}/api/catalog/youtube/search?q=newjeans`, { headers: auth });
+    rec('YT 검색 엔드포인트 연결(200)', srch.status === 200);
+
+    // item7 무드영상 자산상세 임베드 렌더(UI)
+    const mv2 = (await postJson(`${BE}/api/assets/mood-video`, { title: 'E2E무드상세', videoUrlOrId: '_7ljE0tmfyk' }, { ...auth, ...ikey() })).data;
+    const ctx = await authedContext(browser);
+    const p = await ctx.newPage();
+    p.on('console', (m) => m.type() === 'error' && errors.push(`S12: ${m.text()}`));
+    await p.goto(`${FE}/assets/${mv2.id}`, { waitUntil: 'networkidle' });
+    await sleep(1800);
+    rec('무드영상 자산상세 임베드 렌더', (await p.locator('iframe[src*="youtube.com/embed/_7ljE0tmfyk"]').count()) > 0);
+    await ctx.close();
+  } catch (e) { rec(`S12 예외: ${e.message}`, false); }
+
   // ── 요약 ──
   await browser.close();
   const pass = results.filter((r) => r.ok).length;
