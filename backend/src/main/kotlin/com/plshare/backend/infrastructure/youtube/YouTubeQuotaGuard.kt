@@ -10,7 +10,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 /**
- * YouTube Data API v3 일일 write 쿼터 가드.
+ * YouTube Data API v3 일일 예약 쿼터 가드.
  *
  * ## 역할
  * export 시작 전에 예상 unit을 예약([reserve])하고, 실제 소모량을 기록([record])한다.
@@ -22,10 +22,10 @@ import java.time.format.DateTimeFormatter
  *   → N곡 1건 ≈ 50 + 50*N unit. 30곡 ≈ 1,550u.
  *
  * ## 예산 설정
- *   `youtube.daily-write-budget` (기본 8,000u):
+ *   `youtube.daily-write-budget` (기본 8,000u, 기존 설정명 유지):
  *   공식 한도 10,000u 대비 2,000u 헤드룸을 둔다.
  *   이유: read 쿼터(import/matching) + 예상치 못한 재시도가 동일 할당량을 공유하므로
- *   write 전용 예산을 보수적으로 설정해 read 흐름을 보호한다.
+ *   export write와 고비용 search.list가 함께 사용하는 예약 예산이다.
  *
  * ## 영속 방식: DB (재시작 안전)
  *   in-memory 대신 `youtube_quota_usage` 테이블(V6 마이그레이션)을 사용한다.
@@ -84,7 +84,7 @@ class YouTubeQuotaGuard(
             log.warn("YouTube quota exceeded: budget={}, used={}, requested={}", dailyBudget, used, estimatedUnits)
             throw ApiException(
                 ErrorCode.QUOTA_EXCEEDED,
-                "YouTube 일일 write 예산 초과: 예산=${dailyBudget}u, 소모=${used}u, 잔여=${remaining}u, 요청=${estimatedUnits}u"
+                "YouTube 일일 예약 예산 초과: 예산=${dailyBudget}u, 소모=${used}u, 잔여=${remaining}u, 요청=${estimatedUnits}u"
             )
         }
 

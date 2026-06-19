@@ -24,6 +24,7 @@ import java.util.UUID
 class CatalogService(
     private val curatedTrackRepository: CuratedTrackRepository,
     private val assetRepository: AssetRepository,
+    private val youTubeSelectionTokenCodec: YouTubeCatalogSelectionTokenCodec,
 ) {
 
     fun listTracks(mood: String?): List<CuratedTrackDto> {
@@ -36,22 +37,23 @@ class CatalogService(
     }
 
     @Transactional
-    fun compose(req: ComposeAssetRequest, ownerId: UUID): ComposedAssetResponse {
+    fun compose(
+        req: ComposeAssetRequest,
+        ownerId: UUID,
+        idempotencyKey: String,
+    ): ComposedAssetResponse {
+        existingResponse(ownerId, idempotencyKey)?.let { return it }
         val title = req.title.trim()
         if (title.isEmpty() || title.length > 100) {
             throw ApiException(ErrorCode.VALIDATION_FAILED, "제목은 1~100자여야 합니다")
         }
-        val ids = req.trackIds.distinct()
-        if (ids.isEmpty() || ids.size > MAX_TRACKS) {
+        val selections = resolveSelections(req)
+        if (selections.isEmpty() || selections.size > MAX_TRACKS) {
             throw ApiException(ErrorCode.VALIDATION_FAILED, "트랙은 1~${MAX_TRACKS}곡이어야 합니다")
-        }
-        val byId = curatedTrackRepository.findAllById(ids).associateBy { it.id }
-        if (byId.size != ids.size) {
-            throw ApiException(ErrorCode.NOT_FOUND, "선택한 카탈로그 트랙을 찾을 수 없습니다")
         }
 
         val cover = req.coverUrl?.takeIf { it.isNotBlank() }
-            ?: ids.firstNotNullOfOrNull { byId[it]?.coverUrl }
+            ?: selections.firstNotNullOfOrNull { it.coverUrl }
             ?: "https://picsum.photos/seed/${ownerId.hashCode().toUInt().toString(16)}/600/600"
 
         val asset = Asset(
@@ -61,17 +63,18 @@ class CatalogService(
             description = req.description?.takeIf { it.isNotBlank() },
             sourcePlatform = "catalog",
             emotionTags = req.emotionTags.filter { it.isNotBlank() }.distinct().take(8).toMutableList(),
+            composeIdempotencyKey = validateIdempotencyKey(idempotencyKey),
         )
-        // 선택 순서 보존하며 카탈로그 → Track 복사(youtubeVideoId 그대로 → 재생 보장).
-        ids.forEach { tid ->
-            val c = byId.getValue(tid)
+        // 선택 순서 보존. Curated UUID는 DB에서, YouTube selectionId는 HMAC 검증된
+        // 서버 payload에서 복원하므로 임의 client metadata를 신뢰하지 않는다.
+        selections.forEach { selection ->
             asset.tracks.add(
                 Track(
                     asset = asset,
-                    name = c.title,
-                    artist = c.artist,
-                    durationMs = c.durationMs,
-                    youtubeVideoId = c.youtubeVideoId,
+                    name = selection.title,
+                    artist = selection.artist,
+                    durationMs = selection.durationMs,
+                    youtubeVideoId = selection.youtubeVideoId,
                 )
             )
         }
@@ -84,7 +87,12 @@ class CatalogService(
      * 수록곡은 자유 텍스트(trackListText)로 보존 — Track 으로 쪼개지 않는다.
      */
     @Transactional
-    fun composeMoodVideo(req: CreateMoodVideoRequest, ownerId: UUID): ComposedAssetResponse {
+    fun composeMoodVideo(
+        req: CreateMoodVideoRequest,
+        ownerId: UUID,
+        idempotencyKey: String,
+    ): ComposedAssetResponse {
+        existingResponse(ownerId, idempotencyKey)?.let { return it }
         val title = req.title.trim()
         if (title.isEmpty() || title.length > 100) {
             throw ApiException(ErrorCode.VALIDATION_FAILED, "제목은 1~100자여야 합니다")
@@ -105,6 +113,7 @@ class CatalogService(
             moodVideoId = videoId,
             moodChannelName = req.channelName?.takeIf { it.isNotBlank() },
             moodTrackListText = req.trackListText?.takeIf { it.isNotBlank() },
+            composeIdempotencyKey = validateIdempotencyKey(idempotencyKey),
         )
         assetRepository.save(asset)
         return ComposedAssetResponse(id = asset.id, title = asset.title, trackCount = 0)
@@ -124,7 +133,94 @@ class CatalogService(
         return null
     }
 
+    private fun existingResponse(ownerId: UUID, idempotencyKey: String): ComposedAssetResponse? {
+        val key = validateIdempotencyKey(idempotencyKey)
+        return assetRepository.findByOwnerIdAndComposeIdempotencyKey(ownerId, key)?.let {
+            ComposedAssetResponse(id = it.id, title = it.title, trackCount = it.tracks.size)
+        }
+    }
+
+    private fun resolveSelections(req: ComposeAssetRequest): List<ComposableTrack> {
+        if (req.trackIds.isNotEmpty() && req.selectionIds.isNotEmpty()) {
+            throw ApiException(
+                ErrorCode.VALIDATION_FAILED,
+                "trackIds와 selectionIds는 동시에 보낼 수 없습니다",
+            )
+        }
+        val requestedCount = if (req.selectionIds.isNotEmpty()) {
+            req.selectionIds.distinct().size
+        } else {
+            req.trackIds.distinct().size
+        }
+        if (requestedCount == 0 || requestedCount > MAX_TRACKS) {
+            throw ApiException(ErrorCode.VALIDATION_FAILED, "트랙은 1~${MAX_TRACKS}곡이어야 합니다")
+        }
+
+        if (req.selectionIds.isEmpty()) {
+            val ids = req.trackIds.distinct()
+            val byId = curatedTrackRepository.findAllById(ids).associateBy { it.id }
+            if (byId.size != ids.size) {
+                throw ApiException(ErrorCode.NOT_FOUND, "선택한 카탈로그 트랙을 찾을 수 없습니다")
+            }
+            return ids.map { id -> byId.getValue(id).toComposableTrack() }
+        }
+
+        val orderedIds = req.selectionIds.map { it.trim() }.distinct()
+        if (orderedIds.any { it.isEmpty() }) {
+            throw ApiException(ErrorCode.VALIDATION_FAILED, "빈 selectionId는 사용할 수 없습니다")
+        }
+        val curatedIds = orderedIds.mapNotNull { value ->
+            runCatching { UUID.fromString(value) }.getOrNull()
+        }
+        val curatedById = curatedTrackRepository.findAllById(curatedIds).associateBy { it.id }
+        if (curatedById.size != curatedIds.distinct().size) {
+            throw ApiException(ErrorCode.NOT_FOUND, "선택한 카탈로그 트랙을 찾을 수 없습니다")
+        }
+
+        return orderedIds.map { selectionId ->
+            val curatedId = runCatching { UUID.fromString(selectionId) }.getOrNull()
+            if (curatedId != null) {
+                curatedById.getValue(curatedId).toComposableTrack()
+            } else {
+                youTubeSelectionTokenCodec.verify(selectionId).let { selection ->
+                    ComposableTrack(
+                        title = selection.title,
+                        artist = selection.channelTitle?.takeIf(String::isNotBlank) ?: "YouTube",
+                        youtubeVideoId = selection.videoId,
+                        durationMs = null,
+                        coverUrl = selection.thumbnailUrl,
+                    )
+                }
+            }
+        }
+    }
+
+    private fun com.plshare.backend.domain.catalog.model.CuratedTrack.toComposableTrack() =
+        ComposableTrack(
+            title = title,
+            artist = artist,
+            youtubeVideoId = youtubeVideoId,
+            durationMs = durationMs,
+            coverUrl = coverUrl,
+        )
+
+    private fun validateIdempotencyKey(raw: String): String {
+        val key = raw.trim()
+        if (key.isEmpty() || key.length > 160) {
+            throw ApiException(ErrorCode.VALIDATION_FAILED, "X-Idempotency-Key는 1~160자여야 합니다")
+        }
+        return key
+    }
+
     companion object {
         private const val MAX_TRACKS = 30
     }
+
+    private data class ComposableTrack(
+        val title: String,
+        val artist: String,
+        val youtubeVideoId: String,
+        val durationMs: Int?,
+        val coverUrl: String?,
+    )
 }

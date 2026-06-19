@@ -5,7 +5,15 @@ import java.time.LocalDateTime
 import java.util.*
 
 @Entity
-@Table(name = "assets")
+@Table(
+    name = "assets",
+    uniqueConstraints = [
+        UniqueConstraint(
+            name = "uk_assets_owner_compose_idempotency",
+            columnNames = ["owner_id", "compose_idempotency_key"],
+        ),
+    ],
+)
 class Asset(
     @Id
     val id: UUID = UUID.randomUUID(),
@@ -60,6 +68,10 @@ class Asset(
     /** MOOD_VIDEO 수록곡 자유 텍스트(타임스탬프 허용). Track 으로 쪼개지 않는다. */
     @Column(name = "mood_track_list_text", columnDefinition = "TEXT")
     var moodTrackListText: String? = null,
+
+    /** 카탈로그 조립 요청의 재전송이 같은 Asset을 반환하도록 하는 소유자 범위 멱등키. */
+    @Column(name = "compose_idempotency_key", length = 160)
+    var composeIdempotencyKey: String? = null,
 
     @Column(nullable = false, updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now()

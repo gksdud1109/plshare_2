@@ -8,6 +8,7 @@ import java.util.UUID
 
 interface AssetRepository : JpaRepository<Asset, UUID> {
     fun findByShareToken(shareToken: String): Asset?
+    fun findByOwnerIdAndComposeIdempotencyKey(ownerId: UUID, composeIdempotencyKey: String): Asset?
 
     /**
      * tracks 를 즉시(JOIN FETCH) 로딩해 반환한다. export 비동기 실행은 요청 트랜잭션 밖

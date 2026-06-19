@@ -1,6 +1,7 @@
 package com.plshare.backend.domain.export.service
 
 import com.plshare.backend.domain.asset.model.Asset
+import com.plshare.backend.domain.asset.model.AssetKind
 import com.plshare.backend.domain.asset.model.Track
 import com.plshare.backend.domain.asset.repository.AssetRepository
 import com.plshare.backend.domain.export.model.ExportJob
@@ -250,6 +251,31 @@ class ExportServiceYouTubeTest {
         }
 
         assertEquals(ErrorCode.FORBIDDEN, error.code)
+    }
+
+    @Test
+    fun `무드영상 export 요청은 빈 플레이리스트를 만들지 않고 거부한다`() {
+        val ownerId = UUID.randomUUID()
+        val asset = Asset(
+            ownerId = ownerId,
+            title = "Continuous mood video",
+            sourcePlatform = "youtube",
+            assetKind = AssetKind.MOOD_VIDEO,
+            moodVideoId = "abcdefghijk",
+        )
+        assetRepo.save(asset)
+
+        val error = assertThrows(ApiException::class.java) {
+            service.requestExport(
+                idempotencyKey = "mood-video-export",
+                assetId = asset.id,
+                targetPlatform = "youtube",
+                ownerId = ownerId,
+            )
+        }
+
+        assertEquals(ErrorCode.VALIDATION_FAILED, error.code)
+        assertEquals(0, exportRepo.count())
     }
 
     // ─── (c) 쿼터 초과 → job FAILED ─────────────────────────────────────────
@@ -512,6 +538,8 @@ class FakeAssetRepoExport : AssetRepository {
     val store = mutableMapOf<UUID, Asset>()
 
     override fun findByShareToken(shareToken: String): Asset? = store.values.firstOrNull { it.shareToken == shareToken }
+    override fun findByOwnerIdAndComposeIdempotencyKey(ownerId: UUID, composeIdempotencyKey: String): Asset? =
+        store.values.firstOrNull { it.ownerId == ownerId && it.composeIdempotencyKey == composeIdempotencyKey }
     override fun findWithTracksById(id: UUID): Asset? = store[id]
 
     override fun <S : Asset> save(entity: S): S { store[entity.id] = entity; return entity }

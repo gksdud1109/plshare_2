@@ -169,6 +169,7 @@ class FakeGiftRepository : GiftRepository {
     val store = mutableMapOf<UUID, Gift>()
 
     override fun findByToken(token: String): Gift? = store.values.firstOrNull { it.token == token }
+    override fun existsByAssetId(assetId: UUID): Boolean = store.values.any { it.assetId == assetId }
     override fun findBySavedByUserIdOrderByOpenedAtDesc(savedByUserId: UUID): List<Gift> =
         store.values.filter { it.savedByUserId == savedByUserId }.sortedByDescending { it.openedAt }
     override fun findBySenderIdOrderByCreatedAtDesc(senderId: UUID): List<Gift> =
@@ -212,6 +213,8 @@ class FakeAssetRepository : AssetRepository {
     fun saveAsset(asset: Asset): Asset { store[asset.id] = asset; return asset }
 
     override fun findByShareToken(shareToken: String): Asset? = store.values.firstOrNull { it.shareToken == shareToken }
+    override fun findByOwnerIdAndComposeIdempotencyKey(ownerId: UUID, composeIdempotencyKey: String): Asset? =
+        store.values.firstOrNull { it.ownerId == ownerId && it.composeIdempotencyKey == composeIdempotencyKey }
     override fun findWithTracksById(id: UUID): Asset? = store[id]
 
     override fun <S : Asset> save(entity: S): S { store[entity.id] = entity; return entity }

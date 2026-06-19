@@ -37,8 +37,12 @@ data class AssetSummaryDto(
     val description: String?,
     val emotionTags: List<String>,
     val trackCount: Int,
+    val previewTracks: List<String>,
     val sourcePlatform: String,
     val assetKind: AssetKind,
+    val moodVideoId: String?,
+    val moodChannelName: String?,
+    val moodTrackListText: String?,
     val createdAt: LocalDateTime
 ) {
     companion object {
@@ -49,8 +53,12 @@ data class AssetSummaryDto(
             description = a.description,
             emotionTags = a.emotionTags.toList(),
             trackCount = a.tracks.size,
+            previewTracks = a.tracks.take(3).map { "${it.name} · ${it.artist}" },
             sourcePlatform = a.sourcePlatform,
             assetKind = a.assetKind,
+            moodVideoId = a.moodVideoId,
+            moodChannelName = a.moodChannelName,
+            moodTrackListText = a.moodTrackListText,
             createdAt = a.createdAt
         )
     }
@@ -90,6 +98,42 @@ data class AssetDetailDto(
             moodChannelName = a.moodChannelName,
             moodTrackListText = a.moodTrackListText,
             createdAt = a.createdAt
+        )
+    }
+}
+
+/**
+ * 랭킹/피드에서 비소유자가 조회하는 공개 상세.
+ * diaryText, photoUrls, shareToken 같은 사적 필드는 의도적으로 포함하지 않는다.
+ */
+data class PublicAssetDetailDto(
+    val id: UUID,
+    val title: String,
+    val coverUrl: String?,
+    val description: String?,
+    val emotionTags: List<String>,
+    val sourcePlatform: String,
+    val tracks: List<TrackDto>,
+    val assetKind: AssetKind,
+    val moodVideoId: String?,
+    val moodChannelName: String?,
+    val moodTrackListText: String?,
+    val createdAt: LocalDateTime,
+) {
+    companion object {
+        fun from(a: Asset) = PublicAssetDetailDto(
+            id = a.id,
+            title = a.title,
+            coverUrl = a.coverUrl,
+            description = a.description,
+            emotionTags = a.emotionTags.toList(),
+            sourcePlatform = a.sourcePlatform,
+            tracks = a.tracks.map { TrackDto.from(it) },
+            assetKind = a.assetKind,
+            moodVideoId = a.moodVideoId,
+            moodChannelName = a.moodChannelName,
+            moodTrackListText = a.moodTrackListText,
+            createdAt = a.createdAt,
         )
     }
 }

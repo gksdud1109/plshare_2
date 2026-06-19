@@ -238,6 +238,8 @@ class FakeUserRepo : UserRepository {
 class FakeAssetRepo : AssetRepository {
     private val store = mutableMapOf<UUID, com.plshare.backend.domain.asset.model.Asset>()
     override fun findByShareToken(shareToken: String) = store.values.firstOrNull { it.shareToken == shareToken }
+    override fun findByOwnerIdAndComposeIdempotencyKey(ownerId: UUID, composeIdempotencyKey: String) =
+        store.values.firstOrNull { it.ownerId == ownerId && it.composeIdempotencyKey == composeIdempotencyKey }
     override fun findWithTracksById(id: UUID) = store[id]
     override fun <S : com.plshare.backend.domain.asset.model.Asset> save(entity: S): S { store[entity.id] = entity; return entity }
     override fun findById(id: UUID): Optional<com.plshare.backend.domain.asset.model.Asset> = Optional.ofNullable(store[id])

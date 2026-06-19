@@ -205,6 +205,8 @@ class FakeAssetRepo : AssetRepository {
 
     override fun <S : Asset> save(entity: S): S { store[entity.id] = entity; return entity }
     override fun findByShareToken(shareToken: String): Asset? = store.values.firstOrNull { it.shareToken == shareToken }
+    override fun findByOwnerIdAndComposeIdempotencyKey(ownerId: UUID, composeIdempotencyKey: String): Asset? =
+        store.values.firstOrNull { it.ownerId == ownerId && it.composeIdempotencyKey == composeIdempotencyKey }
     override fun findWithTracksById(id: UUID): Asset? = store[id]
     override fun findById(id: UUID): Optional<Asset> = Optional.ofNullable(store[id])
     override fun findAll(): MutableList<Asset> = store.values.toMutableList()

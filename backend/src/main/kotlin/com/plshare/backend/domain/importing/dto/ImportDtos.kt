@@ -1,6 +1,7 @@
 package com.plshare.backend.domain.importing.dto
 
 import com.plshare.backend.domain.importing.model.ImportJob
+import com.plshare.backend.domain.importing.model.ImportJobStatus
 import com.plshare.backend.infrastructure.spotify.SpotifyPlaylistResponse
 import com.plshare.backend.infrastructure.youtube.YouTubePlaylistSummary
 import java.util.UUID
@@ -65,7 +66,12 @@ data class ImportJobDto(
             val pct = if (job.totalTracks > 0) (job.processedTracks * 100) / job.totalTracks else 0
             return ImportJobDto(
                 jobId = job.id,
-                status = job.status.name.lowercase(),
+                status = when (job.status) {
+                    ImportJobStatus.QUEUED -> "queued"
+                    ImportJobStatus.RUNNING -> "matching"
+                    ImportJobStatus.COMPLETED -> "completed"
+                    ImportJobStatus.FAILED -> "failed"
+                },
                 totalTracks = job.totalTracks,
                 processedTracks = job.processedTracks,
                 progress = pct,

@@ -1,10 +1,12 @@
 package com.plshare.backend.domain.asset.controller
 
 import com.plshare.backend.domain.asset.dto.AssetDetailDto
+import com.plshare.backend.domain.asset.dto.PublicAssetDetailDto
 import com.plshare.backend.domain.asset.dto.AssetSummaryDto
 import com.plshare.backend.domain.asset.dto.ShareResponseDto
 import com.plshare.backend.domain.asset.dto.UpdateAssetRequest
 import com.plshare.backend.domain.asset.repository.AssetRepository
+import com.plshare.backend.domain.gift.repository.GiftRepository
 import com.plshare.backend.global.exception.ApiException
 import com.plshare.backend.global.exception.ErrorCode
 import com.plshare.backend.global.response.ApiResponse
@@ -17,7 +19,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal
 @RestController
 @RequestMapping("/api")
 class AssetController(
-    private val assetRepository: AssetRepository
+    private val assetRepository: AssetRepository,
+    private val giftRepository: GiftRepository,
 ) {
     @GetMapping("/assets")
     @Transactional(readOnly = true)
@@ -41,6 +44,15 @@ class AssetController(
         }
         requireOwner(asset.ownerId, principal)
         return ApiResponse.ok(AssetDetailDto.from(asset))
+    }
+
+    @GetMapping("/public/assets/{id}")
+    @Transactional(readOnly = true)
+    fun getPublic(@PathVariable id: UUID): ApiResponse<PublicAssetDetailDto> {
+        val asset = assetRepository.findById(id).orElseThrow {
+            ApiException(ErrorCode.NOT_FOUND, "Asset not found: $id")
+        }
+        return ApiResponse.ok(PublicAssetDetailDto.from(asset))
     }
 
     @PatchMapping("/assets/{id}")
@@ -68,6 +80,23 @@ class AssetController(
         }
         val saved = assetRepository.save(asset)
         return ApiResponse.ok(AssetDetailDto.from(saved))
+    }
+
+    @DeleteMapping("/assets/{id}")
+    @Transactional
+    fun delete(
+        @PathVariable id: UUID,
+        @AuthenticationPrincipal principal: ApplicationPrincipal?,
+    ): ApiResponse<Boolean> {
+        val asset = assetRepository.findById(id).orElseThrow {
+            ApiException(ErrorCode.NOT_FOUND, "Asset not found: $id")
+        }
+        requireOwner(asset.ownerId, principal)
+        if (giftRepository.existsByAssetId(id)) {
+            throw ApiException(ErrorCode.CONFLICT, "선물에 사용된 플레이리스트는 삭제할 수 없습니다")
+        }
+        assetRepository.delete(asset)
+        return ApiResponse.ok(true)
     }
 
     @PostMapping("/assets/{id}/share")

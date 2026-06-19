@@ -32,7 +32,24 @@ data class ComposeAssetRequest(
     val coverUrl: String? = null,
     val description: String? = null,
     val emotionTags: List<String> = emptyList(),
-    val trackIds: List<UUID>,
+    val trackIds: List<UUID> = emptyList(),
+    /**
+     * Ordered mixed selections for new clients.
+     *
+     * Each item is either an existing curated-track UUID or the signed
+     * `selectionId` returned by GET /api/catalog/youtube/search. Do not send
+     * this field together with [trackIds].
+     */
+    val selectionIds: List<String> = emptyList(),
+)
+
+/** GET /api/catalog/youtube/search 항목. */
+data class YouTubeCatalogSearchResultDto(
+    val selectionId: String,
+    val videoId: String,
+    val title: String,
+    val channelTitle: String?,
+    val thumbnailUrl: String?,
 )
 
 /**

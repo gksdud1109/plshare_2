@@ -1,6 +1,7 @@
 package com.plshare.backend.domain.export.service
 
 import com.plshare.backend.domain.asset.model.Track
+import com.plshare.backend.domain.asset.model.AssetKind
 import com.plshare.backend.domain.asset.repository.AssetRepository
 import com.plshare.backend.domain.export.model.ExportJob
 import com.plshare.backend.domain.export.model.ExportJobStatus
@@ -87,6 +88,12 @@ class ExportService(
         }
         if (ownerId != null && asset.ownerId != ownerId) {
             throw ApiException(ErrorCode.FORBIDDEN, "Asset does not belong to the current user")
+        }
+        if (asset.assetKind == AssetKind.MOOD_VIDEO) {
+            throw ApiException(ErrorCode.VALIDATION_FAILED, "무드영상은 음악 플랫폼으로 내보낼 수 없습니다")
+        }
+        if (asset.tracks.isEmpty()) {
+            throw ApiException(ErrorCode.VALIDATION_FAILED, "트랙이 없는 플레이리스트는 내보낼 수 없습니다")
         }
 
         if (targetPlatform != "apple" && targetPlatform != "youtube") {
