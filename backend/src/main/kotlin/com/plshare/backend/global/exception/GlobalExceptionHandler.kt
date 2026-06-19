@@ -3,6 +3,8 @@ package com.plshare.backend.global.exception
 import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MethodArgumentNotValidException
+import org.springframework.web.bind.MissingRequestHeaderException
+import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.servlet.resource.NoResourceFoundException
@@ -51,6 +53,26 @@ class GlobalExceptionHandler {
         ResponseEntity
             .status(ErrorCode.NOT_FOUND.status)
             .body(ErrorResponse(code = ErrorCode.NOT_FOUND.name, message = ErrorCode.NOT_FOUND.defaultMessage))
+
+    /**
+     * 필수 요청 헤더/쿼리파라미터 누락 — 클라이언트 오류이므로 500 이 아니라 400.
+     * (예: compose/export 의 X-Idempotency-Key 누락 시 Unhandled→500 으로 새던 것을 정정.)
+     */
+    @ExceptionHandler(MissingRequestHeaderException::class)
+    fun handleMissingHeader(ex: MissingRequestHeaderException): ResponseEntity<ErrorResponse> {
+        log.warn("Missing request header: {}", ex.headerName)
+        return ResponseEntity
+            .status(ErrorCode.VALIDATION_FAILED.status)
+            .body(ErrorResponse(code = ErrorCode.VALIDATION_FAILED.name, message = "필수 헤더가 없습니다: ${ex.headerName}"))
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException::class)
+    fun handleMissingParam(ex: MissingServletRequestParameterException): ResponseEntity<ErrorResponse> {
+        log.warn("Missing request parameter: {}", ex.parameterName)
+        return ResponseEntity
+            .status(ErrorCode.VALIDATION_FAILED.status)
+            .body(ErrorResponse(code = ErrorCode.VALIDATION_FAILED.name, message = "필수 파라미터가 없습니다: ${ex.parameterName}"))
+    }
 
     @ExceptionHandler(Exception::class)
     fun handleUnknown(ex: Exception): ResponseEntity<ErrorResponse> {
