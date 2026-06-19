@@ -8,21 +8,21 @@ Codex가 이 저장소에서 작업할 때 읽는 컨텍스트 파일이다.
 
 **plshare2** — Taste Asset Management Layer
 
-Spotify 또는 YouTube Music 플레이리스트를 감정 컨텍스트와 함께
-플랫폼 독립 자산으로 보존하고 공유·전환·선물하는 소셜 서비스.
+음악 취향을 감정 컨텍스트와 함께 YouTube 기반 자산으로 만들고
+선물·공유하는 소셜 서비스.
 
 ---
 
 ## 현재 제품 범위
 
-- **P0:** `Google identity → Spotify/YTM import → Assetize → Social share`
-- **Primary corridor:** `Spotify → YouTube Music` (write quota에 따라 선택 개방)
-- **P1:** ranking, emotional gift, Apple Music export
-- B2B 데이터 패키징은 MVP 범위 외
-- In-app music player 없음 — deep link만 제공
-- 온체인 민팅 없음 — 오프체인 자산 등록만
+- **P0:** Google identity, YouTube 기반 취향 자산 생성, Emotional Context,
+  gift/unboxing, social, share surfaces
+- **P1:** YouTube 계정으로 내보내기
+- Spotify·Apple 계정 연동과 교차 플랫폼 변환은 코드만 보존하며 feature flag OFF
+- Direct messages, B2B 데이터 패키징, 온체인 민팅은 MVP 범위 외
+- In-app full music player 없음 — YouTube embed와 link만 제공
 
-제품 기준: `docs/20-product/strategy/product-baseline-v2.md`
+제품 기준: `docs/20-product/strategy/product-baseline-v2.1.md`
 
 ---
 
@@ -63,6 +63,9 @@ Backend Engineer 또는 Frontend Engineer 태스크를 담당한다.
 ---
 
 ## API 계약 (확정)
+
+YouTube 기반 경로만 활성화한다. 아래 계약의 Spotify source와 Apple target은
+보존된 어댑터 호환용이며 feature flag OFF 상태를 유지한다.
 
 ### Import
 ```

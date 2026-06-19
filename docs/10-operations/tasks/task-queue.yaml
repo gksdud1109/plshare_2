@@ -1,8 +1,8 @@
 ---
 version: 1
-last_updated: '2026-06-13'
+last_updated: '2026-06-18'
 owner: Reviewer / Operator
-product_baseline: docs/20-product/strategy/product-baseline-v2.md
+product_baseline: docs/20-product/strategy/product-baseline-v2.1.md
 history_note: Completed tasks retain the scope and done criteria that applied when they ran.
 defaults:
   status_values:
@@ -493,3 +493,224 @@ tasks:
   done_criteria:
   - Send (story+wrap) -> receive (unboxing) -> save-to-library loop
   last_error: 
+- id: ops-baseline-v21-alignment-001
+  title: Align active product guidance to Product Baseline v2.1
+  status: done
+  priority: p0
+  role: reviewer-operator
+  agent: codex-cli
+  requires_approval: false
+  depends_on: []
+  input_docs:
+  - docs/20-product/strategy/product-baseline-v2.1.md
+  - docs/10-operations/feedback-fix-completion-report.md
+  - AGENTS.md
+  - docs/20-product/strategy/README.md
+  briefing_path: docs/10-operations/briefings/ops-baseline-v21-alignment-001.md
+  artifact_paths:
+  - AGENTS.md
+  - docs/20-product/strategy/README.md
+  log_path: ".claude/logs/ops-baseline-v21-alignment-001.log"
+  validate_cmd: "! rg -n '제품 기준: `docs/20-product/strategy/product-baseline-v2\\.md`|product-baseline-v2\\.md`가 범위의 단일 기준|우선 코리도는 `Spotify -> YouTube Music`|랭킹·선물·Apple export는 P1' AGENTS.md docs/20-product/strategy/README.md"
+  review_mode: auto_basic
+  locked_files:
+  - AGENTS.md
+  - docs/20-product/strategy/README.md
+  done_criteria:
+  - AGENTS.md points to product-baseline-v2.1.md and describes gift-first YouTube-centered P0
+  - Strategy README identifies v2.1 as the single current baseline
+  - Dormant Spotify and Apple integrations are not presented as active MVP corridors
+  reviewer_role: reviewer-operator
+  next_role: backend-engineer
+  attempt_count: 1
+  started_at: '2026-06-18T21:46:04+09:00'
+  finished_at: '2026-06-18T21:47:22+09:00'
+  exit_code: 0
+  last_error: 
+- id: po-profile-curation-policy-001
+  title: Decide public profile playlist curation policy
+  status: failed
+  priority: p1
+  role: product-owner
+  agent: gemini-cli
+  requires_approval: false
+  depends_on: []
+  input_docs:
+  - docs/20-product/strategy/product-baseline-v2.1.md
+  - docs/10-operations/feedback-fix-completion-report.md
+  - docs/20-product/design/ux/user-flows-v0.2-social.md
+  briefing_path: docs/10-operations/briefings/po-profile-curation-policy-001.md
+  artifact_paths:
+  - docs/20-product/strategy/profile-curation-policy-v0.1.md
+  log_path: ".claude/logs/po-profile-curation-policy-001.log"
+  review_mode: manual
+  locked_files:
+  - docs/20-product/strategy/profile-curation-policy-v0.1.md
+  done_criteria:
+  - Defines which playlist assets may appear on a public profile
+  - Separates owner-private fields from public curation metadata
+  - Recommends an MVP default and explicit visibility controls
+  - Does not introduce direct messages or B2B scope
+  reviewer_role: reviewer-operator
+  next_role: frontend-engineer
+  attempt_count: 1
+  started_at: '2026-06-18T21:47:46+09:00'
+  finished_at: '2026-06-18T21:51:35+09:00'
+  exit_code: 130
+  last_error: see .claude/logs/po-profile-curation-policy-001.log
+- id: be-youtube-catalog-search-001
+  title: Add no-OAuth YouTube catalog search for track selection
+  status: done
+  priority: p0
+  role: backend-engineer
+  agent: codex-cli
+  requires_approval: false
+  depends_on:
+  - ops-baseline-v21-alignment-001
+  input_docs:
+  - docs/20-product/strategy/product-baseline-v2.1.md
+  - docs/10-operations/feedback-fix-completion-report.md
+  - backend/src/main/kotlin/com/plshare/backend/domain/catalog/
+  - backend/src/main/kotlin/com/plshare/backend/infrastructure/youtube/
+  briefing_path: docs/10-operations/briefings/be-youtube-catalog-search-001.md
+  artifact_paths:
+  - backend/src/main/kotlin/com/plshare/backend/domain/catalog/controller/CatalogController.kt
+  - backend/src/main/kotlin/com/plshare/backend/domain/catalog/dto/CatalogDtos.kt
+  - backend/src/main/kotlin/com/plshare/backend/domain/catalog/service/CatalogService.kt
+  - backend/src/main/kotlin/com/plshare/backend/domain/catalog/service/YouTubeCatalogSearchService.kt
+  - backend/src/test/kotlin/com/plshare/backend/domain/catalog/service/CatalogServiceTest.kt
+  - backend/src/test/kotlin/com/plshare/backend/domain/catalog/service/YouTubeCatalogSearchServiceTest.kt
+  - backend/src/main/resources/application-prod.yml
+  log_path: ".claude/logs/be-youtube-catalog-search-001.log"
+  validate_cmd: cd backend && ./gradlew test --tests '*YouTubeCatalogSearchServiceTest' --tests '*CatalogServiceTest'
+  review_mode: auto_basic
+  locked_files:
+  - backend/src/main/kotlin/com/plshare/backend/domain/catalog/
+  - backend/src/test/kotlin/com/plshare/backend/domain/catalog/
+  - backend/src/main/resources/application-prod.yml
+  done_criteria:
+  - Authenticated users can search YouTube music videos without granting YouTube account scope
+  - Search results include videoId title channel thumbnail and a stable selection id
+  - Blank or oversized queries are rejected and upstream failures remain visible
+  - Search quota cost is guarded and documented instead of silently falling back to fixtures
+  - Focused backend tests pass
+  reviewer_role: reviewer-operator
+  next_role: frontend-engineer
+  attempt_count: 1
+  started_at: '2026-06-18T21:52:11+09:00'
+  finished_at: '2026-06-18T22:01:44+09:00'
+  exit_code: 0
+  last_error: 
+- id: fe-youtube-import-entry-001
+  title: Connect YouTube and YouTube Music playlist import entry
+  status: done
+  priority: p0
+  role: frontend-engineer
+  agent: codex-cli
+  requires_approval: false
+  depends_on:
+  - ops-baseline-v21-alignment-001
+  input_docs:
+  - docs/20-product/strategy/product-baseline-v2.1.md
+  - docs/10-operations/feedback-fix-completion-report.md
+  - backend/src/main/kotlin/com/plshare/backend/domain/importing/controller/ImportController.kt
+  briefing_path: docs/10-operations/briefings/fe-youtube-import-entry-001.md
+  artifact_paths:
+  - frontend/src/app/import/page.tsx
+  - frontend/src/app/import/[playlistId]/progress/page.tsx
+  - frontend/src/lib/api/playlists.ts
+  - frontend/src/types/asset.ts
+  log_path: ".claude/logs/fe-youtube-import-entry-001.log"
+  validate_cmd: cd frontend && npm run build && npm run lint
+  review_mode: auto_basic
+  locked_files:
+  - frontend/src/app/import/
+  - frontend/src/lib/api/playlists.ts
+  - frontend/src/types/asset.ts
+  done_criteria:
+  - Import page uses YouTube or YouTube Music as the primary source
+  - Missing YouTube consent leads to incremental Google OAuth rather than Spotify fallback
+  - Selected platform is preserved into POST /api/imports as sourcePlatform youtube
+  - Production failures remain visible and demo fixtures require explicit demo mode
+  - Frontend build and lint pass
+  reviewer_role: reviewer-operator
+  next_role: frontend-engineer
+  attempt_count: 1
+  started_at: '2026-06-18T22:02:42+09:00'
+  finished_at: '2026-06-18T22:09:38+09:00'
+  exit_code: 0
+  last_error: 
+- id: fe-youtube-search-compose-001
+  title: Add YouTube search and selected-track composition to Create
+  status: done
+  priority: p0
+  role: frontend-engineer
+  agent: codex-cli
+  requires_approval: false
+  depends_on:
+  - be-youtube-catalog-search-001
+  input_docs:
+  - docs/20-product/strategy/product-baseline-v2.1.md
+  - frontend/src/app/create/page.tsx
+  - frontend/src/lib/api/catalog.ts
+  briefing_path: docs/10-operations/briefings/fe-youtube-search-compose-001.md
+  artifact_paths:
+  - frontend/src/app/create/page.tsx
+  - frontend/src/lib/api/catalog.ts
+  - frontend/src/types/catalog.ts
+  log_path: ".claude/logs/fe-youtube-search-compose-001.log"
+  validate_cmd: cd frontend && npm run build && npm run lint
+  review_mode: auto_basic
+  locked_files:
+  - frontend/src/app/create/page.tsx
+  - frontend/src/lib/api/catalog.ts
+  - frontend/src/types/catalog.ts
+  done_criteria:
+  - Users can search YouTube tracks and select results alongside curated tracks
+  - Selected search results preserve YouTube video ids into the composed asset
+  - Loading empty quota and upstream error states are explicit
+  - Existing curated catalog and mood-video creation remain functional
+  - Frontend build and lint pass
+  reviewer_role: reviewer-operator
+  next_role: reviewer-operator
+  attempt_count: 1
+  started_at: '2026-06-18T22:10:30+09:00'
+  finished_at: '2026-06-18T22:17:14+09:00'
+  exit_code: 0
+  last_error: 
+- id: qa-gift-first-p0-e2e-001
+  title: Verify gift-first YouTube P0 corridor end to end
+  status: failed
+  priority: p0
+  role: reviewer-operator
+  agent: codex-cli
+  requires_approval: false
+  depends_on:
+  - fe-youtube-import-entry-001
+  - fe-youtube-search-compose-001
+  input_docs:
+  - docs/20-product/strategy/product-baseline-v2.1.md
+  - docs/10-operations/feedback-fix-completion-report.md
+  briefing_path: docs/10-operations/briefings/qa-gift-first-p0-e2e-001.md
+  artifact_paths:
+  - frontend/e2e/gift-first-p0.spec.mjs
+  - docs/10-operations/gift-first-p0-validation-report.md
+  log_path: ".claude/logs/qa-gift-first-p0-e2e-001.log"
+  validate_cmd: cd backend && ./gradlew test && cd ../frontend && npm run build && npm run lint
+  review_mode: manual
+  locked_files:
+  - frontend/e2e/gift-first-p0.spec.mjs
+  - docs/10-operations/gift-first-p0-validation-report.md
+  done_criteria:
+  - E2E covers Google identity to YouTube search or import to asset creation
+  - E2E covers Emotional Context and gift creation
+  - Recipient opens and starts a YouTube embed without authentication
+  - Production failures are not replaced by demo success data
+  - Backend tests frontend build and lint pass
+  reviewer_role: reviewer-operator
+  next_role: product-owner
+  attempt_count: 1
+  started_at: '2026-06-18T22:18:05+09:00'
+  finished_at: '2026-06-18T22:18:09+09:00'
+  exit_code: 1
+  last_error: see .claude/logs/qa-gift-first-p0-e2e-001.log
