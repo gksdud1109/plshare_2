@@ -32,7 +32,7 @@ export async function generateMetadata({
     const description =
       excerpt(data.diaryText) ??
       excerpt(data.description) ??
-      "취향 자산을 함께 들어보세요";
+      "취향 카드를 함께 들어보세요";
     return {
       title: `${data.title} — plshare`,
       description,
@@ -45,7 +45,7 @@ export async function generateMetadata({
             url: `/share/${token}/opengraph-image`,
             width: 1200,
             height: 630,
-            alt: "plshare 취향 자산 카드",
+            alt: "plshare 취향 카드",
           },
         ],
       },
@@ -59,7 +59,7 @@ export async function generateMetadata({
   } catch {
     return {
       title: "plshare",
-      description: "취향 자산 매니지먼트",
+      description: "음악으로 전하는 취향 카드",
     };
   }
 }
@@ -267,7 +267,7 @@ function ShareView({
           className="font-display text-text-hi"
           style={{ fontSize: "clamp(1.5rem, 3vw, 2.25rem)", fontWeight: 700 }}
         >
-          나만의 취향 자산을 만들어보세요.
+          나만의 취향 카드를 만들어보세요.
         </p>
         <Link
           href="/import"

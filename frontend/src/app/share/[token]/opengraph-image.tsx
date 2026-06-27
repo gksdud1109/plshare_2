@@ -5,7 +5,7 @@ import type { SharedAsset } from "@/types/asset";
 import { demoFixturesEnabled } from "@/lib/demo";
 
 export const runtime = "nodejs";
-export const alt = "plshare 취향 자산 카드";
+export const alt = "plshare 취향 카드";
 export const size = { width: 1200, height: 630 } as const;
 export const contentType = "image/png";
 

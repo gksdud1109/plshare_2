@@ -286,7 +286,7 @@ export default function LandingPage() {
               </svg>
             }
             title="취향을 담다"
-            body="좋아하는 곡을 모아 한 장의 자산으로 정리합니다."
+            body="좋아하는 곡을 모아 하나의 플레이리스트로 정리합니다."
           />
           <Step
             n="02"
