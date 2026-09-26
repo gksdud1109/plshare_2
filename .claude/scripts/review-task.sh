@@ -12,7 +12,7 @@ has_error_signal() {
   local log_path="$1"
   [[ ! -f "$log_path" ]] && return 0
   [[ ! -s "$log_path" ]] && return 1
-  if rg -n "error|exception|traceback|failed|fatal" "$log_path" >/dev/null 2>&1; then
+  if rg -ni "fatal:|traceback|uncaught exception|panic:" "$log_path" >/dev/null 2>&1; then
     return 0
   fi
   return 1
@@ -86,7 +86,7 @@ mark_done() {
   title="$(task_field "$task_id" "title")"
   artifacts="$(task_field "$task_id" "artifact_paths" | paste -sd ', ' -)"
   "./.claude/scripts/task_queue.rb" "$QUEUE_FILE" set-status "$task_id" "done" "__NULL__"
-  append_decision_log "Reviewer / Operator" "Claude" "Auto-approved task ${task_id} (${title})" "Artifacts exist, are non-empty, and log has no error signal; next role=${next_role}" "$artifacts"
+  append_decision_log "Reviewer / Operator" "Codex" "Auto-approved task ${task_id} (${title})" "Artifacts exist, validation passed, and no fatal log signal was found; next role=${next_role}" "$artifacts"
   echo "done task=$task_id"
 }
 
@@ -95,6 +95,21 @@ mark_failed() {
   local reason="$2"
   "./.claude/scripts/task_queue.rb" "$QUEUE_FILE" set-status "$task_id" "failed" "$reason"
   echo "failed task=$task_id reason=$reason"
+}
+
+validation_passes() {
+  local task_id="$1"
+  local exit_code validate_cmd
+  exit_code="$(task_field "$task_id" "exit_code")"
+  if [[ -n "$exit_code" && "$exit_code" != "null" && "$exit_code" != "0" ]]; then
+    return 1
+  fi
+
+  validate_cmd="$(task_field "$task_id" "validate_cmd")"
+  if [[ -n "$validate_cmd" && "$validate_cmd" != "null" ]]; then
+    echo "validate task=$task_id command=$validate_cmd"
+    zsh -lc "$validate_cmd"
+  fi
 }
 
 if [[ -n "$TASK_ID_FILTER" ]]; then
@@ -119,6 +134,11 @@ for TASK_ID in "${REVIEW_IDS[@]}"; do
 
   if has_error_signal "$LOG_PATH"; then
     mark_failed "$TASK_ID" "error signal found in log: $LOG_PATH"
+    continue
+  fi
+
+  if ! validation_passes "$TASK_ID"; then
+    mark_failed "$TASK_ID" "worker exit code or validate_cmd failed"
     continue
   fi
 

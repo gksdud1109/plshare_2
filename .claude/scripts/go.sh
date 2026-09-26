@@ -1,6 +1,6 @@
 #!/bin/zsh
 # go.sh — 단일 진입점
-# 큐 동기화 + 승인 자동 처리(approve-all) + pending 태스크 목록 표시
+# 큐 동기화 + pending 태스크 목록 표시
 # 사용법: zsh .claude/scripts/go.sh
 set -uo pipefail
 
@@ -22,15 +22,7 @@ if [[ -n "$UNBLOCKED" ]]; then
   echo "$UNBLOCKED" | sed 's/^/  - /'
 fi
 
-# 2. 잔존 awaiting_approval 일괄 승인 (P0 전략 변경처럼 명시 true가 아니면 즉시 pending)
-APPROVED="$("$CMD" "$QUEUE_FILE" approve-all 2>/dev/null || true)"
-if [[ -n "$APPROVED" ]]; then
-  echo ""
-  echo "▶ auto-approved"
-  echo "$APPROVED" | sed 's/^/  - /'
-fi
-
-# 3. 현재 pending 태스크 정렬 출력
+# 2. 현재 pending 태스크 정렬 출력
 echo ""
 echo "================================================================"
 echo "  실행 가능 (pending)"
@@ -49,7 +41,7 @@ else
   done <<< "$PENDING"
 fi
 
-# 4. 진행 중 / 리뷰 / 실패 태스크 요약
+# 3. 진행 중 / 리뷰 / 실패 태스크 요약
 echo ""
 echo "================================================================"
 echo "  상태 요약"
@@ -65,6 +57,6 @@ done
 
 echo ""
 echo "================================================================"
-echo "  다음 단계 — 직접 진행하거나, Claude에게 다음을 요청:"
+echo "  다음 단계 — 직접 진행하거나, Reviewer / Operator에게 다음을 요청:"
 echo "    \"위 pending 태스크들 멀티에이전트로 처리해줘\""
 echo "================================================================"

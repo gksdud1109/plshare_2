@@ -10,9 +10,6 @@ command = ARGV.shift
 abort("queue file not found: #{queue_file}") unless File.exist?(queue_file)
 abort("command required") unless command
 
-data = YAML.load_file(queue_file)
-data["tasks"] ||= []
-
 def task_by_id(data, task_id)
   data["tasks"].find { |task| task["id"] == task_id }
 end
@@ -28,6 +25,11 @@ end
 def save!(queue_file, data)
   File.write(queue_file, Psych.dump(data, indentation: 2, line_width: -1))
 end
+
+File.open(queue_file, File::RDWR) do |queue_lock|
+queue_lock.flock(File::LOCK_EX)
+data = YAML.safe_load(queue_lock.read, permitted_classes: [Time], aliases: true) || {}
+data["tasks"] ||= []
 
 case command
 when "ids-by-status"
@@ -52,6 +54,19 @@ when "next-pending-for-agent"
   agent = ARGV.fetch(0)
   task = data["tasks"].find { |item| item["status"] == "pending" && item["agent"] == agent && deps_done?(data, item) }
   puts(task ? task["id"] : "")
+when "claim-next-for-agent"
+  agent = ARGV.fetch(0)
+  task = data["tasks"].find { |item| item["status"] == "pending" && item["agent"] == agent && deps_done?(data, item) }
+  if task
+    task["status"] = "in_progress"
+    task["started_at"] = Time.now.iso8601
+    task["attempt_count"] = (task["attempt_count"] || 0) + 1
+    task["last_error"] = nil
+    save!(queue_file, data)
+    puts(task["id"])
+  else
+    puts("")
+  end
 when "mark-in-progress"
   task_id = ARGV.fetch(0)
   task = task_by_id(data, task_id)
@@ -122,4 +137,5 @@ when "approve-all"
   puts(approved.join("\n"))
 else
   abort("unsupported command: #{command}")
+end
 end

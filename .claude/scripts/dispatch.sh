@@ -35,26 +35,20 @@ AGENT_MODE="stdout"
 case "$AGENT" in
   gemini-cli)
     AGENT_MODE="stdout"
-    if ! gemini -p "$(cat "$BRIEFING_FILE")" >"$TMP_ARTIFACT" 2>"$TMP_LOG"; then
-      EXIT_CODE="$?"
-    fi
+    gemini -p "$(cat "$BRIEFING_FILE")" >"$TMP_ARTIFACT" 2>"$TMP_LOG" || EXIT_CODE="$?"
     ;;
   codex-cli)
     AGENT_MODE="workspace"
     # codex exec: 비대화형 실행, --full-auto: 자동 승인 + 샌드박스
-    if ! codex exec --full-auto "$(cat "$BRIEFING_FILE")" >"$TMP_LOG" 2>&1; then
-      EXIT_CODE="$?"
-    fi
+    codex exec --full-auto "$(cat "$BRIEFING_FILE")" >"$TMP_LOG" 2>&1 || EXIT_CODE="$?"
     ;;
   claude-code)
     AGENT_MODE="workspace"
     # --allowedTools: 파일 편집 허용 / --dangerously-skip-permissions: 실행 중 확인 프롬프트 없이 자동 진행
-    if ! claude -p "$(cat "$BRIEFING_FILE")" \
+    claude -p "$(cat "$BRIEFING_FILE")" \
         --allowedTools "Read,Edit,Write,Bash(git status:*),Bash(git diff:*)" \
         --dangerously-skip-permissions \
-        >"$TMP_LOG" 2>&1; then
-      EXIT_CODE="$?"
-    fi
+        >"$TMP_LOG" 2>&1 || EXIT_CODE="$?"
     ;;
   *)
     echo "unsupported agent: $AGENT" >&2

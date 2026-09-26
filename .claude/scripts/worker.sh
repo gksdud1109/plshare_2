@@ -61,8 +61,6 @@ run_task() {
   echo "── 실행 ────────────────────────────────"
   echo ""
 
-  "$CMD" "$QUEUE_FILE" mark-in-progress "$task_id"
-
   exit_code=0
   case "$AGENT" in
     gemini-cli)
@@ -103,7 +101,7 @@ run_task() {
 
 # 메인 폴링 루프
 while true; do
-  TASK_ID="$("$CMD" "$QUEUE_FILE" next-pending-for-agent "$AGENT" 2>/dev/null || true)"
+  TASK_ID="$("$CMD" "$QUEUE_FILE" claim-next-for-agent "$AGENT" 2>/dev/null || true)"
 
   if [[ -n "$TASK_ID" ]]; then
     run_task "$TASK_ID"
